@@ -15,24 +15,25 @@ import (
 )
 
 /*
-
-Usage:
-NextSeq, err := seq.FastaReader("test.fa")
-if err != nil {
-	recover()
-	fmt.Println(err)
-	return
-}
-
-for {
-	head, seq, err := NextSeq()
+FastaReader is a fasta file parser, which returns a function that
+returns a pair of head and sequence when it was called.
+Example:
+	NextSeq, err := seq.FastaReader("test.fa")
 	if err != nil {
-		// fmt.Println(err)
-		break
+		recover()
+		fmt.Println(err)
+		return
 	}
 
-	fmt.Printf(">%s\n%s\n", head, seq)
-}
+	for {
+		head, seq, err := NextSeq()
+		if err != nil {
+			// fmt.Println(err)
+			break
+		}
+
+		fmt.Printf(">%s\n%s\n", head, seq)
+	}
 */
 func FastaReader(file string) (func() (string, string, error), error) {
 	fh, err := os.Open(file)
