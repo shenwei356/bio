@@ -3,67 +3,65 @@
  * by Wei Shen (shenwei356@gmail.com)
  */
 
-package main
+package seq
 
 import (
 	"bufio"
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
 )
 
-func main() {
-	file := "test.fa"
-	nextSeq, err := FastaReader(file)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+/*
 
-	var head, seq string
-	for {
-		head, seq = nextSeq()
-		if head == "" {
-			break
-		}
-
-		fmt.Printf(">%s\n%s\n", head, seq)
-	}
+Usage:
+NextSeq, err := seq.FastaReader("test.fa")
+if err != nil {
+	recover()
+	fmt.Println(err)
+	return
 }
 
-func FastaReader(file string) (func() (string, string), error) {
-	fh, err := os.Open(file)
+for {
+	head, seq, err := NextSeq()
+	if err != nil {
+		// fmt.Println(err)
+		break
+	}
 
+	fmt.Printf(">%s\n%s\n", head, seq)
+}
+*/
+func FastaReader(file string) (func() (string, string, error), error) {
+	fh, err := os.Open(file)
 	if err != nil {
 		recover()
-		return nil, errors.New("[Error] Failed to open file (" + file + ").")
+		return nil, errors.New("Failed to open file: " + file)
 	}
 
 	reader := bufio.NewReader(fh)
 	var buffer bytes.Buffer
 	var lastHead string
+	var fileHandlerClosed bool = false
 
-	return func() (head, seq string) {
+	return func() (head, seq string, err error) {
+		if fileHandlerClosed {
+			return "", "", io.EOF
+		}
+
 		var str string
-		var err error
 		for {
 			str, err = reader.ReadString('\n')
-
-			if err != nil {
-				if err == io.EOF { // EOF
-					if buffer.Len() > 0 {
-						buffer.WriteString(strings.TrimRight(str, "\r?\n"))
-						seq = buffer.String()
-						buffer.Reset()
-						return lastHead, seq
-					} else {
-						err = io.EOF
-						break
-					}
-				}
+			if err == io.EOF {
+				seq = buffer.String()
+				buffer.Reset()
+				head = lastHead
+				fh.Close()
+				fileHandlerClosed = true
+				err = nil
+				return
 			}
 
 			if strings.HasPrefix(str, ">") {
@@ -72,7 +70,7 @@ func FastaReader(file string) (func() (string, string), error) {
 					seq = buffer.String()
 					buffer.Reset()
 					head, lastHead = lastHead, thisHead
-					return head, seq
+					return
 				} else { // first sequence head
 					lastHead = thisHead
 				}
@@ -80,6 +78,5 @@ func FastaReader(file string) (func() (string, string), error) {
 				buffer.WriteString(strings.TrimRight(str, "\r?\n"))
 			}
 		}
-		return
 	}, err
 }
