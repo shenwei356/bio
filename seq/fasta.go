@@ -17,6 +17,7 @@ import (
 /*
 FastaReader is a fasta file parser, which returns a function that
 returns a pair of head and sequence when it was called.
+
 Example:
 	NextSeq, err := seq.FastaReader("test.fa")
 	if err != nil {
