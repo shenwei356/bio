@@ -57,6 +57,10 @@ func FastaReader(file string) (func() (string, string, error), error) {
 		for {
 			str, err = reader.ReadString('\n')
 			if err == io.EOF {
+				// do not for get the last line,
+				// even which does not ends with "\n"
+				buffer.WriteString(strings.TrimRight(str, "\r?\n"))
+
 				seq = buffer.String()
 				buffer.Reset()
 				head = lastHead
