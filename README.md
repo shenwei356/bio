@@ -1,7 +1,7 @@
 bio
 ===
 
-Bioinformatics Tools
+a simple bioinformatics package
 
 
 Install
@@ -19,6 +19,6 @@ Documentation
 -------------
 [See documentation on gowalker for more detail](http://gowalker.org/github.com/shenwei356/bio/).
 
-Copyright (c) 2013, Wei Shen (shenwei356@gmail.com)
+Copyright (c) 2013-2014, Wei Shen (shenwei356@gmail.com)
 
 [MIT License](https://github.com/shenwei356/bio/blob/master/LICENSE)

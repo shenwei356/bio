@@ -1,22 +1,21 @@
-package seq
+package seqio
 
 import (
 	"testing"
+
+	"github.com/shenwei356/bio/seq"
 )
 
 func TestFastaReader(t *testing.T) {
-	NextSeq, err := FastaReader("test.fa")
+	fasta, err := NewFastaReader(seq.DNA, "test.fa")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	n := 0
-	for {
-		_, _, err := NextSeq()
-		if err != nil {
-			break
-		}
+	for fasta.HasNext() {
+		fasta.NextSeq()
 		n++
 	}
 	if n != 3 {

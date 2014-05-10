@@ -1,9 +1,8 @@
 seq
 ===
 
-Some functions dealing with nucleotide sequence.
+This package defines a *Seq* type, and provides some basic operation of sequence, 
+like validation of DNA/RNA/Protein sequence and getting reverse complement sequence.
 
-
-Documentation
--------------
-[See documentation on gowalker for more detail](http://gowalker.org/github.com/shenwei356/bio/seq).
+This package was inspired by 
+[biogo](https://code.google.com/p/biogo/source/browse/#git%2Falphabet).
