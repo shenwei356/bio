@@ -18,6 +18,7 @@ func ReverseByteSlice(s []byte) []byte {
 	return t
 }
 
+// format sequence for ouput
 func FormatSeq(seq []byte, width int) []byte {
 	var buffer bytes.Buffer
 	l := len(seq)

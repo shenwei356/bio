@@ -11,11 +11,13 @@ import (
 	"github.com/shenwei356/bio/seq"
 )
 
+// Type *FastaRecord*
 type FastaRecord struct {
 	Id  []byte
 	Seq *seq.Seq
 }
 
+// Constructor of type *FastaRecord*
 func NewFastaRecord(t *seq.Alphabet, id, str []byte) (*FastaRecord, error) {
 	sequence, err := seq.NewSeq(t, str)
 	if err != nil {
@@ -24,19 +26,23 @@ func NewFastaRecord(t *seq.Alphabet, id, str []byte) (*FastaRecord, error) {
 	return &FastaRecord{id, sequence}, nil
 }
 
+// Format output
 func (record *FastaRecord) FormatSeq(width int) []byte {
 	return seq.FormatSeq(record.Seq.Seq, width)
 }
 
+// Fasta Writter
 type FastaWriter struct {
 	filename  string
 	lineWidth int
 }
 
+// Constructor of type *FastaWriter*
 func NewFastaWriter(filename string, lineWidth int) *FastaWriter {
 	return &FastaWriter{filename, lineWidth}
 }
 
+// Write list of FastaRecords to file
 func (writer FastaWriter) Write(records []*FastaRecord) (int, error) {
 	fout, err := os.Create(writer.filename)
 	defer fout.Close()
@@ -54,6 +60,32 @@ func (writer FastaWriter) Write(records []*FastaRecord) (int, error) {
 	return n, nil
 }
 
+/* FastaReader. Usage:
+
+   // Sequence type must be specified.
+   fasta, err := seqio.NewFastaReader(seq.RNAredundant, "hairpin.fa")
+
+   // check err, usually caused by a wrong file path.
+   if err != nil {
+       fmt.Println(err)
+       return
+   }
+
+   // read and check if more record existed
+   for fasta.HasNext() {
+        record, err := fasta.NextSeq()
+        // check err, the record may contain invalid sequence !!!
+        if err != nil {
+            fmt.Println(err)
+            continue
+        }
+
+        // deal with the fasta record
+        // format output
+        fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+   }
+
+*/
 type FastaReader struct {
 	t        *seq.Alphabet
 	filename string
@@ -68,6 +100,8 @@ type FastaReader struct {
 	fileHandlerClosed bool
 }
 
+// Constructor of FastaReader. Sequence Type (Alphabet) must be given,
+// to validate the sequence.
 func NewFastaReader(t *seq.Alphabet, filename string) (*FastaReader, error) {
 	fh, err := os.Open(filename)
 	if err != nil {
@@ -84,9 +118,9 @@ func NewFastaReader(t *seq.Alphabet, filename string) (*FastaReader, error) {
 	fasta.fileHandlerClosed = false
 
 	return fasta, nil
-
 }
 
+// return the next record
 func (fasta *FastaReader) NextSeq() (*FastaRecord, error) {
 	if fasta.nextseq == nil {
 		return nil, errors.New("invalid " + fasta.t.Type() +
@@ -95,6 +129,8 @@ func (fasta *FastaReader) NextSeq() (*FastaRecord, error) {
 	return fasta.nextseq, nil
 }
 
+// parsing fasta file to check if more record existed,
+// if existed, store it.
 func (fasta *FastaReader) HasNext() bool {
 	if fasta.fileHandlerClosed {
 		return false

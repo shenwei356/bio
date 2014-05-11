@@ -1,6 +1,7 @@
 package seq
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -22,22 +23,23 @@ func TestValidateSequence(t *testing.T) {
 func TestRevcom(t *testing.T) {
 	dna, _ := NewSeq(DNA, []byte("acgtccn-"))
 	if string(dna.Revcom()) != "-nggacgt" {
-		t.Error("Revcom sequence failed.")
+		t.Error("revcom sequence failed.")
 		return
 	}
 
 	rna, _ := NewSeq(RNA, []byte("auguccn-"))
 	if string(rna.Revcom()) != "-nggacau" {
-		t.Error("Revcom sequence failed.")
+		t.Error("revcom sequence failed.")
 		return
 	}
 }
 
 func TestBaseContent(t *testing.T) {
 	dna, _ := NewSeq(DNA, []byte("acgtACGT"))
-
-	if dna.BaseContent([]byte("gc")) == 0.50 {
-		t.Error("Compution of base content failed.")
+	content := dna.BaseContent([]byte("gc"))
+	wanted := 0.5
+	if content != wanted {
+		t.Error(fmt.Printf("compution of base content failed: %f != %f", content, wanted))
 		return
 	}
 }

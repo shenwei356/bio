@@ -1,7 +1,7 @@
 seqio
 =====
 
-This package provide operation on read and write sequence file, mainly FASTA file right now.
+This package provides operations of reading and writing sequence file, mainly FASTA file right now.
 
 Example
 -------
