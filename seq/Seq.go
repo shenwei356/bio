@@ -13,7 +13,7 @@ type Seq struct {
 	Alphabet *Alphabet
 	Seq      []byte
 
-	Len int // avoid compute repeatly
+	Len int // avoid repeat computation
 }
 
 /*

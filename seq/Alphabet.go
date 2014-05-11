@@ -6,7 +6,9 @@ like validation of DNA/RNA/Protein sequence and getting reverse complement seque
 This package was inspired by
 [biogo](https://code.google.com/p/biogo/source/browse/#git%2Falphabet).
 
-[IUPAC nucleotide code](http://droog.gs.washington.edu/parc/images/iupac.html): ACGTURYSWKMBDHVN
+IUPAC nucleotide code: ACGTURYSWKMBDHVN
+
+http://droog.gs.washington.edu/parc/images/iupac.html
 
 
 	code	base	Complement
@@ -31,7 +33,9 @@ This package was inspired by
 	.	not A/C/G/T
 	 or-	gap
 
-[IUPAC amino acid code]j(http://www.bioinformatics.org/sms/iupac.html): ACGTRYSWKMBDHV
+IUPAC amino acid code: ACGTRYSWKMBDHV
+
+http://www.bioinformatics.org/sms/iupac.html
 
 
 	A	Ala	Alanine
@@ -57,7 +61,7 @@ This package was inspired by
 
 Other links:
 
-- (http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html)
+- http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
 
 */
 package seq
@@ -111,7 +115,7 @@ func init() {
 
 	RNAredundant, _ = NewAlphabet(
 		"RNAredundant",
-		[]byte("acguryswkmbdhvACGuRYSWKMBDHV."),
+		[]byte("acguryswkmbdhvACGURYSWKMBDHV."),
 		[]byte("ugcayrswmkvhdbUGCAYRSWMKVHDB."),
 		[]byte(" -"),
 		[]byte("nxNX"))
@@ -132,8 +136,8 @@ func init() {
 }
 
 /*
-type *Alphabet*, you can defined yours. Attention that,
-**the letter is case sensitive**.
+Type *Alphabet*, you can defined yours. Attention that,
+**the letters are case sensitive**.
 
 For exmaple, DNA:
 
