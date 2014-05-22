@@ -173,7 +173,7 @@ func NewAlphabet(
 	a := &Alphabet{t, letters, pairs, gap, ambiguous, nil}
 
 	if len(letters) != len(pairs) {
-		return a, errors.New("mismarch of length of letters and pairs")
+		return a, errors.New("mismatch of length of letters and pairs")
 	}
 
 	a.pairLetters = make(map[byte]byte, len(letters))

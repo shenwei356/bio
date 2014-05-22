@@ -33,7 +33,7 @@ func main() {
 		fmt.Printf("Seq length: %d\n", record.Seq.Len)
 
 		// base content
-		fmt.Printf("GC content: %.2f\n", record.Seq.BaseContent([]byte("gc")))
+		fmt.Printf("GC content: %.2f\n", record.Seq.BaseContent("gc"))
 		fmt.Println()
 
 		records = append(records, record)

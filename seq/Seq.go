@@ -53,12 +53,12 @@ func (seq *Seq) Complement() []byte {
 
 /* Compute base content. For example:
 
-   seq.BaseContent([]byte("gc"))
+   seq.BaseContent("gc")
 
 */
-func (seq *Seq) BaseContent(list []byte) float64 {
+func (seq *Seq) BaseContent(list string) float64 {
 	sum := 0
-	for _, b := range list {
+	for _, b := range []byte(list) {
 		up := bytes.ToUpper([]byte{b})
 		lo := bytes.ToLower([]byte{b})
 		sum += bytes.Count(seq.Seq, up) + bytes.Count(seq.Seq, lo)
