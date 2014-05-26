@@ -23,17 +23,19 @@ func main() {
 			continue
 		}
 
+		s := record.Seq
+
 		// format output
 		fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
 
 		// reverse complement
-		fmt.Printf("\nrevcom\n%s", seq.FormatSeq(record.Seq.Revcom(), 70))
+		fmt.Printf("\nrevcom\n%s", seq.FormatSeq(s.Revcom().Seq, 70))
 
 		// length
-		fmt.Printf("Seq length: %d\n", record.Seq.Len)
+		fmt.Printf("Seq length: %d\n", s.Length())
 
 		// base content
-		fmt.Printf("GC content: %.2f\n", record.Seq.BaseContent("gc"))
+		fmt.Printf("GC content: %.2f\n", s.BaseContent("gc"))
 		fmt.Println()
 
 		records = append(records, record)

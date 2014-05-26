@@ -22,13 +22,13 @@ func TestValidateSequence(t *testing.T) {
 
 func TestRevcom(t *testing.T) {
 	dna, _ := NewSeq(DNA, []byte("acgtccn-"))
-	if string(dna.Revcom()) != "-nggacgt" {
+	if string(dna.Revcom().Seq) != "-nggacgt" {
 		t.Error("revcom sequence failed.")
 		return
 	}
 
 	rna, _ := NewSeq(RNA, []byte("auguccn-"))
-	if string(rna.Revcom()) != "-nggacau" {
+	if string(rna.Revcom().Seq) != "-nggacau" {
 		t.Error("revcom sequence failed.")
 		return
 	}
@@ -36,7 +36,7 @@ func TestRevcom(t *testing.T) {
 
 func TestBaseContent(t *testing.T) {
 	dna, _ := NewSeq(DNA, []byte("acgtACGT"))
-	content := dna.BaseContent([]byte("gc"))
+	content := dna.BaseContent("gc")
 	wanted := 0.5
 	if content != wanted {
 		t.Error(fmt.Printf("compution of base content failed: %f != %f", content, wanted))

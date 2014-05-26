@@ -169,7 +169,6 @@ func NewAlphabet(
 	gap []byte,
 	ambiguous []byte,
 ) (*Alphabet, error) {
-
 	a := &Alphabet{t, letters, pairs, gap, ambiguous, nil}
 
 	if len(letters) != len(pairs) {
@@ -203,7 +202,7 @@ func (a *Alphabet) String() string {
 }
 
 // Validate a letter
-func (a *Alphabet) IsvalidLetter(b byte) bool {
+func (a *Alphabet) IsValidLetter(b byte) bool {
 	_, ok := a.pairLetters[b]
 	return ok
 }
@@ -211,7 +210,7 @@ func (a *Alphabet) IsvalidLetter(b byte) bool {
 // Validate a byte slice
 func (a *Alphabet) IsValid(s []byte) bool {
 	for _, b := range s {
-		if !a.IsvalidLetter(b) {
+		if !a.IsValidLetter(b) {
 			return false
 		}
 	}
@@ -220,7 +219,7 @@ func (a *Alphabet) IsValid(s []byte) bool {
 
 // Return the Pair Letter
 func (a *Alphabet) PairLetter(b byte) (byte, error) {
-	if !a.IsvalidLetter(b) {
+	if !a.IsValidLetter(b) {
 		return b, errors.New(fmt.Sprintf("invalid letter: %c", b))
 	}
 	v, _ := a.pairLetters[b]

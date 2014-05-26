@@ -13,7 +13,7 @@ type Seq struct {
 	Alphabet *Alphabet
 	Seq      []byte
 
-	Len int // avoid repeat computation
+	length int // avoid repeat computation. Only set in constructor
 }
 
 /*
@@ -26,29 +26,39 @@ func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 	}
 
 	seq := &Seq{t, s, 0}
-	seq.Len = len(s)
+	seq.length = len(s)
 	return seq, nil
 }
 
+// Return the lenght of sequence
+func (seq *Seq) Length() int {
+	return seq.length
+}
+
 // Return reverse complement sequence
-func (seq *Seq) Revcom() []byte {
-	return ReverseByteSlice(seq.Complement())
+func (seq *Seq) Revcom() *Seq {
+	return seq.Complement().Reverse()
 }
 
 // Reverse sequence
-func (seq *Seq) Reverse() []byte {
-	return ReverseByteSlice(seq.Seq)
+func (seq *Seq) Reverse() *Seq {
+	s := ReverseByteSlice(seq.Seq)
+
+	newseq, _ := NewSeq(seq.Alphabet, s)
+	return newseq
 }
 
 // Return complement sequence
-func (seq *Seq) Complement() []byte {
-	s := make([]byte, seq.Len)
+func (seq *Seq) Complement() *Seq {
+	s := make([]byte, seq.length)
 	var p byte
-	for i := 0; i < seq.Len; i++ {
+	for i := 0; i < seq.length; i++ {
 		p, _ = seq.Alphabet.pairLetters[seq.Seq[i]]
 		s[i] = p
 	}
-	return s
+
+	newseq, _ := NewSeq(seq.Alphabet, s)
+	return newseq
 }
 
 /* Compute base content. For example:
@@ -64,5 +74,5 @@ func (seq *Seq) BaseContent(list string) float64 {
 		sum += bytes.Count(seq.Seq, up) + bytes.Count(seq.Seq, lo)
 	}
 
-	return float64(sum) / float64(seq.Len)
+	return float64(sum) / float64(seq.length)
 }
