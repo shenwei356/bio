@@ -1,10 +1,10 @@
 acgt
 
->seq1
+>seq1 <test>
 aaaaaccccccccccccccccttttttttttttttttccccccccccccccccccccccc
 ttttttttttttttttttttttttttttttttttttttggggggggggggggggggggaa
 
->seq2
+ >seq2
 cccc
 
 gggg

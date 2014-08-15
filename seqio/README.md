@@ -25,6 +25,12 @@ Example
     	}
     
     	records := make([]*seqio.FastaRecord, 0)
+    	
+    	// You can use Iterator or HasNext() - NextSeq() pair.
+    	// 10 is the buffersize
+    	// for record := range fasta.Iterator(10) {
+    	//     fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+    	// }    	
     
     	for fasta.HasNext() {
     		record, err := fasta.NextSeq()

@@ -94,6 +94,7 @@ var (
 func init() {
 	DNA, _ = NewAlphabet(
 		"DNA",
+		false,
 		[]byte("acgtACGT."),
 		[]byte("tgcaTGCA."),
 		[]byte(" -"),
@@ -101,6 +102,7 @@ func init() {
 
 	DNAredundant, _ = NewAlphabet(
 		"DNAredundant",
+		false,
 		[]byte("acgtryswkmbdhvACGTRYSWKMBDHV."),
 		[]byte("tgcayrswmkvhdbTGCAYRSWMKVHDB."),
 		[]byte(" -"),
@@ -108,6 +110,7 @@ func init() {
 
 	RNA, _ = NewAlphabet(
 		"RNA",
+		false,
 		[]byte("acguACGU"),
 		[]byte("ugcaUGCA"),
 		[]byte(" -"),
@@ -115,6 +118,7 @@ func init() {
 
 	RNAredundant, _ = NewAlphabet(
 		"RNAredundant",
+		false,
 		[]byte("acguryswkmbdhvACGURYSWKMBDHV."),
 		[]byte("ugcayrswmkvhdbUGCAYRSWMKVHDB."),
 		[]byte(" -"),
@@ -122,6 +126,7 @@ func init() {
 
 	Protein, _ = NewAlphabet(
 		"Protein",
+		false,
 		[]byte("acdefghiklmnpqrstvwyACDEFGHIKLMNPQRSTVWY*_"),
 		[]byte("acdefghiklmnpqrstvwyACDEFGHIKLMNPQRSTVWY*_"),
 		[]byte(" -"),
@@ -129,10 +134,11 @@ func init() {
 
 	Unlimit, _ = NewAlphabet(
 		"Unlimit",
-		[]byte("abcdefghijklmnopqrstuvwxyz*_."),
-		[]byte("abcdefghijklmnopqrstuvwxyz*_."),
-		[]byte(" -"),
-		[]byte(""))
+		true,
+		nil,
+		nil,
+		nil,
+		nil)
 }
 
 /*
@@ -151,6 +157,8 @@ For exmaple, DNA:
 */
 type Alphabet struct {
 	t         string
+	isUnlimit bool
+
 	letters   []byte
 	pairs     []byte
 	gap       []byte
@@ -164,12 +172,18 @@ Constructor for type *Alphabet*
 */
 func NewAlphabet(
 	t string,
+	isUnlimit bool,
 	letters []byte,
 	pairs []byte,
 	gap []byte,
 	ambiguous []byte,
 ) (*Alphabet, error) {
-	a := &Alphabet{t, letters, pairs, gap, ambiguous, nil}
+
+	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil}
+
+	if isUnlimit {
+		return a, nil
+	}
 
 	if len(letters) != len(pairs) {
 		return a, errors.New("mismatch of length of letters and pairs")
@@ -203,12 +217,19 @@ func (a *Alphabet) String() string {
 
 // Validate a letter
 func (a *Alphabet) IsValidLetter(b byte) bool {
+	if a.isUnlimit {
+		return true
+	}
 	_, ok := a.pairLetters[b]
 	return ok
 }
 
 // Validate a byte slice
 func (a *Alphabet) IsValid(s []byte) bool {
+	if a.isUnlimit {
+		return true
+	}
+
 	for _, b := range s {
 		if !a.IsValidLetter(b) {
 			return false
@@ -219,6 +240,10 @@ func (a *Alphabet) IsValid(s []byte) bool {
 
 // Return the Pair Letter
 func (a *Alphabet) PairLetter(b byte) (byte, error) {
+	if a.isUnlimit {
+		return b, nil
+	}
+
 	if !a.IsValidLetter(b) {
 		return b, errors.New(fmt.Sprintf("invalid letter: %c", b))
 	}

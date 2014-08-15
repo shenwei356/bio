@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 
 	"github.com/shenwei356/bio/seq"
 )
@@ -136,13 +137,17 @@ func (fasta *FastaReader) HasNext() bool {
 		return false
 	}
 
+	trimLeftSpace := regexp.MustCompile(`^\s+`)
+	trimSpace := regexp.MustCompile(`[\r\n\s]+`)
 	var seq, head []byte
 	for {
 		str, err := fasta.reader.ReadBytes('\n')
+		str = trimLeftSpace.ReplaceAll(str, []byte("")) // spaces before > are allowed
+
 		if err == io.EOF {
 			// do not forget the last line,
 			// even which does not ends with "\n"
-			fasta.buffer.Write(bytes.TrimRight(str, "\r?\n"))
+			fasta.buffer.Write(trimSpace.ReplaceAll(str, []byte("")))
 
 			seq = fasta.buffer.Bytes()
 			fasta.buffer.Reset()
@@ -159,7 +164,7 @@ func (fasta *FastaReader) HasNext() bool {
 		if bytes.HasPrefix(str, []byte(">")) {
 			fasta.hasSeq = true
 
-			thisHead := bytes.TrimRight(str[1:], "\r?\n")
+			thisHead := trimSpace.ReplaceAll(str[1:], []byte(""))
 			if fasta.buffer.Len() > 0 { // no-first seq head
 				seq = fasta.buffer.Bytes()
 				fasta.buffer.Reset()
@@ -173,9 +178,52 @@ func (fasta *FastaReader) HasNext() bool {
 				fasta.lastHead = thisHead
 			}
 		} else if fasta.hasSeq { // append sequence
-			fasta.buffer.Write(bytes.TrimRight(str, "\r?\n"))
+			fasta.buffer.Write(trimSpace.ReplaceAll(str, []byte("")))
 		} else {
 			// some line before the first ">"
 		}
 	}
+}
+
+// Return an fasta record iterator.
+// It's Go-ish by using channel!
+//
+// The arguments buffersize specifies the buffer size of channel.
+// If buffersize == 1, it reads one fasta record and waits the
+// record being deliveried.
+// When buffersize > 1, records are well prepared in the backgound.
+// It's useful when reading large sequences (human chromosome) and
+// processing of sequence is also time-consuming.
+//
+// Usage:
+//
+//		fasta, err := NewFastaReader(seq.Unlimit, "test.fa")
+//		if err != nil {
+//			t.Error(err)
+//			return
+//		}
+//
+//		for record = range fasta.Iterator(10) {
+//			fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+//		}
+//
+//
+func (fasta *FastaReader) Iterator(buffersize int) chan *FastaRecord {
+	if buffersize < 1 {
+		buffersize = 1
+	}
+
+	ch := make(chan *FastaRecord, buffersize)
+	go func() {
+		for fasta.HasNext() {
+			record, err := fasta.NextSeq()
+			if err != nil {
+				fmt.Fprint(os.Stderr, err)
+				continue
+			}
+			ch <- record
+		}
+		close(ch)
+	}()
+	return ch
 }

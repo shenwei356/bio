@@ -50,6 +50,11 @@ func (seq *Seq) Reverse() *Seq {
 
 // Return complement sequence
 func (seq *Seq) Complement() *Seq {
+	if seq.Alphabet == Unlimit {
+		newseq, _ := NewSeq(seq.Alphabet, []byte(""))
+		return newseq
+	}
+
 	s := make([]byte, seq.length)
 	var p byte
 	for i := 0; i < seq.length; i++ {
@@ -67,11 +72,19 @@ func (seq *Seq) Complement() *Seq {
 
 */
 func (seq *Seq) BaseContent(list string) float64 {
+	if seq.length == 0 {
+		return float64(0)
+	}
+
 	sum := 0
 	for _, b := range []byte(list) {
 		up := bytes.ToUpper([]byte{b})
 		lo := bytes.ToLower([]byte{b})
-		sum += bytes.Count(seq.Seq, up) + bytes.Count(seq.Seq, lo)
+		if string(up) == string(lo) {
+			sum += bytes.Count(seq.Seq, up)
+		} else {
+			sum += bytes.Count(seq.Seq, up) + bytes.Count(seq.Seq, lo)
+		}
 	}
 
 	return float64(sum) / float64(seq.length)

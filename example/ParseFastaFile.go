@@ -9,12 +9,18 @@ import (
 
 func main() {
 	fasta, err := seqio.NewFastaReader(seq.RNAredundant, "hairpin.fa")
+	//fasta, err := seqio.NewFastaReader(seq.Unlimit, "test.fa")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	records := make([]*seqio.FastaRecord, 0)
+
+	// You can use Iterator or HasNext() - NextSeq() pair.
+	// for record := range fasta.Iterator(10) {
+	//	fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+	// }
 
 	for fasta.HasNext() {
 		record, err := fasta.NextSeq()
@@ -24,6 +30,8 @@ func main() {
 		}
 
 		s := record.Seq
+
+		// fmt.Printf(">%s\n%s\n", record.Id, record.Seq.Seq)
 
 		// format output
 		fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
