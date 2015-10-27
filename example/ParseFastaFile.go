@@ -15,7 +15,7 @@ func main() {
 		return
 	}
 
-	records := make([]*seqio.FastaRecord, 0)
+	var records []*seqio.FastaRecord
 
 	// You can use Iterator or HasNext() - NextSeq() pair.
 	// for record := range fasta.Iterator(10) {
@@ -34,7 +34,7 @@ func main() {
 		// fmt.Printf(">%s\n%s\n", record.Id, record.Seq.Seq)
 
 		// format output
-		fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+		fmt.Printf(">%s\n%s", record.ID, record.FormatSeq(70))
 
 		// reverse complement
 		fmt.Printf("\nrevcom\n%s", seq.FormatSeq(s.Revcom().Seq, 70))

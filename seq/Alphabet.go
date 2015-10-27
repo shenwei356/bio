@@ -1,4 +1,4 @@
-/*
+/*Package seq balabala
 
 This package defines a *Seq* type, and provides some basic operations of sequence,
 like validation of DNA/RNA/Protein sequence and getting reverse complement sequence.
@@ -35,10 +35,8 @@ http://droog.gs.washington.edu/parc/images/iupac.html
 
 IUPAC amino acid code: ACGTRYSWKMBDHV
 
-http://www.bioinformatics.org/sms/iupac.html
-
-
 	A	Ala	Alanine
+	B	Asx	Aspartic acid or Asparagine [2]
 	C	Cys	Cysteine
 	D	Asp	Aspartic Acid
 	E	Glu	Glutamic Acid
@@ -58,10 +56,13 @@ http://www.bioinformatics.org/sms/iupac.html
 	V	Val	Valine
 	W	Trp	Tryptophan
 	Y	Tyr	Tyrosine
+	Z	Glx	Glutamine or Glutamic acid [2]
 
 Other links:
 
-- http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
+1. http://www.bioinformatics.org/sms/iupac.html
+2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
+3. http://www.bioinformatics.org/sms2/iupac.html
 
 */
 package seq
@@ -71,15 +72,121 @@ import (
 	"fmt"
 )
 
-/*
-Four types of alphabets are pre-defined:
+/*Alphabet could be defined. Attention that,
+**the letters are case sensitive**.
 
-	DNA           Deoxyribonucleotide code
-	DNAredundant  DNA + Ambiguity Codes
-	RNA           Oxyribonucleotide code
-	RNAredundant  RNA + Ambiguity Codes
-	Protein       Amino Acide single-letter Code
-	Unlimit       Self-defined, to including all 26 English letters
+For exmaple, DNA:
+
+	DNA, _ = NewAlphabet(
+		"DNA",
+		[]byte("acgtACGT"),
+		[]byte("tgcaTGCA"),
+		[]byte(" -"),
+		[]byte("nN"))
+
+*/
+type Alphabet struct {
+	t         string
+	isUnlimit bool
+
+	letters   []byte
+	pairs     []byte
+	gap       []byte
+	ambiguous []byte
+
+	pairLetters map[byte]byte
+}
+
+// NewAlphabet is Constructor for type *Alphabet*
+func NewAlphabet(
+	t string,
+	isUnlimit bool,
+	letters []byte,
+	pairs []byte,
+	gap []byte,
+	ambiguous []byte,
+) (*Alphabet, error) {
+
+	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil}
+
+	if isUnlimit {
+		return a, nil
+	}
+
+	if len(letters) != len(pairs) {
+		return a, errors.New("mismatch of length of letters and pairs")
+	}
+
+	a.pairLetters = make(map[byte]byte, len(letters))
+	for i := 0; i < len(letters); i++ {
+		a.pairLetters[letters[i]] = pairs[i]
+	}
+
+	// add gap and ambiguous code
+	for _, v := range gap {
+		a.pairLetters[v] = v
+	}
+	for _, v := range ambiguous {
+		a.pairLetters[v] = v
+	}
+
+	return a, nil
+}
+
+// Type return type of the alphabet
+func (a *Alphabet) Type() string {
+	return a.t
+}
+
+// Return type of the alphabet
+func (a *Alphabet) String() string {
+	return a.t
+}
+
+// IsValidLetter is used to validate a letter
+func (a *Alphabet) IsValidLetter(b byte) bool {
+	if a.isUnlimit {
+		return true
+	}
+	_, ok := a.pairLetters[b]
+	return ok
+}
+
+// IsValid is used to validate a byte slice
+func (a *Alphabet) IsValid(s []byte) bool {
+	if a.isUnlimit {
+		return true
+	}
+
+	for _, b := range s {
+		if !a.IsValidLetter(b) {
+			return false
+		}
+	}
+	return true
+}
+
+// PairLetter returns the Pair Letter
+func (a *Alphabet) PairLetter(b byte) (byte, error) {
+	if a.isUnlimit {
+		return b, nil
+	}
+
+	if !a.IsValidLetter(b) {
+		return b, fmt.Errorf("invalid letter: %c", b)
+	}
+	v, _ := a.pairLetters[b]
+	return v, nil
+}
+
+/*Four types of alphabets are pre-defined:
+
+  DNA           Deoxyribonucleotide code
+  DNAredundant  DNA + Ambiguity Codes
+  RNA           Oxyribonucleotide code
+  RNAredundant  RNA + Ambiguity Codes
+  Protein       Amino Acide single-letter Code
+  Unlimit       Self-defined, including all 26 English letters
 
 */
 var (
@@ -127,8 +234,8 @@ func init() {
 	Protein, _ = NewAlphabet(
 		"Protein",
 		false,
-		[]byte("acdefghiklmnpqrstvwyACDEFGHIKLMNPQRSTVWY*_"),
-		[]byte("acdefghiklmnpqrstvwyACDEFGHIKLMNPQRSTVWY*_"),
+		[]byte("abcdefghiklmnpqrstvwyzABCDEFGHIKLMNPQRSTVWYZ*_."),
+		[]byte("abcdefghiklmnpqrstvwyzABCDEFGHIKLMNPQRSTVWYZ*_."),
 		[]byte(" -"),
 		[]byte("xX"))
 
@@ -139,114 +246,4 @@ func init() {
 		nil,
 		nil,
 		nil)
-}
-
-/*
-Type *Alphabet*, you can defined yours. Attention that,
-**the letters are case sensitive**.
-
-For exmaple, DNA:
-
-	DNA, _ = NewAlphabet(
-		"DNA",
-		[]byte("acgtACGT"),
-		[]byte("tgcaTGCA"),
-		[]byte(" -"),
-		[]byte("nN"))
-
-*/
-type Alphabet struct {
-	t         string
-	isUnlimit bool
-
-	letters   []byte
-	pairs     []byte
-	gap       []byte
-	ambiguous []byte
-
-	pairLetters map[byte]byte
-}
-
-/*
-Constructor for type *Alphabet*
-*/
-func NewAlphabet(
-	t string,
-	isUnlimit bool,
-	letters []byte,
-	pairs []byte,
-	gap []byte,
-	ambiguous []byte,
-) (*Alphabet, error) {
-
-	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil}
-
-	if isUnlimit {
-		return a, nil
-	}
-
-	if len(letters) != len(pairs) {
-		return a, errors.New("mismatch of length of letters and pairs")
-	}
-
-	a.pairLetters = make(map[byte]byte, len(letters))
-	for i := 0; i < len(letters); i++ {
-		a.pairLetters[letters[i]] = pairs[i]
-	}
-
-	// add gap and ambiguous code
-	for _, v := range gap {
-		a.pairLetters[v] = v
-	}
-	for _, v := range ambiguous {
-		a.pairLetters[v] = v
-	}
-
-	return a, nil
-}
-
-// Return type of the alphabet
-func (a *Alphabet) Type() string {
-	return a.t
-}
-
-// Return type of the alphabet
-func (a *Alphabet) String() string {
-	return a.t
-}
-
-// Validate a letter
-func (a *Alphabet) IsValidLetter(b byte) bool {
-	if a.isUnlimit {
-		return true
-	}
-	_, ok := a.pairLetters[b]
-	return ok
-}
-
-// Validate a byte slice
-func (a *Alphabet) IsValid(s []byte) bool {
-	if a.isUnlimit {
-		return true
-	}
-
-	for _, b := range s {
-		if !a.IsValidLetter(b) {
-			return false
-		}
-	}
-	return true
-}
-
-// Return the Pair Letter
-func (a *Alphabet) PairLetter(b byte) (byte, error) {
-	if a.isUnlimit {
-		return b, nil
-	}
-
-	if !a.IsValidLetter(b) {
-		return b, errors.New(fmt.Sprintf("invalid letter: %c", b))
-	}
-	v, _ := a.pairLetters[b]
-	return v, nil
 }

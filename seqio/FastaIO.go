@@ -12,33 +12,33 @@ import (
 	"github.com/shenwei356/bio/seq"
 )
 
-// Type *FastaRecord*
+// FastaRecord struct
 type FastaRecord struct {
-	Id  []byte
+	ID  []byte
 	Seq *seq.Seq
 }
 
-// Constructor of type *FastaRecord*
+// NewFastaRecord is constructor of type *FastaRecord*
 func NewFastaRecord(t *seq.Alphabet, id, str []byte) (*FastaRecord, error) {
 	sequence, err := seq.NewSeq(t, str)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("%s: %s", err, id))
+		return nil, fmt.Errorf("%s: %s", err, id)
 	}
 	return &FastaRecord{id, sequence}, nil
 }
 
-// Format output
+// FormatSeq formats output
 func (record *FastaRecord) FormatSeq(width int) []byte {
 	return seq.FormatSeq(record.Seq.Seq, width)
 }
 
-// Fasta Writter
+// FastaWriter struct
 type FastaWriter struct {
 	filename  string
 	lineWidth int
 }
 
-// Constructor of type *FastaWriter*
+// NewFastaWriter constructor of type *FastaWriter*
 func NewFastaWriter(filename string, lineWidth int) *FastaWriter {
 	return &FastaWriter{filename, lineWidth}
 }
@@ -54,37 +54,37 @@ func (writer FastaWriter) Write(records []*FastaRecord) (int, error) {
 	w := bufio.NewWriter(fout)
 	n := 0
 	for _, record := range records {
-		fmt.Fprintf(w, ">%s\n%s", record.Id, record.FormatSeq(writer.lineWidth))
+		fmt.Fprintf(w, ">%s\n%s", record.ID, record.FormatSeq(writer.lineWidth))
 		n++
 	}
 	w.Flush()
 	return n, nil
 }
 
-/* FastaReader. Usage:
+/*FastaReader Usage:
 
-   // Sequence type must be specified.
-   fasta, err := seqio.NewFastaReader(seq.RNAredundant, "hairpin.fa")
+  // Sequence type must be specified.
+  fasta, err := seqio.NewFastaReader(seq.RNAredundant, "hairpin.fa")
 
-   // check err, usually caused by a wrong file path.
-   if err != nil {
-       fmt.Println(err)
-       return
-   }
+  // check err, usually caused by a wrong file path.
+  if err != nil {
+      fmt.Println(err)
+      return
+  }
 
-   // read and check if more record existed
-   for fasta.HasNext() {
-        record, err := fasta.NextSeq()
-        // check err, the record may contain invalid sequence !!!
-        if err != nil {
-            fmt.Println(err)
-            continue
-        }
+  // read and check if more record existed
+  for fasta.HasNext() {
+       record, err := fasta.NextSeq()
+       // check err, the record may contain invalid sequence !!!
+       if err != nil {
+           fmt.Println(err)
+           continue
+       }
 
-        // deal with the fasta record
-        // format output
-        fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
-   }
+       // deal with the fasta record
+       // format output
+       fmt.Printf(">%s\n%s", record.Id, record.FormatSeq(70))
+  }
 
 */
 type FastaReader struct {
@@ -101,7 +101,7 @@ type FastaReader struct {
 	fileHandlerClosed bool
 }
 
-// Constructor of FastaReader. Sequence Type (Alphabet) must be given,
+// NewFastaReader is constructor of FastaReader. Sequence Type (Alphabet) must be given,
 // to validate the sequence.
 func NewFastaReader(t *seq.Alphabet, filename string) (*FastaReader, error) {
 	fh, err := os.Open(filename)
@@ -121,77 +121,95 @@ func NewFastaReader(t *seq.Alphabet, filename string) (*FastaReader, error) {
 	return fasta, nil
 }
 
-// return the next record
+// NextSeq returns the next record
 func (fasta *FastaReader) NextSeq() (*FastaRecord, error) {
 	if fasta.nextseq == nil {
-		return nil, errors.New("invalid " + fasta.t.Type() +
-			" sequence: " + string(fasta.secondLastHead))
+		return nil, fmt.Errorf("HasNext() should be called firstly. Or invalid %s sequence: %s",
+			fasta.t.Type(), string(fasta.secondLastHead))
 	}
 	return fasta.nextseq, nil
 }
 
-// parsing fasta file to check if more record existed,
+var reTrimLeftSpace = regexp.MustCompile(`^\s+`)
+var reTrimRightSpace = regexp.MustCompile(`[\r\n]+$`)
+var reTrimSpace = regexp.MustCompile(`[\r\n\s]+`)
+
+// HasNext parses fasta file to check if more record existed,
 // if existed, store it.
 func (fasta *FastaReader) HasNext() bool {
 	if fasta.fileHandlerClosed {
 		return false
 	}
-
-	trimLeftSpace := regexp.MustCompile(`^\s+`)
-	trimSpace := regexp.MustCompile(`[\r\n\s]+`)
-	var seq, head []byte
 	for {
 		str, err := fasta.reader.ReadBytes('\n')
-		str = trimLeftSpace.ReplaceAll(str, []byte("")) // spaces before > are allowed
+		str = reTrimLeftSpace.ReplaceAll(str, []byte("")) // spaces before > are allowed
 
 		if err == io.EOF {
 			// do not forget the last line,
 			// even which does not ends with "\n"
-			fasta.buffer.Write(trimSpace.ReplaceAll(str, []byte("")))
-
-			seq = fasta.buffer.Bytes()
+			fasta.buffer.Write(reTrimSpace.ReplaceAll(str, []byte("")))
+			sequence := fasta.buffer.Bytes()
+			// fmt.Printf("1 [%p] %s\n", sequence, sequence)
 			fasta.buffer.Reset()
+
 			fasta.secondLastHead = fasta.lastHead
-			head = fasta.lastHead
+			head := fasta.lastHead
+
 			fasta.fh.Close()
 			fasta.fileHandlerClosed = true
-			err = nil
 
-			fasta.nextseq, _ = NewFastaRecord(fasta.t, head, seq)
+			// I have to do this to solve the problem that different FastaRecord
+			// may point to the same address of records.Seq.Seq, this happened when
+			// calling Iterator(). Because sequence initially points the ADDRESS
+			// of []byte.
+			sequence = []byte(string(sequence))
+
+			fasta.nextseq, err = NewFastaRecord(fasta.t, head, sequence)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error when reading %s: %s\n", head, err)
+				return false
+			}
 			return true
 		}
 
 		if bytes.HasPrefix(str, []byte(">")) {
 			fasta.hasSeq = true
 
-			thisHead := trimSpace.ReplaceAll(str[1:], []byte(""))
+			thisHead := reTrimRightSpace.ReplaceAll(str[1:], []byte(""))
 			if fasta.buffer.Len() > 0 { // no-first seq head
-				seq = fasta.buffer.Bytes()
+				sequence := fasta.buffer.Bytes()
+				// fmt.Printf("2 [%p] %s\n", sequence, sequence)
 				fasta.buffer.Reset()
 				fasta.secondLastHead = fasta.lastHead
-				head, fasta.lastHead = fasta.lastHead, thisHead
-
-				fasta.nextseq, _ = NewFastaRecord(fasta.t, head, seq)
-				return true
-			} else { // first sequence head
-				fasta.secondLastHead = thisHead
+				head := fasta.lastHead
 				fasta.lastHead = thisHead
+
+				sequence = []byte(string(sequence))
+				fasta.nextseq, err = NewFastaRecord(fasta.t, head, sequence)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "error when reading %s: %s\n", head, err)
+					return false
+				}
+				return true
 			}
+			// first sequence head
+			fasta.secondLastHead = thisHead
+			fasta.lastHead = thisHead
 		} else if fasta.hasSeq { // append sequence
-			fasta.buffer.Write(trimSpace.ReplaceAll(str, []byte("")))
+			fasta.buffer.Write(reTrimSpace.ReplaceAll(str, []byte("")))
 		} else {
 			// some line before the first ">"
 		}
 	}
 }
 
-// Return an fasta record iterator.
+// Iterator returns an fasta record iterator.
 // It's Go-ish by using channel!
 //
 // The arguments buffersize specifies the buffer size of channel.
-// If buffersize == 1, it reads one fasta record and waits the
+// If buffersize == 0, it reads one fasta record and waits the
 // record being deliveried.
-// When buffersize > 1, records are well prepared in the backgound.
+// When buffersize > 0, records are well prepared in the backgound.
 // It's useful when reading large sequences (human chromosome) and
 // processing of sequence is also time-consuming.
 //
@@ -209,8 +227,8 @@ func (fasta *FastaReader) HasNext() bool {
 //
 //
 func (fasta *FastaReader) Iterator(buffersize int) chan *FastaRecord {
-	if buffersize < 1 {
-		buffersize = 1
+	if buffersize < 0 {
+		buffersize = 0
 	}
 
 	ch := make(chan *FastaRecord, buffersize)
@@ -218,9 +236,12 @@ func (fasta *FastaReader) Iterator(buffersize int) chan *FastaRecord {
 		for fasta.HasNext() {
 			record, err := fasta.NextSeq()
 			if err != nil {
-				fmt.Fprint(os.Stderr, err)
-				continue
+				fmt.Fprintf(os.Stderr, "read fasta error: %s\n", err)
+				close(ch)
+				return
 			}
+
+			// fmt.Printf(">>%s\n%s", record.ID, record.FormatSeq(70))
 			ch <- record
 		}
 		close(ch)

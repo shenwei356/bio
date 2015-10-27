@@ -17,7 +17,7 @@ See the README of sub package.
 
 Documentation
 -------------
-[See documentation on gowalker for more detail](http://gowalker.org/github.com/shenwei356/bio/).
+[See documentation on gowalker for more detail](https://godoc.org/github.com/shenwei356/bio/).
 
 Copyright (c) 2013-2014, Wei Shen (shenwei356@gmail.com)
 

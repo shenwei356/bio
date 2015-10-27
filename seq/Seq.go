@@ -5,42 +5,34 @@ import (
 	"errors"
 )
 
-/*
-*Seq* has three attributes, alphabet, seq,
-and length (avoid compute repeatly)
-*/
+// Seq struct has two attributes, alphabet, seq,
 type Seq struct {
 	Alphabet *Alphabet
 	Seq      []byte
-
-	length int // avoid repeat computation. Only set in constructor
 }
 
-/*
-Constructor for type *Seq*
-*/
+// NewSeq is constructor for type *Seq*
 func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 	// check sequene first
 	if !t.IsValid(s) {
 		return nil, errors.New("invalid " + t.Type() + " sequence")
 	}
 
-	seq := &Seq{t, s, 0}
-	seq.length = len(s)
+	seq := &Seq{t, s}
 	return seq, nil
 }
 
-// Return the lenght of sequence
+// Length returns the lenght of sequence
 func (seq *Seq) Length() int {
-	return seq.length
+	return len(seq.Seq)
 }
 
-// Return reverse complement sequence
+// Revcom returns reverse complement sequence
 func (seq *Seq) Revcom() *Seq {
 	return seq.Complement().Reverse()
 }
 
-// Reverse sequence
+// Reverse a sequence
 func (seq *Seq) Reverse() *Seq {
 	s := ReverseByteSlice(seq.Seq)
 
@@ -48,16 +40,16 @@ func (seq *Seq) Reverse() *Seq {
 	return newseq
 }
 
-// Return complement sequence
+// Complement returns complement sequence
 func (seq *Seq) Complement() *Seq {
 	if seq.Alphabet == Unlimit {
 		newseq, _ := NewSeq(seq.Alphabet, []byte(""))
 		return newseq
 	}
 
-	s := make([]byte, seq.length)
+	s := make([]byte, len(seq.Seq))
 	var p byte
-	for i := 0; i < seq.length; i++ {
+	for i := 0; i < len(seq.Seq); i++ {
 		p, _ = seq.Alphabet.pairLetters[seq.Seq[i]]
 		s[i] = p
 	}
@@ -66,13 +58,13 @@ func (seq *Seq) Complement() *Seq {
 	return newseq
 }
 
-/* Compute base content. For example:
+/*BaseContent returns base content for given bases. For example:
 
-   seq.BaseContent("gc")
+  seq.BaseContent("gc")
 
 */
 func (seq *Seq) BaseContent(list string) float64 {
-	if seq.length == 0 {
+	if len(seq.Seq) == 0 {
 		return float64(0)
 	}
 
@@ -87,5 +79,5 @@ func (seq *Seq) BaseContent(list string) float64 {
 		}
 	}
 
-	return float64(sum) / float64(seq.length)
+	return float64(sum) / float64(len(seq.Seq))
 }
