@@ -33,7 +33,7 @@ http://droog.gs.washington.edu/parc/images/iupac.html
 	.	not A/C/G/T
 	 or-	gap
 
-IUPAC amino acid code: ACGTRYSWKMBDHV
+IUPAC amino acid code: `ACGTRYSWKMBDHV`
 
 	A	Ala	Alanine
 	B	Asx	Aspartic acid or Asparagine [2]
@@ -60,9 +60,9 @@ IUPAC amino acid code: ACGTRYSWKMBDHV
 
 Other links:
 
-1. http://www.bioinformatics.org/sms/iupac.html
-2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
-3. http://www.bioinformatics.org/sms2/iupac.html
+	1. http://www.bioinformatics.org/sms/iupac.html
+	2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
+	3. http://www.bioinformatics.org/sms2/iupac.html
 
 */
 package seq

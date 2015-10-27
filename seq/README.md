@@ -9,4 +9,4 @@ This package was inspired by
 
 Documentation
 -------------
-[Documentation on gowalker](https://godoc.org/github.com/shenwei356/bio/seq).
+[Documentation on godoc](https://godoc.org/github.com/shenwei356/bio/seq).

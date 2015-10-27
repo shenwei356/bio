@@ -5,7 +5,7 @@ This package provides operations of reading and writing sequence file, mainly FA
 
 Documentation
 -------------
-[Documentation on gowalker](https://godoc.org/github.com/shenwei356/bio/seqio).
+[Documentation on godoc](https://godoc.org/github.com/shenwei356/bio/seqio).
 
 Example
 -------
