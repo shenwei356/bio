@@ -124,8 +124,9 @@ func NewFastaReader(t *seq.Alphabet, filename string) (*FastaReader, error) {
 // NextSeq returns the next record
 func (fasta *FastaReader) NextSeq() (*FastaRecord, error) {
 	if fasta.nextseq == nil {
-		return nil, fmt.Errorf("HasNext() should be called firstly. Or invalid %s sequence: %s",
+		err := fmt.Errorf("HasNext() should be called firstly. Or invalid %s sequence: %s",
 			fasta.t.Type(), string(fasta.secondLastHead))
+		return nil, err
 	}
 	return fasta.nextseq, nil
 }
@@ -167,6 +168,7 @@ func (fasta *FastaReader) HasNext() bool {
 			fasta.nextseq, err = NewFastaRecord(fasta.t, head, sequence)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error when reading %s: %s\n", head, err)
+				os.Exit(1)
 				return false
 			}
 			return true
@@ -188,6 +190,7 @@ func (fasta *FastaReader) HasNext() bool {
 				fasta.nextseq, err = NewFastaRecord(fasta.t, head, sequence)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "error when reading %s: %s\n", head, err)
+					os.Exit(1)
 					return false
 				}
 				return true
@@ -238,9 +241,9 @@ func (fasta *FastaReader) Iterator(buffersize int) chan *FastaRecord {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "read fasta error: %s\n", err)
 				close(ch)
+				os.Exit(1)
 				return
 			}
-
 			// fmt.Printf(">>%s\n%s", record.ID, record.FormatSeq(70))
 			ch <- record
 		}
