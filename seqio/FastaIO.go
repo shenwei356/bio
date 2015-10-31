@@ -159,6 +159,10 @@ func (fasta *FastaReader) HasNext() bool {
 			fasta.fh.Close()
 			fasta.fileHandlerClosed = true
 
+			if len(head) == 0 && len(sequence) == 0 {
+				return false
+			}
+
 			// I have to do this to solve the problem that different FastaRecord
 			// may point to the same address of records.Seq.Seq, this happened when
 			// calling Iterator(). Because sequence initially points the ADDRESS
