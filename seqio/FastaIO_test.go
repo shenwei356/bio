@@ -1,51 +1,58 @@
 package seqio
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"github.com/shenwei356/bio/seq"
 )
 
-func TestFastaReader(t *testing.T) {
-	fasta, err := NewFastaReader(seq.Unlimit, "test.fa")
+func ReadSeqs(file string) (int, int, error) {
+	fasta, err := NewFastaReader(seq.Unlimit, file)
 	if err != nil {
-		t.Error(err)
-		return
+		return -1, -1, err
 	}
 
 	n := 0
+	baseNum := 0
 	for fasta.HasNext() {
-		_, err := fasta.NextSeq()
+		record, err := fasta.NextSeq()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
+			return -1, -1, err
 		}
 
 		n++
+		baseNum += len(record.Seq.Seq)
 	}
-	if n != 3 {
-		t.Error("amount of sequences mismatched!")
-		return
-	}
+	return n, baseNum, nil
 }
 
 func TestFastaReaderIterator(t *testing.T) {
-	fasta, err := NewFastaReader(seq.Unlimit, "test.fa")
+	seqfile := "../example/hairpin.fa"
+	n, baseNum, err := ReadSeqs(seqfile)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	n := 0
-	for _ = range fasta.Iterator(2) {
-
-		n++
+	fasta, err := NewFastaReader(seq.Unlimit, seqfile)
+	if err != nil {
+		t.Error(err)
+		return
 	}
 
-	if n != 3 {
+	n2 := 0
+	baseNum2 := 0
+	for record := range fasta.Iterator(100) {
+		n2++
+		baseNum2 += len(record.Seq.Seq)
+	}
+
+	if n != n2 {
 		t.Error("amount of sequences mismatched!")
+		return
+	}
+	if baseNum != baseNum2 {
+		t.Error("amount of bases mismatched!")
 		return
 	}
 }

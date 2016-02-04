@@ -44,6 +44,7 @@ IUPAC amino acid code: `ACGTRYSWKMBDHV`
 	G	Gly	Glycine
 	H	His	Histidine
 	I	Ile	Isoleucine
+	J		Isoleucine or Leucine [4]
 	K	Lys	Lysine
 	L	Leu	Leucine
 	M	Met	Methionine
@@ -63,6 +64,7 @@ Other links:
 	1. http://www.bioinformatics.org/sms/iupac.html
 	2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
 	3. http://www.bioinformatics.org/sms2/iupac.html
+	4. http://www.matrixscience.com/blog/non-standard-amino-acid-residues.html
 
 */
 package seq
@@ -234,8 +236,8 @@ func init() {
 	Protein, _ = NewAlphabet(
 		"Protein",
 		false,
-		[]byte("abcdefghiklmnpqrstvwyzABCDEFGHIKLMNPQRSTVWYZ*_."),
-		[]byte("abcdefghiklmnpqrstvwyzABCDEFGHIKLMNPQRSTVWYZ*_."),
+		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ*_."),
+		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ*_."),
 		[]byte(" -"),
 		[]byte("xX"))
 
