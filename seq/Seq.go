@@ -3,6 +3,9 @@ package seq
 import (
 	"bytes"
 	"errors"
+	"strings"
+
+	"github.com/shenwei356/util/byteutil"
 )
 
 // Seq struct has two attributes, alphabet, seq,
@@ -34,7 +37,7 @@ func (seq *Seq) Revcom() *Seq {
 
 // Reverse a sequence
 func (seq *Seq) Reverse() *Seq {
-	s := ReverseByteSlice(seq.Seq)
+	s := byteutil.ReverseByteSlice(seq.Seq)
 
 	newseq, _ := NewSeq(seq.Alphabet, s)
 	return newseq
@@ -56,6 +59,11 @@ func (seq *Seq) Complement() *Seq {
 
 	newseq, _ := NewSeq(seq.Alphabet, s)
 	return newseq
+}
+
+// FormatSeq wrap seq
+func (seq *Seq) FormatSeq(width int) []byte {
+	return byteutil.WrapByteSlice(seq.Seq, width)
 }
 
 /*BaseContent returns base content for given bases. For example:
@@ -80,4 +88,112 @@ func (seq *Seq) BaseContent(list string) float64 {
 	}
 
 	return float64(sum) / float64(len(seq.Seq))
+}
+
+// DegenerateBaseMapNucl mappings nucleic acid degenerate base to
+// regular expression
+var DegenerateBaseMapNucl = map[byte]string{
+	'A': "A",
+	'T': "T",
+	'U': "U",
+	'C': "C",
+	'G': "G",
+	'R': "[AG]",
+	'Y': "[CT]",
+	'M': "[AC]",
+	'K': "[GT]",
+	'S': "[CG]",
+	'W': "[AT]",
+	'H': "[ACT]",
+	'B': "[CGT]",
+	'V': "[ACG]",
+	'D': "[AGT]",
+	'N': "[ACGT]",
+	'a': "a",
+	't': "t",
+	'u': "u",
+	'c': "c",
+	'g': "g",
+	'r': "[ag]",
+	'y': "[ct]",
+	'm': "[ac]",
+	'k': "[gt]",
+	's': "[cg]",
+	'w': "[at]",
+	'h': "[act]",
+	'b': "[cgt]",
+	'v': "[acg]",
+	'd': "[agt]",
+	'n': "[acgt]",
+}
+
+// DegenerateBaseMapProt mappings protein degenerate base to
+// regular expression
+var DegenerateBaseMapProt = map[byte]string{
+	'A': "A",
+	'B': "[DN]",
+	'C': "C",
+	'D': "D",
+	'E': "E",
+	'F': "F",
+	'G': "G",
+	'H': "H",
+	'I': "I",
+	'J': "[IL]",
+	'K': "K",
+	'L': "L",
+	'M': "M",
+	'N': "N",
+	'P': "P",
+	'Q': "Q",
+	'R': "R",
+	'S': "S",
+	'T': "T",
+	'V': "V",
+	'W': "W",
+	'Y': "Y",
+	'Z': "[QE]",
+	'a': "a",
+	'b': "[dn]",
+	'c': "c",
+	'd': "d",
+	'e': "e",
+	'f': "f",
+	'g': "g",
+	'h': "h",
+	'i': "i",
+	'j': "[il]",
+	'k': "k",
+	'l': "l",
+	'm': "m",
+	'n': "n",
+	'p': "p",
+	'q': "q",
+	'r': "r",
+	's': "s",
+	't': "t",
+	'v': "v",
+	'w': "w",
+	'y': "y",
+	'z': "[qe]",
+}
+
+// Degenerate2Regexp transform seqs containing degenrate base to regular expression
+func (seq *Seq) Degenerate2Regexp() string {
+	var m map[byte]string
+	if seq.Alphabet == Protein {
+		m = DegenerateBaseMapProt
+	} else {
+		m = DegenerateBaseMapNucl
+	}
+
+	s := make([]string, len(seq.Seq))
+	for i, base := range seq.Seq {
+		if _, ok := m[base]; ok {
+			s[i] = m[base]
+		} else {
+			s[i] = string(base)
+		}
+	}
+	return strings.Join(s, "")
 }

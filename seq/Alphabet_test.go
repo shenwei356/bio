@@ -25,7 +25,7 @@ DEKAKEEPGNHTTLILAMLAIGVFSLGAFIKIIQLRKNN`, ""))
 	ok := DNA.IsValid(dna) && RNA.IsValid(rna) && Protein.IsValid(protein)
 
 	if !ok {
-		t.Error("validate sequence failed.")
+		t.Error("validating sequence failed.")
 		return
 	}
 }

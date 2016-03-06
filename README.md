@@ -19,6 +19,6 @@ Documentation
 -------------
 [See documentation on godoc for more detail](https://godoc.org/github.com/shenwei356/bio/).
 
-Copyright (c) 2013-2014, Wei Shen (shenwei356@gmail.com)
+Copyright (c) 2013-2016, Wei Shen (shenwei356@gmail.com)
 
 [MIT License](https://github.com/shenwei356/bio/blob/master/LICENSE)
