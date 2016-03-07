@@ -44,4 +44,12 @@ for {
     default:
     }
 }
+
+### Guessing Alphabet
+
+    alphabet, err = fasta.GuessAlphabet(file)
+    checkError(err)
+    fastaReader, err := fasta.NewFastaReader(alphabet, file, chunkSize, threads, "")
+    checkError(err)
+    
 ```

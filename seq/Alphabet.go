@@ -72,6 +72,8 @@ package seq
 import (
 	"errors"
 	"fmt"
+
+	"github.com/shenwei356/util/byteutil"
 )
 
 /*Alphabet could be defined. Attention that,
@@ -135,12 +137,22 @@ func NewAlphabet(
 	return a, nil
 }
 
-// Type return type of the alphabet
+// Type returns type of the alphabet
 func (a *Alphabet) Type() string {
 	return a.t
 }
 
-// Return type of the alphabet
+// Letters returns letters
+func (a *Alphabet) Letters() []byte {
+	return a.letters
+}
+
+// Gaps returns gaps
+func (a *Alphabet) Gaps() []byte {
+	return a.gap
+}
+
+// String returns type of the alphabet
 func (a *Alphabet) String() string {
 	return a.t
 }
@@ -168,7 +180,7 @@ func (a *Alphabet) IsValid(s []byte) bool {
 	return true
 }
 
-// PairLetter returns the Pair Letter
+// PairLetter return the Pair Letter
 func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	if a.isUnlimit {
 		return b, nil
@@ -248,4 +260,49 @@ func init() {
 		nil,
 		nil,
 		nil)
+}
+
+// GuessAlphabet guesses alphabet by given
+func GuessAlphabet(seqs []byte) *Alphabet {
+	alphabetMap := slice2map(byteutil.Alphabet(seqs))
+	abProtein := slice2map(byteutil.Alphabet(append(Protein.letters, Protein.Gaps()...)))
+	abDNAredundant := slice2map(byteutil.Alphabet(append(DNAredundant.letters, DNAredundant.Gaps()...)))
+	abDNA := slice2map(byteutil.Alphabet(append(DNA.letters, DNA.Gaps()...)))
+	abRNAredundant := slice2map(byteutil.Alphabet(append(RNAredundant.letters, RNAredundant.Gaps()...)))
+	abRNA := slice2map(byteutil.Alphabet(append(RNA.letters, RNA.Gaps()...)))
+
+	if isSubset(alphabetMap, abDNA) {
+		return DNA
+	}
+	if isSubset(alphabetMap, abRNA) {
+		return RNA
+	}
+	if isSubset(alphabetMap, abDNAredundant) {
+		return DNAredundant
+	}
+	if isSubset(alphabetMap, abRNAredundant) {
+		return RNAredundant
+	}
+	if isSubset(alphabetMap, abProtein) {
+		return Protein
+	}
+
+	return Unlimit
+}
+
+func isSubset(query, subject map[byte]bool) bool {
+	for b := range query {
+		if _, ok := subject[b]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func slice2map(s []byte) map[byte]bool {
+	m := make(map[byte]bool)
+	for _, b := range s {
+		m[b] = true
+	}
+	return m
 }

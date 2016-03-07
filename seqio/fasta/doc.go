@@ -1,4 +1,4 @@
-/* Fasta package parse fasta format file
+/*Package fasta parses fasta format file
 
 Examples:
 
@@ -43,6 +43,13 @@ Reading the first record.
         default:
         }
     }
-*/
 
+3. Guessing Alphabet
+
+    alphabet, err = fasta.GuessAlphabet(file)
+    checkError(err)
+    fastaReader, err := fasta.NewFastaReader(alphabet, file, chunkSize, threads, "")
+    checkError(err)
+
+*/
 package fasta

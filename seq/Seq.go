@@ -30,8 +30,37 @@ func (seq *Seq) Length() int {
 	return len(seq.Seq)
 }
 
-// Revcom returns reverse complement sequence
-func (seq *Seq) Revcom() *Seq {
+// SubSeq returns a sub seq. start and end is 1-based
+func (seq *Seq) SubSeq(start int, end int) *Seq {
+	if start < 1 {
+		start = 1
+	}
+	if end > len(seq.Seq) {
+		end = len(seq.Seq)
+	}
+	newseq, _ := NewSeq(seq.Alphabet, seq.Seq[start-1:end])
+	return newseq
+}
+
+// RemoveGaps remove gaps
+func (seq *Seq) RemoveGaps(letters string) *Seq {
+	m := make(map[byte]bool)
+	for i := 0; i < len(letters); i++ {
+		m[letters[i]] = true
+	}
+
+	s := []byte{}
+	for _, b := range seq.Seq {
+		if _, ok := m[b]; !ok {
+			s = append(s, b)
+		}
+	}
+	newseq, _ := NewSeq(seq.Alphabet, s)
+	return newseq
+}
+
+// RevCom returns reverse complement sequence
+func (seq *Seq) RevCom() *Seq {
 	return seq.Complement().Reverse()
 }
 

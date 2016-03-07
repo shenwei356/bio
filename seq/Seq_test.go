@@ -20,15 +20,15 @@ func TestValidateSequence(t *testing.T) {
 	}
 }
 
-func TestRevcom(t *testing.T) {
+func TestRevCom(t *testing.T) {
 	dna, _ := NewSeq(DNA, []byte("acgtccn-"))
-	if string(dna.Revcom().Seq) != "-nggacgt" {
+	if string(dna.RevCom().Seq) != "-nggacgt" {
 		t.Error("revcom sequence failed.")
 		return
 	}
 
 	rna, _ := NewSeq(RNA, []byte("auguccn-"))
-	if string(rna.Revcom().Seq) != "-nggacau" {
+	if string(rna.RevCom().Seq) != "-nggacau" {
 		t.Error("revcom sequence failed.")
 		return
 	}
