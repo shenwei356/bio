@@ -57,6 +57,7 @@ type FastaReader struct {
 	Ch         chan FastaRecordChunk // chanel for output of records chunks
 	IDRegexp   *regexp.Regexp        // regexp ofr parsing record id
 
+	firstseq  bool          // for guess alphabet by the first seq
 	done      chan struct{} // for cancellation
 	finished  bool          // for cancellation
 	cancelled bool          // for cancellation
@@ -74,6 +75,7 @@ var DefaultIDRegexp = `^([^\s]+)\s?`
 // Parameters:
 //
 //        t            sequence alphabet
+//                     if nil is given, it will guess alphabet by the first record
 //        file         file name, "-" for stdin
 //        bufferSize   buffer size
 //        chunkSize    chunk size
@@ -115,6 +117,7 @@ func NewFastaReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int,
 		ChunkSize:  chunkSize,
 		Ch:         make(chan FastaRecordChunk, bufferSize),
 		IDRegexp:   r,
+		firstseq:   true,
 		done:       make(chan struct{}),
 		finished:   false,
 		cancelled:  false,
@@ -197,6 +200,12 @@ func (fastaReader *FastaReader) read() {
 					// sequence := buffer.Bytes()
 					// buffer = bytes.Buffer{}
 
+					if fastaReader.firstseq {
+						if fastaReader.t == nil {
+							fastaReader.t = seq.GuessAlphabet(sequence)
+						}
+						fastaReader.firstseq = false
+					}
 					fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
 					if err != nil {
 						fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], err}
