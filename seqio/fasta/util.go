@@ -45,11 +45,7 @@ func GetSeqNames(file string) ([]string, error) {
 func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) ([]*FastaRecord, error) {
 	records := []*FastaRecord{}
 	if alphabet == nil || alphabet == seq.Unlimit {
-		var err error
-		alphabet, err = GuessAlphabet(file)
-		if err != nil {
-			return records, err
-		}
+		alphabet = nil
 	}
 	fastaReader, err := NewFastaReader(alphabet, file, chunkSize, threads, idRegexp)
 	if err != nil {
