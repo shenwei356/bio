@@ -44,6 +44,7 @@ for {
     default:
     }
 }
+```
 
 ### Guessing Alphabet
 
@@ -51,5 +52,3 @@ If alphabet is nil, it will guess alphabet by the first record
 
     fastaReader, err := fasta.NewFastaReader(alphabet, file, chunkSize, threads, "")
     checkError(err)
-    
-```
