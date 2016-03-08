@@ -28,7 +28,7 @@ func (fastRecord FastaRecord) String() string {
 func NewFastaRecord(t *seq.Alphabet, id, name, s []byte) (*FastaRecord, error) {
 	seq, err := seq.NewSeq(t, s)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err, id)
+		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
 	}
 	return &FastaRecord{id, name, seq}, nil
 }
@@ -132,7 +132,6 @@ var reTrimSpace = regexp.MustCompile(`[\r\n\s]+`)
 var ErrorCanceled = errors.New("reading canceled")
 
 func (fastaReader *FastaReader) read() {
-
 	go func() {
 		reader := bufio.NewReader(fastaReader.fh)
 		buffer := bytes.Buffer{}
@@ -166,7 +165,6 @@ func (fastaReader *FastaReader) read() {
 				// sequence := []byte(string(buffer.Bytes()))
 				sequence := buffer.Bytes()
 				buffer.Reset()
-				buffer = bytes.Buffer{}
 
 				fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
 				if err != nil {
@@ -191,11 +189,13 @@ func (fastaReader *FastaReader) read() {
 					// The underlying array may point to data that will be
 					// overwritten by a subsequent call to Scan.
 					// It does no allocation.
-					// sequence := []byte(string(buffer.Bytes()))
-					sequence := buffer.Bytes()
+					sequence := []byte(string(buffer.Bytes()))
 					buffer.Reset()
+
+					// !!!! this brings bug! !!!!
 					// or we can create a new bytes.Buffer
-					buffer = bytes.Buffer{}
+					// sequence := buffer.Bytes()
+					// buffer = bytes.Buffer{}
 
 					fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
 					if err != nil {

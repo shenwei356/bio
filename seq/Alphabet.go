@@ -167,17 +167,20 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 }
 
 // IsValid is used to validate a byte slice
-func (a *Alphabet) IsValid(s []byte) bool {
+func (a *Alphabet) IsValid(s []byte) error {
+	if len(s) == 0 {
+		return fmt.Errorf("no any sequences")
+	}
 	if a.isUnlimit {
-		return true
+		return nil
 	}
 
 	for _, b := range s {
 		if !a.IsValidLetter(b) {
-			return false
+			return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
 		}
 	}
-	return true
+	return nil
 }
 
 // PairLetter return the Pair Letter
@@ -210,6 +213,12 @@ var (
 	RNAredundant *Alphabet
 	Protein      *Alphabet
 	Unlimit      *Alphabet
+
+	abProtein      map[byte]bool
+	abDNAredundant map[byte]bool
+	abDNA          map[byte]bool
+	abRNAredundant map[byte]bool
+	abRNA          map[byte]bool
 )
 
 func init() {
@@ -260,17 +269,17 @@ func init() {
 		nil,
 		nil,
 		nil)
+
+	abProtein = slice2map(byteutil.Alphabet(append(Protein.letters, Protein.Gaps()...)))
+	abDNAredundant = slice2map(byteutil.Alphabet(append(DNAredundant.letters, DNAredundant.Gaps()...)))
+	abDNA = slice2map(byteutil.Alphabet(append(DNA.letters, DNA.Gaps()...)))
+	abRNAredundant = slice2map(byteutil.Alphabet(append(RNAredundant.letters, RNAredundant.Gaps()...)))
+	abRNA = slice2map(byteutil.Alphabet(append(RNA.letters, RNA.Gaps()...)))
 }
 
 // GuessAlphabet guesses alphabet by given
 func GuessAlphabet(seqs []byte) *Alphabet {
 	alphabetMap := slice2map(byteutil.Alphabet(seqs))
-	abProtein := slice2map(byteutil.Alphabet(append(Protein.letters, Protein.Gaps()...)))
-	abDNAredundant := slice2map(byteutil.Alphabet(append(DNAredundant.letters, DNAredundant.Gaps()...)))
-	abDNA := slice2map(byteutil.Alphabet(append(DNA.letters, DNA.Gaps()...)))
-	abRNAredundant := slice2map(byteutil.Alphabet(append(RNAredundant.letters, RNAredundant.Gaps()...)))
-	abRNA := slice2map(byteutil.Alphabet(append(RNA.letters, RNA.Gaps()...)))
-
 	if isSubset(alphabetMap, abDNA) {
 		return DNA
 	}

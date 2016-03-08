@@ -2,7 +2,6 @@ package seq
 
 import (
 	"bytes"
-	"errors"
 	"strings"
 
 	"github.com/shenwei356/util/byteutil"
@@ -17,8 +16,8 @@ type Seq struct {
 // NewSeq is constructor for type *Seq*
 func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 	// check sequene first
-	if !t.IsValid(s) {
-		return nil, errors.New("invalid " + t.Type() + " sequence")
+	if err := t.IsValid(s); err != nil {
+		return nil, err
 	}
 
 	seq := &Seq{t, s}
@@ -30,13 +29,21 @@ func (seq *Seq) Length() int {
 	return len(seq.Seq)
 }
 
-// SubSeq returns a sub seq. start and end is 1-based
+// SubSeq returns a sub seq. start and end is 1-based.
+// end could be below than 0, e.g. SubSeq(1, -2) return
+// seq without the last base.
 func (seq *Seq) SubSeq(start int, end int) *Seq {
 	if start < 1 {
 		start = 1
 	}
 	if end > len(seq.Seq) {
 		end = len(seq.Seq)
+	}
+	if end < 1 {
+		if end == 0 {
+			end = -1
+		}
+		end = len(seq.Seq) + end - 1
 	}
 	newseq, _ := NewSeq(seq.Alphabet, seq.Seq[start-1:end])
 	return newseq
@@ -117,6 +124,11 @@ func (seq *Seq) BaseContent(list string) float64 {
 	}
 
 	return float64(sum) / float64(len(seq.Seq))
+}
+
+// GC returns the GC content
+func (seq *Seq) GC() float64 {
+	return seq.BaseContent("gc")
 }
 
 // DegenerateBaseMapNucl mappings nucleic acid degenerate base to
