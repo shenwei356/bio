@@ -202,7 +202,7 @@ func (fastaReader *FastaReader) read() {
 
 					if fastaReader.firstseq {
 						if fastaReader.t == nil {
-							fastaReader.t = seq.GuessAlphabet(sequence)
+							fastaReader.t = seq.GuessAlphabetLessConservatively(sequence)
 						}
 						fastaReader.firstseq = false
 					}

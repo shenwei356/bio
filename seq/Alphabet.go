@@ -171,13 +171,13 @@ func (a *Alphabet) IsValid(s []byte) error {
 	if len(s) == 0 {
 		return fmt.Errorf("no any sequences")
 	}
-	if a.isUnlimit {
+	if a == nil || a.isUnlimit {
 		return nil
 	}
 
 	for _, b := range s {
 		if !a.IsValidLetter(b) {
-			return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
+			return fmt.Errorf("invalid %s lebtter: %s", a, []byte{b})
 		}
 	}
 	return nil
@@ -297,6 +297,18 @@ func GuessAlphabet(seqs []byte) *Alphabet {
 	}
 
 	return Unlimit
+}
+
+// GuessAlphabetLessConservatively change DNA to DNAredundant and RNA to RNAredundant
+func GuessAlphabetLessConservatively(seqs []byte) *Alphabet {
+	ab := GuessAlphabet(seqs)
+	if ab == DNA {
+		return DNAredundant
+	}
+	if ab == RNA {
+		return RNAredundant
+	}
+	return ab
 }
 
 func isSubset(query, subject map[byte]bool) bool {
