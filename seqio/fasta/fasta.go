@@ -164,9 +164,8 @@ func (fastaReader *FastaReader) read() {
 				fastaReader.finished = true
 				fastaReader.fh.Close()
 
-				buffer.Write(reTrimSpace.ReplaceAll(line, []byte("")))
-				// sequence := []byte(string(buffer.Bytes()))
-				sequence := buffer.Bytes()
+				buffer.Write(line)
+				sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
 				buffer.Reset()
 
 				fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
@@ -192,7 +191,7 @@ func (fastaReader *FastaReader) read() {
 					// The underlying array may point to data that will be
 					// overwritten by a subsequent call to Scan.
 					// It does no allocation.
-					sequence := []byte(string(buffer.Bytes()))
+					sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
 					buffer.Reset()
 
 					// !!!! this brings bug! !!!!
@@ -228,7 +227,7 @@ func (fastaReader *FastaReader) read() {
 					lastName = thisName
 				}
 			} else if hasSeq { // append sequence
-				buffer.Write(reTrimSpace.ReplaceAll(line, []byte("")))
+				buffer.Write(line)
 			} else {
 				// some line before the first "^>"
 			}
@@ -250,4 +249,9 @@ func (fastaReader *FastaReader) Cancel() {
 		close(fastaReader.done)
 		fastaReader.cancelled = true
 	}
+}
+
+// Alphabet returns Alphabet of the file
+func (fastaReader *FastaReader) Alphabet() *seq.Alphabet {
+	return fastaReader.t
 }
