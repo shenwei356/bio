@@ -144,6 +144,13 @@ func SplitFASTA(data []byte, atEOF bool) (advance int, token []byte, err error) 
 		return i + 1, nil, nil
 	}
 	if i > 0 {
+		for data[i-1] != '\n' {
+			j := bytes.IndexByte(data[i+1:], '>')
+			if j < 0 {
+				return len(data), dropCR(data), nil
+			}
+			i += j + 1
+		}
 		return i + 1, dropCR(data[0:i]), nil
 	}
 	if atEOF {

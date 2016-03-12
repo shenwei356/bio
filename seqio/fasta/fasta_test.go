@@ -18,13 +18,13 @@ func TestFastaReader(t *testing.T) {
 		if chunk.Err != nil {
 			t.Error(chunk.Err)
 		}
+		n += len(chunk.Data)
 		for _, record := range chunk.Data {
-			n++
 			fmt.Println(record)
 		}
 	}
-	if n != 18 {
-		t.Errorf("seq number mismatch %d != %d", 18, n)
+	if n != 4 {
+		t.Errorf("seq number mismatch %d != %d", 4, n)
 	}
 
 }

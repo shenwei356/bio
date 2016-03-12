@@ -26,7 +26,7 @@ func GetSeqNames(file string) ([]string, error) {
 		}
 		return "", false, nil
 	}
-	reader, err := breader.NewBufferedReader(file, runtime.NumCPU(), 1000, fn)
+	reader, err := breader.NewBufferedReader(file, runtime.NumCPU(), 100, fn)
 	if err != nil {
 		return names, err
 	}
@@ -47,7 +47,7 @@ func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, id
 	if alphabet == nil || alphabet == seq.Unlimit {
 		alphabet = nil
 	}
-	fastaReader, err := NewFastaReader(alphabet, file, chunkSize, threads, idRegexp)
+	fastaReader, err := NewFastaReader(alphabet, file, threads, chunkSize, idRegexp)
 	if err != nil {
 		return records, err
 	}
@@ -78,7 +78,7 @@ func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int,
 
 // GuessAlphabet guess the alphabet of the file
 func GuessAlphabet(file string) (*seq.Alphabet, error) {
-	fastaReader, err := NewFastaReader(seq.Unlimit, file, 1, 1, "")
+	fastaReader, err := NewFastaReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		return seq.Unlimit, err
 	}
