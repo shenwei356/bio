@@ -168,6 +168,12 @@ func (fastaReader *FastaReader) read() {
 				sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
 				buffer.Reset()
 
+				if fastaReader.firstseq {
+					if fastaReader.t == nil {
+						fastaReader.t = seq.GuessAlphabetLessConservatively(sequence)
+					}
+					fastaReader.firstseq = false
+				}
 				fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
 				if err != nil {
 					fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], err}
