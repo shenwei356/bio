@@ -8,7 +8,7 @@ import (
 )
 
 func TestFastaReader(t *testing.T) {
-	file := "hairpin.fa"
+	file := "test.fa"
 	fastaReader, err := NewFastaReader(seq.Unlimit, file, 1, 0, "")
 	if err != nil {
 		t.Error(t)
@@ -23,8 +23,8 @@ func TestFastaReader(t *testing.T) {
 			fmt.Println(record)
 		}
 	}
-	if n != 4 {
-		t.Errorf("seq number mismatch %d != %d", 4, n)
+	if n != 6 {
+		t.Errorf("seq number mismatch %d != %d", 6, n)
 	}
 
 }

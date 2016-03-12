@@ -169,7 +169,7 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 // IsValid is used to validate a byte slice
 func (a *Alphabet) IsValid(s []byte) error {
 	if len(s) == 0 {
-		return fmt.Errorf("no any sequences")
+		return nil
 	}
 	if a == nil || a.isUnlimit {
 		return nil
