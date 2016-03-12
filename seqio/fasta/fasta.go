@@ -134,17 +134,42 @@ var reTrimSpace = regexp.MustCompile(`[\r\n\s]+`)
 // ErrorCanceled means that the reading process is canceled
 var ErrorCanceled = errors.New("reading canceled")
 
+// SplitFASTA is split function for FASTA format
+func SplitFASTA(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	i := bytes.IndexByte(data, '>')
+	if i == 0 { // first '>'
+		return i + 1, nil, nil
+	}
+	if i > 0 {
+		return i + 1, dropCR(data[0:i]), nil
+	}
+	if atEOF {
+		return len(data), dropCR(data), nil
+	}
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
+}
+
 func (fastaReader *FastaReader) read() {
 	go func() {
-		reader := bufio.NewReader(fastaReader.fh)
-		buffer := bytes.Buffer{}
+		var text []byte
 		var i int
 		var id uint64
-		var hasSeq bool
-		var lastName, thisName []byte
 		chunkData := make([]*FastaRecord, fastaReader.ChunkSize)
 
-		for {
+		scanner := bufio.NewScanner(fastaReader.fh)
+		scanner.Split(SplitFASTA)
+		for scanner.Scan() {
 			select {
 			case <-fastaReader.done:
 				if !fastaReader.finished {
@@ -156,88 +181,43 @@ func (fastaReader *FastaReader) read() {
 					return
 				}
 			default:
-
 			}
 
-			line, err := reader.ReadBytes('\n')
-			if err != nil { // end of file
-				fastaReader.finished = true
+			text = scanner.Bytes()
+			j := bytes.IndexByte(text, '\n')
+
+			name := []byte(string(text[0:j]))
+			sequence := []byte(string(reTrimSpace.ReplaceAll(text[j+1:], []byte(""))))
+
+			if fastaReader.firstseq {
+				if fastaReader.t == nil {
+					fastaReader.t = seq.GuessAlphabetLessConservatively(sequence)
+				}
+				fastaReader.firstseq = false
+			}
+
+			fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(name), name, sequence)
+			if err != nil {
+				fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], err}
 				fastaReader.fh.Close()
-
-				buffer.Write(line)
-				sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
-				buffer.Reset()
-
-				if fastaReader.firstseq {
-					if fastaReader.t == nil {
-						fastaReader.t = seq.GuessAlphabetLessConservatively(sequence)
-					}
-					fastaReader.firstseq = false
-				}
-				fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
-				if err != nil {
-					fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], err}
-					fastaReader.fh.Close()
-					close(fastaReader.Ch)
-					return
-				}
-				chunkData[i] = fastaRecord
-				i++
-				fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], nil}
 				close(fastaReader.Ch)
-
 				return
 			}
 
-			if line[0] == '>' {
-				hasSeq = true
-				thisName = reTrimRightSpace.ReplaceAll(line[1:], []byte(""))
-				if buffer.Len() > 0 { // no-first seq head
-					// see https://golang.org/pkg/bufio/#Scanner.Bytes
-					// The underlying array may point to data that will be
-					// overwritten by a subsequent call to Scan.
-					// It does no allocation.
-					sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
-					buffer.Reset()
-
-					// !!!! this brings bug! !!!!
-					// or we can create a new bytes.Buffer
-					// sequence := buffer.Bytes()
-					// buffer = bytes.Buffer{}
-
-					if fastaReader.firstseq {
-						if fastaReader.t == nil {
-							fastaReader.t = seq.GuessAlphabetLessConservatively(sequence)
-						}
-						fastaReader.firstseq = false
-					}
-					fastaRecord, err := NewFastaRecord(fastaReader.t, fastaReader.parseHeadID(lastName), lastName, sequence)
-					if err != nil {
-						fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], err}
-						fastaReader.fh.Close()
-						close(fastaReader.Ch)
-						return
-					}
-
-					chunkData[i] = fastaRecord
-					i++
-					if i == fastaReader.ChunkSize {
-						fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], nil}
-						id++
-						i = 0
-						chunkData = make([]*FastaRecord, fastaReader.ChunkSize)
-					}
-
-					lastName = thisName
-				} else { // first sequence name
-					lastName = thisName
-				}
-			} else if hasSeq { // append sequence
-				buffer.Write(line)
-			} else {
-				// some line before the first "^>"
+			chunkData[i] = fastaRecord
+			i++
+			if i == fastaReader.ChunkSize {
+				fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], nil}
+				id++
+				i = 0
+				chunkData = make([]*FastaRecord, fastaReader.ChunkSize)
 			}
+
 		}
+
+		fastaReader.Ch <- FastaRecordChunk{id, chunkData[0:i], scanner.Err()}
+		fastaReader.fh.Close()
+		close(fastaReader.Ch)
 	}()
 }
 
