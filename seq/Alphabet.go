@@ -152,6 +152,20 @@ func (a *Alphabet) Gaps() []byte {
 	return a.gap
 }
 
+// AmbiguousLetters returns AmbiguousLetters
+func (a *Alphabet) AmbiguousLetters() []byte {
+	return a.ambiguous
+}
+
+// AllLetters return all letters
+func (a *Alphabet) AllLetters() []byte {
+	letter := append(a.letters, a.Gaps()...)
+	for _, l := range a.ambiguous {
+		letter = append(letter, l)
+	}
+	return letter
+}
+
 // String returns type of the alphabet
 func (a *Alphabet) String() string {
 	return a.t
@@ -270,11 +284,11 @@ func init() {
 		nil,
 		nil)
 
-	abProtein = slice2map(byteutil.Alphabet(append(Protein.letters, Protein.Gaps()...)))
-	abDNAredundant = slice2map(byteutil.Alphabet(append(DNAredundant.letters, DNAredundant.Gaps()...)))
-	abDNA = slice2map(byteutil.Alphabet(append(DNA.letters, DNA.Gaps()...)))
-	abRNAredundant = slice2map(byteutil.Alphabet(append(RNAredundant.letters, RNAredundant.Gaps()...)))
-	abRNA = slice2map(byteutil.Alphabet(append(RNA.letters, RNA.Gaps()...)))
+	abProtein = slice2map(byteutil.Alphabet(Protein.AllLetters()))
+	abDNAredundant = slice2map(byteutil.Alphabet(DNAredundant.AllLetters()))
+	abDNA = slice2map(byteutil.Alphabet(DNA.AllLetters()))
+	abRNAredundant = slice2map(byteutil.Alphabet(RNAredundant.AllLetters()))
+	abRNA = slice2map(byteutil.Alphabet(RNA.AllLetters()))
 }
 
 // GuessAlphabet guesses alphabet by given
