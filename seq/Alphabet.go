@@ -136,11 +136,9 @@ func NewAlphabet(
 		a.pairLetters[v] = v
 	}
 
-	a.lettersSlice = make([]byte, len(a.pairLetters))
-	i := 0
+	a.lettersSlice = []byte{}
 	for b := range a.pairLetters {
-		a.lettersSlice[i] = b
-		i++
+		a.lettersSlice = append(a.lettersSlice, byteutil.ByteToLower(b))
 	}
 
 	return a, nil
@@ -185,7 +183,7 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	if a.isUnlimit {
 		return true
 	}
-	i := bytes.IndexByte(a.lettersSlice, b)
+	i := bytes.IndexByte(a.lettersSlice, byteutil.ByteToLower(b))
 	if i < 0 {
 		return false
 	}
