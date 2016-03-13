@@ -70,7 +70,6 @@ Other links:
 package seq
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -99,10 +98,9 @@ type Alphabet struct {
 	gap       []byte
 	ambiguous []byte
 
-	allLetters  []byte
-	pairLetters []byte
+	allLetters []byte
 
-	allLoweredLetters []byte
+	pairLetters []byte
 }
 
 // NewAlphabet is Constructor for type *Alphabet*
@@ -115,7 +113,7 @@ func NewAlphabet(
 	ambiguous []byte,
 ) (*Alphabet, error) {
 
-	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, []byte{}, []byte{}, []byte{}}
+	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, []byte{}, []byte{}}
 
 	if isUnlimit {
 		return a, nil
@@ -127,22 +125,32 @@ func NewAlphabet(
 
 	for i := 0; i < len(letters); i++ {
 		a.allLetters = append(a.allLetters, letters[i])
-		a.pairLetters = append(a.pairLetters, pairs[i])
 	}
-
 	// add gap and ambiguous code
 	for _, v := range gap {
 		a.allLetters = append(a.allLetters, v)
-		a.pairLetters = append(a.pairLetters, v)
 	}
 	for _, v := range ambiguous {
 		a.allLetters = append(a.allLetters, v)
-		a.pairLetters = append(a.pairLetters, v)
 	}
 
-	a.allLoweredLetters = []byte{}
-	for _, b := range a.pairLetters {
-		a.allLoweredLetters = append(a.allLoweredLetters, byteutil.ByteToLower(b))
+	//
+	max := -1
+	for i := 0; i < len(a.allLetters); i++ {
+		b := int(a.allLetters[i])
+		if max < b {
+			max = b
+		}
+	}
+	a.pairLetters = make([]byte, max+1)
+	for i := 0; i < len(letters); i++ {
+		a.pairLetters[int(letters[i])] = pairs[i]
+	}
+	for _, v := range gap {
+		a.pairLetters[int(v)] = v
+	}
+	for _, v := range ambiguous {
+		a.pairLetters[int(v)] = v
 	}
 
 	return a, nil
@@ -183,11 +191,7 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	if a.isUnlimit {
 		return true
 	}
-	i := bytes.IndexByte(a.allLoweredLetters, byteutil.ByteToLower(b))
-	if i < 0 {
-		return false
-	}
-	return true
+	return a.pairLetters[int(b)] != 0
 }
 
 // IsValid is used to validate a byte slice
@@ -213,11 +217,11 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 		return b, nil
 	}
 
-	i := bytes.IndexByte(a.allLetters, b)
-	if i < 0 {
+	p := a.pairLetters[int(b)]
+	if p == 0 {
 		return b, fmt.Errorf("invalid letter: %c", b)
 	}
-	return a.pairLetters[i], nil
+	return p, nil
 }
 
 /*Four types of alphabets are pre-defined:
