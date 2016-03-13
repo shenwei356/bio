@@ -24,6 +24,12 @@ func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 	return seq, nil
 }
 
+// NewSeqWithoutValidate create Seq without check the sequences
+func NewSeqWithoutValidate(t *Alphabet, s []byte) (*Seq, error) {
+	seq := &Seq{t, s}
+	return seq, nil
+}
+
 // Length returns the lenght of sequence
 func (seq *Seq) Length() int {
 	return len(seq.Seq)
@@ -75,21 +81,21 @@ func (seq *Seq) RevCom() *Seq {
 func (seq *Seq) Reverse() *Seq {
 	s := byteutil.ReverseByteSlice(seq.Seq)
 
-	newseq, _ := NewSeq(seq.Alphabet, s)
+	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
 	return newseq
 }
 
 // Complement returns complement sequence
 func (seq *Seq) Complement() *Seq {
 	if seq.Alphabet == Unlimit {
-		newseq, _ := NewSeq(seq.Alphabet, []byte(""))
+		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, []byte(""))
 		return newseq
 	}
 
 	s := make([]byte, len(seq.Seq))
 	var p byte
 	for i := 0; i < len(seq.Seq); i++ {
-		p, _ = seq.Alphabet.pairLetters[seq.Seq[i]]
+		p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
 		s[i] = p
 	}
 

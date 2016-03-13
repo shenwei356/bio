@@ -11,8 +11,10 @@ func TestValidateSequence(t *testing.T) {
 	rna := []byte("acgu")
 	fake := []byte("acgturymkswhbvdnz")
 
-	ok := DNA.IsValid(dna) && DNAredundant.IsValid(dna2) &&
-		RNA.IsValid(rna) && !RNA.IsValid(fake)
+	ok := DNA.IsValid(dna) == nil &&
+		DNAredundant.IsValid(dna2) == nil &&
+		RNA.IsValid(rna) == nil &&
+		RNA.IsValid(fake) != nil
 
 	if !ok {
 		t.Error("validate sequence failed.")

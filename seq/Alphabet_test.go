@@ -24,7 +24,11 @@ PSQPLNVFNKKTTTKTVTKKPTPVKTAPKLAELPATKPQETVLRENKTPFIEKQAETNKQ
 SINMPSLPVIQKEATESDKEEMKPQTEEKMVEESESANNANGKNRSAGIEEGKLIAKSAE
 DEKAKEEPGNHTTLILAMLAIGVFSLGAFIKIIQLRKNN`, ""))
 
-	ok := DNA.IsValid(dna) && DNAredundant.IsValid(dna2) && RNA.IsValid(rna) && RNAredundant.IsValid(rna2) && Protein.IsValid(protein)
+	ok := DNA.IsValid(dna) == nil &&
+		DNAredundant.IsValid(dna2) == nil &&
+		RNA.IsValid(rna) == nil &&
+		RNAredundant.IsValid(rna2) == nil &&
+		Protein.IsValid(protein) == nil
 	if !ok {
 		t.Error("validating sequence failed.")
 		return

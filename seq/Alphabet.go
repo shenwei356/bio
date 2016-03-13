@@ -99,8 +99,10 @@ type Alphabet struct {
 	gap       []byte
 	ambiguous []byte
 
-	pairLetters  map[byte]byte
-	lettersSlice []byte
+	allLetters  []byte
+	pairLetters []byte
+
+	allLoweredLetters []byte
 }
 
 // NewAlphabet is Constructor for type *Alphabet*
@@ -113,7 +115,7 @@ func NewAlphabet(
 	ambiguous []byte,
 ) (*Alphabet, error) {
 
-	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil, nil}
+	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, []byte{}, []byte{}, []byte{}}
 
 	if isUnlimit {
 		return a, nil
@@ -123,22 +125,24 @@ func NewAlphabet(
 		return a, errors.New("mismatch of length of letters and pairs")
 	}
 
-	a.pairLetters = make(map[byte]byte, len(letters))
 	for i := 0; i < len(letters); i++ {
-		a.pairLetters[letters[i]] = pairs[i]
+		a.allLetters = append(a.allLetters, letters[i])
+		a.pairLetters = append(a.pairLetters, pairs[i])
 	}
 
 	// add gap and ambiguous code
 	for _, v := range gap {
-		a.pairLetters[v] = v
+		a.allLetters = append(a.allLetters, v)
+		a.pairLetters = append(a.pairLetters, v)
 	}
 	for _, v := range ambiguous {
-		a.pairLetters[v] = v
+		a.allLetters = append(a.allLetters, v)
+		a.pairLetters = append(a.pairLetters, v)
 	}
 
-	a.lettersSlice = []byte{}
-	for b := range a.pairLetters {
-		a.lettersSlice = append(a.lettersSlice, byteutil.ByteToLower(b))
+	a.allLoweredLetters = []byte{}
+	for _, b := range a.pairLetters {
+		a.allLoweredLetters = append(a.allLoweredLetters, byteutil.ByteToLower(b))
 	}
 
 	return a, nil
@@ -166,11 +170,7 @@ func (a *Alphabet) AmbiguousLetters() []byte {
 
 // AllLetters return all letters
 func (a *Alphabet) AllLetters() []byte {
-	letter := append(a.letters, a.Gaps()...)
-	for _, l := range a.ambiguous {
-		letter = append(letter, l)
-	}
-	return letter
+	return a.allLetters
 }
 
 // String returns type of the alphabet
@@ -183,7 +183,7 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	if a.isUnlimit {
 		return true
 	}
-	i := bytes.IndexByte(a.lettersSlice, byteutil.ByteToLower(b))
+	i := bytes.IndexByte(a.allLoweredLetters, byteutil.ByteToLower(b))
 	if i < 0 {
 		return false
 	}
@@ -213,11 +213,11 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 		return b, nil
 	}
 
-	if !a.IsValidLetter(b) {
+	i := bytes.IndexByte(a.allLetters, b)
+	if i < 0 {
 		return b, fmt.Errorf("invalid letter: %c", b)
 	}
-	v, _ := a.pairLetters[b]
-	return v, nil
+	return a.pairLetters[i], nil
 }
 
 /*Four types of alphabets are pre-defined:
