@@ -70,6 +70,7 @@ Other links:
 package seq
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -98,7 +99,8 @@ type Alphabet struct {
 	gap       []byte
 	ambiguous []byte
 
-	pairLetters map[byte]byte
+	pairLetters  map[byte]byte
+	lettersSlice []byte
 }
 
 // NewAlphabet is Constructor for type *Alphabet*
@@ -111,7 +113,7 @@ func NewAlphabet(
 	ambiguous []byte,
 ) (*Alphabet, error) {
 
-	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil}
+	a := &Alphabet{t, isUnlimit, letters, pairs, gap, ambiguous, nil, nil}
 
 	if isUnlimit {
 		return a, nil
@@ -132,6 +134,13 @@ func NewAlphabet(
 	}
 	for _, v := range ambiguous {
 		a.pairLetters[v] = v
+	}
+
+	a.lettersSlice = make([]byte, len(a.pairLetters))
+	i := 0
+	for b := range a.pairLetters {
+		a.lettersSlice[i] = b
+		i++
 	}
 
 	return a, nil
@@ -176,8 +185,11 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	if a.isUnlimit {
 		return true
 	}
-	_, ok := a.pairLetters[b]
-	return ok
+	i := bytes.IndexByte(a.lettersSlice, b)
+	if i < 0 {
+		return false
+	}
+	return true
 }
 
 // IsValid is used to validate a byte slice

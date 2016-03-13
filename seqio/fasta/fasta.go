@@ -128,9 +128,6 @@ func NewFastaReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int,
 	return fastaReader, nil
 }
 
-var reTrimRightSpace = regexp.MustCompile(`[\r\n]+$`)
-var reTrimSpace = regexp.MustCompile(`[\r\n\s]+`)
-
 // ErrorCanceled means that the reading process is canceled
 var ErrorCanceled = errors.New("reading canceled")
 
@@ -165,7 +162,8 @@ func (fastaReader *FastaReader) read() {
 				fastaReader.fh.Close()
 
 				buffer.Write(line)
-				sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
+
+				sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
 				buffer.Reset()
 
 				if fastaReader.firstseq {
@@ -191,19 +189,10 @@ func (fastaReader *FastaReader) read() {
 
 			if line[0] == '>' {
 				hasSeq = true
-				thisName = reTrimRightSpace.ReplaceAll(line[1:], []byte(""))
+				thisName = cleanEndSpace(line[1:])
 				if lastName != nil { // no-first seq head
-					// see https://golang.org/pkg/bufio/#Scanner.Bytes
-					// The underlying array may point to data that will be
-					// overwritten by a subsequent call to Scan.
-					// It does no allocation.
-					sequence := []byte(string(reTrimSpace.ReplaceAll(buffer.Bytes(), []byte(""))))
+					sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
 					buffer.Reset()
-
-					// !!!! this brings bug! !!!!
-					// or we can create a new bytes.Buffer
-					// sequence := buffer.Bytes()
-					// buffer = bytes.Buffer{}
 
 					if fastaReader.firstseq {
 						if fastaReader.t == nil {
@@ -260,4 +249,29 @@ func (fastaReader *FastaReader) Cancel() {
 // Alphabet returns Alphabet of the file
 func (fastaReader *FastaReader) Alphabet() *seq.Alphabet {
 	return fastaReader.t
+}
+
+func cleanSpace(slice []byte) []byte {
+	newSlice := []byte{}
+	for _, b := range slice {
+		switch b {
+		case '\r', '\n', ' ', '\t':
+		default:
+			newSlice = append(newSlice, b)
+		}
+	}
+	return newSlice
+}
+
+func cleanEndSpace(slice []byte) []byte {
+	l := len(slice)
+	newSlice := []byte(string(slice))
+	if slice[l-1] == '\n' {
+		newSlice = slice[0 : l-1]
+	}
+	l = len(newSlice)
+	if newSlice[l-1] == '\r' {
+		newSlice = newSlice[0 : l-1]
+	}
+	return newSlice
 }
