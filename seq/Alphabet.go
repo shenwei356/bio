@@ -134,7 +134,9 @@ func NewAlphabet(
 		a.allLetters = append(a.allLetters, v)
 	}
 
-	//
+	// construct special slice.
+	// index are the integer of a byte, and value is the original byte.
+	// it's faster than map!!!!
 	max := -1
 	for i := 0; i < len(a.allLetters); i++ {
 		b := int(a.allLetters[i])
