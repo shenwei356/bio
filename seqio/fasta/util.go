@@ -76,7 +76,7 @@ func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int,
 	return m, nil
 }
 
-// GuessAlphabet guess the alphabet of the file
+// GuessAlphabet guess the alphabet of the file by the first maxLen bases
 func GuessAlphabet(file string) (*seq.Alphabet, error) {
 	fastaReader, err := NewFastaReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {

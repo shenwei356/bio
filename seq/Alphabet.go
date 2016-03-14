@@ -72,6 +72,8 @@ package seq
 import (
 	"errors"
 	"fmt"
+	"runtime"
+	"sync"
 
 	"github.com/shenwei356/util/byteutil"
 )
@@ -196,6 +198,17 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	return a.pairLetters[int(b)] != 0
 }
 
+// ValidSeqLengthThreshold is the threshold of sequence length that
+// needed to  parallelly checking sequence
+var ValidSeqLengthThreshold = 100000
+
+// ValidSeqThreads is the threads number of parallelly checking sequence
+var ValidSeqThreads = runtime.NumCPU()
+
+type seqCheckStatus struct {
+	err error
+}
+
 // IsValid is used to validate a byte slice
 func (a *Alphabet) IsValid(s []byte) error {
 	if len(s) == 0 {
@@ -205,9 +218,62 @@ func (a *Alphabet) IsValid(s []byte) error {
 		return nil
 	}
 
-	for _, b := range s {
-		if !a.IsValidLetter(b) {
-			return fmt.Errorf("invalid %s lebtter: %s", a, []byte{b})
+	l := len(s)
+	if l < ValidSeqLengthThreshold {
+		for _, b := range s {
+			if !a.IsValidLetter(b) {
+				return fmt.Errorf("invalid %s lebtter: %s", a, []byte{b})
+			}
+		}
+	} else {
+		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+
+		var wg sync.WaitGroup
+		tokens := make(chan int, ValidSeqThreads)
+		ch := make(chan seqCheckStatus, ValidSeqThreads)
+		done := make(chan struct{})
+		finished := false
+		for i := 0; i < ValidSeqThreads; i++ {
+			start = i * chunkSize
+			end = (i + 1) * chunkSize
+			if end > l {
+				end = l
+			}
+			tokens <- 1
+			wg.Add(1)
+			go func(start, end int) {
+				defer func() {
+					<-tokens
+					wg.Done()
+				}()
+
+				select {
+				case <-done:
+					if !finished {
+						finished = true
+						close(ch)
+						return
+					}
+				default:
+
+				}
+
+				for i := start; i < end; i++ {
+					if !a.IsValidLetter(s[i]) {
+						ch <- seqCheckStatus{fmt.Errorf("invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
+						close(done)
+						return
+					}
+				}
+				ch <- seqCheckStatus{nil}
+			}(start, end)
+		}
+		wg.Wait()
+		close(ch)
+		for status := range ch {
+			if status.err != nil {
+				return status.err
+			}
 		}
 	}
 	return nil
@@ -307,9 +373,18 @@ func init() {
 	abRNA = slice2map(byteutil.Alphabet(RNA.AllLetters()))
 }
 
+// AlphabetGuessSeqLenghtThreshold is the length of sequence prefix of the first FASTA record
+// based which FastaRecord guesses the sequence type
+var AlphabetGuessSeqLenghtThreshold = 10000
+
 // GuessAlphabet guesses alphabet by given
 func GuessAlphabet(seqs []byte) *Alphabet {
-	alphabetMap := slice2map(byteutil.Alphabet(seqs))
+	var alphabetMap map[byte]bool
+	if len(seqs) > AlphabetGuessSeqLenghtThreshold { // reduce guessing time
+		alphabetMap = slice2map(byteutil.Alphabet(seqs[0:AlphabetGuessSeqLenghtThreshold]))
+	} else {
+		alphabetMap = slice2map(byteutil.Alphabet(seqs))
+	}
 	if isSubset(alphabetMap, abDNA) {
 		return DNA
 	}

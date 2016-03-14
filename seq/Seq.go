@@ -13,11 +13,16 @@ type Seq struct {
 	Seq      []byte
 }
 
+// ValidateSeq decides whether check sequence or not
+var ValidateSeq = true
+
 // NewSeq is constructor for type *Seq*
 func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
-	// check sequene first
-	if err := t.IsValid(s); err != nil {
-		return nil, err
+	if ValidateSeq {
+		// check sequene first
+		if err := t.IsValid(s); err != nil {
+			return nil, err
+		}
 	}
 
 	seq := &Seq{t, s}
