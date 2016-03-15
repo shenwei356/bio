@@ -161,9 +161,10 @@ func (fastaReader *FastaReader) read() {
 				fastaReader.finished = true
 				fastaReader.fh.Close()
 
-				buffer.Write(line)
+				buffer.Write(dropCR(line))
 
-				sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
+				// sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
+				sequence := []byte(string(buffer.Bytes()))
 				buffer.Reset()
 
 				if fastaReader.firstseq {
@@ -191,7 +192,8 @@ func (fastaReader *FastaReader) read() {
 				hasSeq = true
 				thisName = cleanEndSpace(line[1:])
 				if lastName != nil { // no-first seq head
-					sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
+					// sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
+					sequence := []byte(string(buffer.Bytes()))
 					buffer.Reset()
 
 					if fastaReader.firstseq {
@@ -222,7 +224,7 @@ func (fastaReader *FastaReader) read() {
 					lastName = thisName
 				}
 			} else if hasSeq { // append sequence
-				buffer.Write(line)
+				buffer.Write(dropCR(line[0 : len(line)-1]))
 			} else {
 				// some line before the first "^>"
 			}
@@ -249,6 +251,13 @@ func (fastaReader *FastaReader) Cancel() {
 // Alphabet returns Alphabet of the file
 func (fastaReader *FastaReader) Alphabet() *seq.Alphabet {
 	return fastaReader.t
+}
+
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
 }
 
 func cleanSpace(slice []byte) []byte {

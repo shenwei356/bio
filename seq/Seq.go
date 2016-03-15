@@ -56,24 +56,32 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 		}
 		end = len(seq.Seq) + end - 1
 	}
-	newseq, _ := NewSeq(seq.Alphabet, seq.Seq[start-1:end])
+	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
 	return newseq
 }
 
 // RemoveGaps remove gaps
 func (seq *Seq) RemoveGaps(letters string) *Seq {
-	m := make(map[byte]bool)
+	if len(letters) == 0 {
+		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, seq.Seq)
+		return newseq
+	}
+
+	// do not use map
+	querySlice := make([]byte, 256)
 	for i := 0; i < len(letters); i++ {
-		m[letters[i]] = true
+		querySlice[int(letters[i])] = letters[i]
 	}
 
 	s := []byte{}
+	var g byte
 	for _, b := range seq.Seq {
-		if _, ok := m[b]; !ok {
+		g = querySlice[int(b)]
+		if g == 0 {
 			s = append(s, b)
 		}
 	}
-	newseq, _ := NewSeq(seq.Alphabet, s)
+	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
 	return newseq
 }
 
@@ -104,7 +112,7 @@ func (seq *Seq) Complement() *Seq {
 		s[i] = p
 	}
 
-	newseq, _ := NewSeq(seq.Alphabet, s)
+	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
 	return newseq
 }
 
