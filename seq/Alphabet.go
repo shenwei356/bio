@@ -222,7 +222,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 	if l < ValidSeqLengthThreshold {
 		for _, b := range s {
 			if !a.IsValidLetter(b) {
-				return fmt.Errorf("invalid %s lebtter: %s", a, []byte{b})
+				return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
 			}
 		}
 	} else {
