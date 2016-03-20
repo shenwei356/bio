@@ -195,7 +195,11 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	if a.isUnlimit {
 		return true
 	}
-	return a.pairLetters[int(b)] != 0
+	i := int(b)
+	if i >= len(a.pairLetters) {
+		return false
+	}
+	return a.pairLetters[i] != 0
 }
 
 // ValidSeqLengthThreshold is the threshold of sequence length that
@@ -374,16 +378,16 @@ func init() {
 }
 
 // AlphabetGuessSeqLenghtThreshold is the length of sequence prefix of the first FASTA record
-// based which FastaRecord guesses the sequence type
+// based which FastaRecord guesses the sequence type. 0 for whole seq
 var AlphabetGuessSeqLenghtThreshold = 10000
 
 // GuessAlphabet guesses alphabet by given
 func GuessAlphabet(seqs []byte) *Alphabet {
 	var alphabetMap map[byte]bool
-	if len(seqs) > AlphabetGuessSeqLenghtThreshold { // reduce guessing time
-		alphabetMap = slice2map(byteutil.Alphabet(seqs[0:AlphabetGuessSeqLenghtThreshold]))
-	} else {
+	if AlphabetGuessSeqLenghtThreshold == 0 || len(seqs) <= AlphabetGuessSeqLenghtThreshold {
 		alphabetMap = slice2map(byteutil.Alphabet(seqs))
+	} else { // reduce guessing time
+		alphabetMap = slice2map(byteutil.Alphabet(seqs[0:AlphabetGuessSeqLenghtThreshold]))
 	}
 	if isSubset(alphabetMap, abDNA) {
 		return DNA
