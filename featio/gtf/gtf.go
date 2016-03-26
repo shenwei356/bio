@@ -106,6 +106,8 @@ func ReadFeatures(file string) ([]Feature, error) {
 				// }
 				if len(value) > 2 {
 					value = value[1 : len(value)-1]
+				} else {
+					value = ""
 				}
 				feature.Attributes = append(feature.Attributes, Attribute{tag, value})
 			}
