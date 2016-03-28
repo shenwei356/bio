@@ -1,7 +1,9 @@
 bio
 ===
 
-a simple bioinformatics package
+A simple but high-performance 
+(see [fakit](https://github.com/shenwei356/fakit#performance-comparison-with-other-tools) benchmark of FASTA parsing) 
+bioinformatics package
 
 
 Install
