@@ -9,7 +9,7 @@ import (
     "github.com/shenwei356/bio/seqio/fasta"
 )
 
-fastaReader, err := fasta.NewFastaReader(seq.DNAredundant, file, chunkSize, threads, "")
+fastaReader, err := fasta.NewFastaReader(seq.DNAredundant, file, threads, chunkSize, "")
 checkError(err)
 
 for chunk := range fastaReader.Ch {
@@ -53,5 +53,5 @@ If alphabet is nil, it will guess alphabet by the first
 letters of first record.
     
     
-    fastaReader, err := fasta.NewFastaReader(nil, file, chunkSize, threads, "")
+    fastaReader, err := fasta.NewFastaReader(nil, file, threads, chunkSize, "")
     checkError(err)
