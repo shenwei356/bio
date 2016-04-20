@@ -1,4 +1,4 @@
-package fasta
+package fastx
 
 import (
 	"errors"
@@ -39,19 +39,19 @@ func GetSeqNames(file string) ([]string, error) {
 	return names, nil
 }
 
-// GetSeqs return fasta records of a file.
+// GetSeqs return fastx records of a file.
 // when alphabet is nil or seq.Unlimit, it will automaticlly detect the alphabet.
 // when idRegexp is "", default idRegexp ( ^([^\s]+)\s? ) will be used.
-func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) ([]*FastaRecord, error) {
-	records := []*FastaRecord{}
+func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) ([]*Record, error) {
+	records := []*Record{}
 	if alphabet == nil || alphabet == seq.Unlimit {
 		alphabet = nil
 	}
-	fastaReader, err := NewFastaReader(alphabet, file, threads, chunkSize, idRegexp)
+	fastxReader, err := NewReader(alphabet, file, threads, chunkSize, idRegexp)
 	if err != nil {
 		return records, err
 	}
-	for chunk := range fastaReader.Ch {
+	for chunk := range fastxReader.Ch {
 		if err != nil {
 			return records, err
 		}
@@ -64,8 +64,8 @@ func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, id
 }
 
 // GetSeqsMap returns all seqs as a map for fasta file
-func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) (map[string]*FastaRecord, error) {
-	m := make(map[string]*FastaRecord)
+func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) (map[string]*Record, error) {
+	m := make(map[string]*Record)
 	records, err := GetSeqs(file, alphabet, chunkSize, threads, idRegexp)
 	if err != nil {
 		return m, err
@@ -78,14 +78,14 @@ func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int,
 
 // GuessAlphabet guess the alphabet of the file by the first maxLen bases
 func GuessAlphabet(file string) (*seq.Alphabet, error) {
-	fastaReader, err := NewFastaReader(seq.Unlimit, file, 0, 1, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		return seq.Unlimit, err
 	}
 
 	for {
 		select {
-		case chunk := <-fastaReader.Ch:
+		case chunk := <-fastxReader.Ch:
 			if chunk.Err != nil {
 				return seq.Unlimit, chunk.Err
 			}
@@ -93,7 +93,7 @@ func GuessAlphabet(file string) (*seq.Alphabet, error) {
 				return seq.Unlimit, errors.New("no fasta records found in file: " + file)
 			}
 			firstRecord := chunk.Data[0]
-			fastaReader.Cancel()
+			fastxReader.Cancel()
 			return seq.GuessAlphabet(firstRecord.Seq.Seq), nil
 		default:
 		}

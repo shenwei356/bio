@@ -2,6 +2,7 @@ package seq
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/shenwei356/util/byteutil"
@@ -9,8 +10,10 @@ import (
 
 // Seq struct has two attributes, alphabet, seq,
 type Seq struct {
-	Alphabet *Alphabet
-	Seq      []byte
+	Alphabet  *Alphabet
+	Seq       []byte
+	Qual      []byte
+	QualValue []int
 }
 
 // ValidateSeq decides whether check sequence or not
@@ -25,13 +28,38 @@ func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 		}
 	}
 
-	seq := &Seq{t, s}
+	seq := &Seq{Alphabet: t, Seq: s}
+	return seq, nil
+}
+
+// ErrUnmatchedSeqAndQual is error for "unmatched length of sequence and quality"
+var ErrUnmatchedSeqAndQual = fmt.Errorf("unmatched length of sequence and quality")
+
+// NewSeqWithQual is used to store fastq sequence
+func NewSeqWithQual(t *Alphabet, s []byte, q []byte) (*Seq, error) {
+	if len(s) != len(q) {
+		return nil, ErrUnmatchedSeqAndQual
+	}
+	seq, err := NewSeq(t, s)
+	if err != nil {
+		return nil, err
+	}
+	seq.Qual = q
 	return seq, nil
 }
 
 // NewSeqWithoutValidate create Seq without check the sequences
 func NewSeqWithoutValidate(t *Alphabet, s []byte) (*Seq, error) {
-	seq := &Seq{t, s}
+	seq := &Seq{Alphabet: t, Seq: s}
+	return seq, nil
+}
+
+// NewSeqWithQualWithoutValidate create Seq with quality without check the sequences
+func NewSeqWithQualWithoutValidate(t *Alphabet, s []byte, q []byte) (*Seq, error) {
+	if len(s) != len(q) {
+		return nil, ErrUnmatchedSeqAndQual
+	}
+	seq := &Seq{Alphabet: t, Seq: s, Qual: q}
 	return seq, nil
 }
 
@@ -57,13 +85,19 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 		end = len(seq.Seq) + end - 1
 	}
 	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
+	if len(seq.Qual) > 0 {
+		newseq.Qual = seq.Qual[start-1 : end]
+	}
+	if len(seq.QualValue) > 0 {
+		newseq.QualValue = seq.QualValue[start-1 : end]
+	}
 	return newseq
 }
 
 // RemoveGaps remove gaps
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, seq.Seq)
+		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, seq.Seq, seq.Qual)
 		return newseq
 	}
 
@@ -74,14 +108,20 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 	}
 
 	s := []byte{}
-	var g byte
-	for _, b := range seq.Seq {
+	q := []byte{}
+	var b, g byte
+	for i := 0; i < len(seq.Seq); i++ {
+		b = seq.Seq[i]
+
 		g = querySlice[int(b)]
 		if g == 0 {
 			s = append(s, b)
+			if len(seq.Qual) > 0 {
+				q = append(q, seq.Qual[i])
+			}
 		}
 	}
-	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
+	newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, s, q)
 	return newseq
 }
 
@@ -92,13 +132,17 @@ func (seq *Seq) RevCom() *Seq {
 
 // Reverse a sequence
 func (seq *Seq) Reverse() *Seq {
+	if len(seq.Qual) > 0 {
+		s := byteutil.ReverseByteSlice(seq.Seq)
+		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, s, byteutil.ReverseByteSlice(seq.Qual))
+		return newseq
+	}
 	s := byteutil.ReverseByteSlice(seq.Seq)
-
 	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
 	return newseq
 }
 
-// Complement returns complement sequence
+// Complement returns complement sequence. Note that is will lose quality information
 func (seq *Seq) Complement() *Seq {
 	if seq.Alphabet == Unlimit {
 		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, []byte(""))
