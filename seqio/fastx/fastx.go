@@ -20,14 +20,14 @@ type Record struct {
 }
 
 func (record Record) String() string {
+	width := 70
 	if len(record.Seq.Qual) > 0 {
-		return fmt.Sprintf("@%s\n%s\n+\n%s", record.Name,
-			byteutil.WrapByteSlice(record.Seq.Seq, 70),
-			byteutil.WrapByteSlice(record.Seq.Qual, 70))
-
+		return fmt.Sprintf("@%s\n%s\n+\n%s\n", record.Name,
+			byteutil.WrapByteSlice(record.Seq.Seq, width),
+			byteutil.WrapByteSlice(record.Seq.Qual, 0))
 	}
-	return fmt.Sprintf(">%s\n%s", record.Name,
-		byteutil.WrapByteSlice(record.Seq.Seq, 70))
+	return fmt.Sprintf(">%s\n%s\n", record.Name,
+		byteutil.WrapByteSlice(record.Seq.Seq, width))
 }
 
 // NewRecord is constructor of type Record
@@ -48,9 +48,14 @@ func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) 
 	return &Record{id, name, seq}, nil
 }
 
-// FormatSeq formats output, i.e. wrap string into fixed width
-func (record *Record) FormatSeq(width int) []byte {
-	return byteutil.WrapByteSlice(record.Seq.Seq, width)
+// Format formats output
+func (record *Record) Format(width int) string {
+	if len(record.Seq.Qual) > 0 {
+		return fmt.Sprintf("@%s\n%s\n+\n%s\n", record.Name,
+			record.Seq.Seq, record.Seq.Qual)
+	}
+	return fmt.Sprintf(">%s\n%s\n", record.Name,
+		byteutil.WrapByteSlice(record.Seq.Seq, width))
 }
 
 // RecordChunk  is
@@ -179,6 +184,12 @@ func (fastxReader *Reader) read() {
 			line, err := reader.ReadBytes('\n')
 
 			if checkSeqType {
+				if len(line) == 0 {
+					fastxReader.Ch <- RecordChunk{id, chunkData[0:i], nil}
+					fastxReader.fh.Close()
+					close(fastxReader.Ch)
+					return
+				}
 				if line[0] == '@' {
 					isFastq = true
 				}
