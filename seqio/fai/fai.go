@@ -58,7 +58,7 @@ type Faidx struct {
 	mmap   mmap.MMap
 }
 
-// New is
+// New try to get Faidx from fasta file
 func New(file string) (*Faidx, error) {
 	fileFai := file + ".fai"
 	var index Index
@@ -74,6 +74,12 @@ func New(file string) (*Faidx, error) {
 		}
 	}
 
+	return NewWithIndex(file, index)
+}
+
+// NewWithIndex return faidx from file and readed Index.
+// Useful for using custom IDRegexp
+func NewWithIndex(file string, index Index) (*Faidx, error) {
 	reader, err := os.Open(file)
 	if err != nil {
 		return nil, err

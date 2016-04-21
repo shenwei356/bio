@@ -10,6 +10,7 @@ func TestFastaReader(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer idx.Close()
 
 	s, err := idx.Base("cel-let-7", 1)
 	if err != nil {
