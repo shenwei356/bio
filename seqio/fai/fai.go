@@ -1,17 +1,39 @@
 /*Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
+Package fai implements fasta sequence file index handling, including creating
+, reading and random accessing.
+
 Code of fai data structure were copied and edited from [1].
 
-But I (https://github.com/shenwei356) wrote the code of creating and reading
- fai, and so did test code.
+But I wrote the code of creating and reading fai, and so did test code.
 
-Code of random accessing subsequences are copied and editted from [2]
+Code of random accessing subsequences were copied from [2], but I extended them.
 
 Reference:
 
 1. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
 2. https://github.com/brentp/faidx/blob/master/faidx.go
+
+Examples:
+
+	import "github.com/shenwei356/bio/seqio/fai"
+
+	file := "seq.fa"
+	idx, err := New(file)
+	checkErr(err)
+
+	// single base
+	s, err := idx.Base("cel-let-7", 1)
+	checkErr(err)
+
+	// subsequence
+	seq, err := idx.SubSeq("cel-mir-2", 15, 19)
+	checkErr(err)
+
+	// whole sequence
+	seq, err := idx.Seq("cel-mir-2")
+	checkErr(err)
 
 */
 package fai
@@ -70,28 +92,38 @@ func position(r Record, p int) int64 {
 	if p < 0 {
 		p = 0
 	}
-	if p >= r.Length {
-		p = r.Length - 1
+	if p > r.Length {
+		p = r.Length
 	}
 	return r.Start + int64(p/r.BasesPerLine*r.BytesPerLine+p%r.BasesPerLine)
 }
 
-// Get returns subsequence of chr from start to end. start and end are 1-based.
-func (f *Faidx) Get(chr string, start int, end int) (string, error) {
+// Seq returns sequence of chr
+func (f *Faidx) Seq(chr string) (string, error) {
+	index, ok := f.Index[chr]
+	if !ok {
+		return "", fmt.Errorf("unknown sequence %s", chr)
+	}
+
+	pstart := position(index, 0)
+	pend := position(index, index.Length)
+	return string(cleanSeq(f.mmap[pstart:pend])), nil
+}
+
+// SubSeq returns subsequence of chr from start to end. start and end are 1-based.
+func (f *Faidx) SubSeq(chr string, start int, end int) (string, error) {
 	index, ok := f.Index[chr]
 	if !ok {
 		return "", fmt.Errorf("unknown sequence %s", chr)
 	}
 
 	pstart := position(index, start-1)
-	pend := position(index, end-1)
-	buf := f.mmap[pstart:pend]
-	buf = bytes.Replace(buf, []byte{'\n'}, []byte{}, -1)
-	return string(buf), nil
+	pend := position(index, end)
+	return string(cleanSeq(f.mmap[pstart:pend])), nil
 }
 
-// At returns base in postion pos. pos is 1 based
-func (f *Faidx) At(chr string, pos int) (byte, error) {
+// Base returns base in postion pos. pos is 1 based
+func (f *Faidx) Base(chr string, pos int) (byte, error) {
 	index, ok := f.Index[chr]
 	if !ok {
 		return '*', fmt.Errorf("unknown sequence %s", chr)
@@ -347,4 +379,16 @@ func dropCR(data []byte) []byte {
 		return data[0 : len(data)-1]
 	}
 	return data
+}
+
+func cleanSeq(slice []byte) []byte {
+	newSlice := []byte{}
+	for _, b := range slice {
+		switch b {
+		case '\r', '\n':
+		default:
+			newSlice = append(newSlice, b)
+		}
+	}
+	return newSlice
 }
