@@ -156,7 +156,7 @@ func (fastxReader *Reader) read() {
 		var id uint64
 		var isFastq bool
 		checkSeqType := true
-		var hasSeq bool
+		var hasSeq, isReadQual bool
 		var lastName, lastSeq, thisName []byte
 		chunkData := make([]*Record, fastxReader.ChunkSize)
 
@@ -226,56 +226,62 @@ func (fastxReader *Reader) read() {
 
 					return
 				}
-
 				if line[0] == '@' {
-					hasSeq = true
-					thisName = cleanEndSpace(line[1:])
+					if isReadQual && len(lastSeq) > len(buffer.Bytes()) { // still quality
+						buffer.Write(dropCR(line[0 : len(line)-1]))
+					} else {
+						hasSeq = true
+						isReadQual = false
+						thisName = cleanEndSpace(line[1:])
 
-					if lastName != nil { // no-first seq head
-						sequence := []byte(string(lastSeq))
-						qual := []byte(string(buffer.Bytes()))
-						buffer.Reset()
+						if lastName != nil { // no-first seq head
+							sequence := []byte(string(lastSeq))
+							qual := []byte(string(buffer.Bytes()))
+							buffer.Reset()
 
-						if !(len(sequence) == 0 && len(lastName) == 0) {
-							if fastxReader.firstseq {
-								if fastxReader.t == nil {
-									fastxReader.t = seq.DNAredundant
+							if !(len(sequence) == 0 && len(lastName) == 0) {
+								if fastxReader.firstseq {
+									if fastxReader.t == nil {
+										fastxReader.t = seq.DNAredundant
+									}
+									fastxReader.firstseq = false
 								}
-								fastxReader.firstseq = false
+
+								var fastxRecord *Record
+								fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence, qual)
+								if err != nil {
+									fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
+									fastxReader.fh.Close()
+									close(fastxReader.Ch)
+									return
+								}
+
+								chunkData[i] = fastxRecord
+								i++
+							}
+							if i == fastxReader.ChunkSize {
+								fastxReader.Ch <- RecordChunk{id, chunkData[0:i], nil}
+								id++
+								i = 0
+								chunkData = make([]*Record, fastxReader.ChunkSize)
 							}
 
-							var fastxRecord *Record
-							fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence, qual)
-							if err != nil {
-								fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
-								fastxReader.fh.Close()
-								close(fastxReader.Ch)
-								return
-							}
-
-							chunkData[i] = fastxRecord
-							i++
+							lastName = thisName
+						} else { // first sequence name
+							lastName = thisName
 						}
-						if i == fastxReader.ChunkSize {
-							fastxReader.Ch <- RecordChunk{id, chunkData[0:i], nil}
-							id++
-							i = 0
-							chunkData = make([]*Record, fastxReader.ChunkSize)
-						}
-
-						lastName = thisName
-					} else { // first sequence name
-						lastName = thisName
 					}
 				} else if line[0] == '+' {
-					lastSeq = []byte(string(buffer.Bytes()))
+					lastSeq = buffer.Bytes()
 					buffer.Reset()
+					isReadQual = true
 				} else if hasSeq { // append sequence / qual
 					buffer.Write(dropCR(line[0 : len(line)-1]))
 				} else {
 					// some line before the first "^>"
 				}
 
+				fmt.Println(">>", string(dropCR(line[0:len(line)-1])), isReadQual)
 				continue
 			}
 

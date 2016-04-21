@@ -32,13 +32,10 @@ func NewSeq(t *Alphabet, s []byte) (*Seq, error) {
 	return seq, nil
 }
 
-// ErrUnmatchedSeqAndQual is error for "unmatched length of sequence and quality"
-var ErrUnmatchedSeqAndQual = fmt.Errorf("unmatched length of sequence and quality")
-
 // NewSeqWithQual is used to store fastq sequence
 func NewSeqWithQual(t *Alphabet, s []byte, q []byte) (*Seq, error) {
 	if len(s) != len(q) {
-		return nil, ErrUnmatchedSeqAndQual
+		return nil, fmt.Errorf("unmatched length of sequence (%d) and quality (%d)", len(s), len(q))
 	}
 	seq, err := NewSeq(t, s)
 	if err != nil {
@@ -57,7 +54,7 @@ func NewSeqWithoutValidate(t *Alphabet, s []byte) (*Seq, error) {
 // NewSeqWithQualWithoutValidate create Seq with quality without check the sequences
 func NewSeqWithQualWithoutValidate(t *Alphabet, s []byte, q []byte) (*Seq, error) {
 	if len(s) != len(q) {
-		return nil, ErrUnmatchedSeqAndQual
+		return nil, fmt.Errorf("unmatched length of sequence (%d) and quality (%d)", len(s), len(q))
 	}
 	seq := &Seq{Alphabet: t, Seq: s, Qual: q}
 	return seq, nil
