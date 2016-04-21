@@ -272,7 +272,7 @@ func (fastxReader *Reader) read() {
 						}
 					}
 				} else if line[0] == '+' {
-					lastSeq = buffer.Bytes()
+					lastSeq = []byte(string(buffer.Bytes()))
 					buffer.Reset()
 					isReadQual = true
 				} else if hasSeq { // append sequence / qual
