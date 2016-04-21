@@ -281,7 +281,6 @@ func (fastxReader *Reader) read() {
 					// some line before the first "^>"
 				}
 
-				fmt.Println(">>", string(dropCR(line[0:len(line)-1])), isReadQual)
 				continue
 			}
 
