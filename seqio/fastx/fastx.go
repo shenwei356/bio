@@ -20,14 +20,7 @@ type Record struct {
 }
 
 func (record Record) String() string {
-	width := 70
-	if len(record.Seq.Qual) > 0 {
-		return fmt.Sprintf("@%s\n%s\n+\n%s\n", record.Name,
-			byteutil.WrapByteSlice(record.Seq.Seq, width),
-			byteutil.WrapByteSlice(record.Seq.Qual, width))
-	}
-	return fmt.Sprintf(">%s\n%s\n", record.Name,
-		byteutil.WrapByteSlice(record.Seq.Seq, width))
+	return record.Format(70)
 }
 
 // NewRecord is constructor of type Record
@@ -52,7 +45,8 @@ func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) 
 func (record *Record) Format(width int) string {
 	if len(record.Seq.Qual) > 0 {
 		return fmt.Sprintf("@%s\n%s\n+\n%s\n", record.Name,
-			record.Seq.Seq, record.Seq.Qual)
+			byteutil.WrapByteSlice(record.Seq.Seq, width),
+			byteutil.WrapByteSlice(record.Seq.Qual, width))
 	}
 	return fmt.Sprintf(">%s\n%s\n", record.Name,
 		byteutil.WrapByteSlice(record.Seq.Seq, width))
