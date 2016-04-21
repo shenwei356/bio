@@ -2,38 +2,24 @@ package fastx
 
 import (
 	"errors"
-	"runtime"
-	"strings"
-
 	"github.com/shenwei356/bio/seq"
-	"github.com/shenwei356/breader"
 )
 
 // GetSeqNames returns the names of a fasta file
 func GetSeqNames(file string) ([]string, error) {
 	names := []string{}
-
-	fn := func(line string) (interface{}, bool, error) {
-		if len(line) == 0 {
-			return "", false, nil
-		}
-		if line[0] == '>' || line[0] == '@' {
-			line = strings.TrimRight(line, "\n")
-			if len(line) > 1 {
-				return line[1:], true, nil
-			}
-			return "", true, nil
-		}
-		return "", false, nil
-	}
-	reader, err := breader.NewBufferedReader(file, runtime.NumCPU(), 100, fn)
+	seq.ValidateSeq = false
+	fastxReader, err := NewReader(nil, file, 1, 1, "")
 	if err != nil {
-		return names, err
+		return nil, nil
 	}
+	for chunk := range fastxReader.Ch {
+		if chunk.Err != nil {
+			return nil, chunk.Err
+		}
 
-	for chunk := range reader.Ch {
-		for _, data := range chunk.Data {
-			names = append(names, data.(string))
+		for _, record := range chunk.Data {
+			names = append(names, string(record.Name))
 		}
 	}
 	return names, nil

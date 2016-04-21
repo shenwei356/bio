@@ -70,6 +70,7 @@ type Reader struct {
 	ChunkSize  int              // chunk size
 	Ch         chan RecordChunk // chanel for output of records chunks
 	IDRegexp   *regexp.Regexp   // regexp ofr parsing record id
+	IsFastq    bool
 
 	firstseq  bool          // for guess alphabet by the first seq
 	done      chan struct{} // for cancellation
@@ -131,6 +132,7 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 		ChunkSize:  chunkSize,
 		Ch:         make(chan RecordChunk, bufferSize),
 		IDRegexp:   r,
+		IsFastq:    false,
 		firstseq:   true,
 		done:       make(chan struct{}),
 		finished:   false,
@@ -154,7 +156,6 @@ func (fastxReader *Reader) read() {
 		buffer := bytes.Buffer{}
 		var i int
 		var id uint64
-		var isFastq bool
 		checkSeqType := true
 		var hasSeq, isReadQual bool
 		var lastName, lastSeq, thisName []byte
@@ -185,13 +186,13 @@ func (fastxReader *Reader) read() {
 					return
 				}
 				if line[0] == '@' {
-					isFastq = true
+					fastxReader.IsFastq = true
 				}
 				checkSeqType = false
 			}
 
 			// FASTQ
-			if isFastq {
+			if fastxReader.IsFastq {
 				if err != nil { // end of file
 					fastxReader.finished = true
 					fastxReader.fh.Close()
