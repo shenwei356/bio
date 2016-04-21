@@ -17,7 +17,7 @@ func GetSeqNames(file string) ([]string, error) {
 		if len(line) == 0 {
 			return "", false, nil
 		}
-		if line[0] == '>' {
+		if line[0] == '>' || line[0] == '@' {
 			line = strings.TrimRight(line, "\n")
 			if len(line) > 1 {
 				return line[1:], true, nil
@@ -42,12 +42,12 @@ func GetSeqNames(file string) ([]string, error) {
 // GetSeqs return fastx records of a file.
 // when alphabet is nil or seq.Unlimit, it will automaticlly detect the alphabet.
 // when idRegexp is "", default idRegexp ( ^([^\s]+)\s? ) will be used.
-func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) ([]*Record, error) {
+func GetSeqs(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize int, idRegexp string) ([]*Record, error) {
 	records := []*Record{}
 	if alphabet == nil || alphabet == seq.Unlimit {
 		alphabet = nil
 	}
-	fastxReader, err := NewReader(alphabet, file, threads, chunkSize, idRegexp)
+	fastxReader, err := NewReader(alphabet, file, bufferSize, chunkSize, idRegexp)
 	if err != nil {
 		return records, err
 	}
@@ -64,9 +64,9 @@ func GetSeqs(file string, alphabet *seq.Alphabet, chunkSize int, threads int, id
 }
 
 // GetSeqsMap returns all seqs as a map for fasta file
-func GetSeqsMap(file string, alphabet *seq.Alphabet, chunkSize int, threads int, idRegexp string) (map[string]*Record, error) {
+func GetSeqsMap(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize int, idRegexp string) (map[string]*Record, error) {
 	m := make(map[string]*Record)
-	records, err := GetSeqs(file, alphabet, chunkSize, threads, idRegexp)
+	records, err := GetSeqs(file, alphabet, bufferSize, chunkSize, idRegexp)
 	if err != nil {
 		return m, err
 	}

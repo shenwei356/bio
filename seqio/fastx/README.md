@@ -1,3 +1,7 @@
+# fastx
+
+this package seamlessly parses both FASTA and FASTQ formats.
+
 ## Example
 
 
@@ -47,10 +51,10 @@ Reading the first record.
 
 ### Guessing Alphabet
 
-If alphabet is nil, it will guess alphabet by the first 
+If alphabet is nil, it will guess alphabet by the first
 `seq.AlphabetGuessSeqLenghtThreshold` (default 10000, 0 for whole seq)
 letters of first record.
-    
-    
+
+
     fastxReader, err := fasta.NewReader(nil, file, threads, chunkSize, "")
     checkError(err)
