@@ -38,9 +38,24 @@ var Threads = runtime.NumCPU()
 
 // ReadFeatures returns gtf features of a file
 func ReadFeatures(file string) ([]Feature, error) {
+	return ReadFilteredFeatures(file, []string{}, []string{})
+}
+
+// ReadFilteredFeatures returns gtf features of specific chrs in a file
+func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature, error) {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return nil, err
 	}
+	chrsMap := make(map[string]struct{}, len(chrs))
+	for _, chr := range chrs {
+		chrsMap[strings.ToLower(chr)] = struct{}{}
+	}
+
+	featsMap := make(map[string]struct{}, len(feats))
+	for _, f := range feats {
+		featsMap[strings.ToLower(f)] = struct{}{}
+	}
+
 	fn := func(line string) (interface{}, bool, error) {
 		if len(line) == 0 || line[0] == '#' {
 			return nil, false, nil
@@ -50,6 +65,19 @@ func ReadFeatures(file string) ([]Feature, error) {
 		if len(items) != 9 {
 			return nil, false, nil
 		}
+
+		if len(chrs) > 0 { // selected chrs
+			if _, ok := chrsMap[strings.ToLower(items[0])]; !ok {
+				return nil, false, nil
+			}
+		}
+
+		if len(feats) > 0 { // selected features
+			if _, ok := featsMap[strings.ToLower(items[2])]; !ok {
+				return nil, false, nil
+			}
+		}
+
 		var err error
 
 		start, err := strconv.Atoi(items[3])

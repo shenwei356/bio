@@ -24,6 +24,10 @@ Reference:
     checkErr(err)
     defer idx.Close()
 
+    // whole sequence
+    seq, err := idx.Seq("cel-mir-2")
+    checkErr(err)
+    
     // single base
     s, err := idx.Base("cel-let-7", 1)
     checkErr(err)
@@ -32,9 +36,10 @@ Reference:
     seq, err := idx.SubSeq("cel-mir-2", 15, 19)
     checkErr(err)
 
-    // whole sequence
-    seq, err := idx.Seq("cel-mir-2")
+    // extended subseq. last 12 bases
+    seq, err := idx.SubSeq("cel-mir-2", -12, -1)
     checkErr(err)
+    
 
 Extended SubSeq
 

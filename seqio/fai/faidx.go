@@ -73,7 +73,7 @@ func (f *Faidx) Seq(chr string) ([]byte, error) {
 
 	pstart := position(index, 0)
 	pend := position(index, index.Length)
-	return cleanSeq(f.mmap[pstart:pend]), nil
+	return []byte(string(cleanSeq(f.mmap[pstart:pend]))), nil
 }
 
 // SubSeq returns subsequence of chr from start to end. start and end are 1-based.
@@ -90,7 +90,7 @@ func (f *Faidx) SubSeq(chr string, start int, end int) ([]byte, error) {
 
 	pstart := position(index, start-1)
 	pend := position(index, end)
-	return cleanSeq(f.mmap[pstart:pend]), nil
+	return []byte(string(cleanSeq(f.mmap[pstart:pend]))), nil
 }
 
 // Base returns base in postion pos. pos is 1 based

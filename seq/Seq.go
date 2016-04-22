@@ -177,7 +177,7 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 
 // RevCom returns reverse complement sequence
 func (seq *Seq) RevCom() *Seq {
-	return seq.Complement().Reverse()
+	return seq.Reverse().Complement()
 }
 
 // Reverse a sequence
