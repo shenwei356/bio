@@ -45,3 +45,23 @@ func TestBaseContent(t *testing.T) {
 		return
 	}
 }
+
+func TestSubSeq(t *testing.T) {
+	s, _ := NewSeqWithoutValidate(DNA, []byte("ACGTNacgtn"))
+	ok := string(s.SubSeq(1, 1).Seq) == "A" &&
+		string(s.SubSeq(2, 4).Seq) == "CGT" &&
+		string(s.SubSeq(-4, -2).Seq) == "cgt" &&
+		string(s.SubSeq(-1, -1).Seq) == "n" &&
+		string(s.SubSeq(2, -2).Seq) == "CGTNacgt" &&
+		string(s.SubSeq(1, -1).Seq) == "ACGTNacgtn"
+
+	if !ok {
+		t.Error(fmt.Printf("subseq error"))
+	}
+
+	ok = string(s.SubSeq(-4, 2).Seq) == "" &&
+		string(s.SubSeq(-3, -4).Seq) == ""
+	if !ok {
+		t.Error(fmt.Printf("subseq error"))
+	}
+}

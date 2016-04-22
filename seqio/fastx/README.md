@@ -32,7 +32,7 @@ Reading the first record.
 **Note that `range chanel` is buffered, therefore `for-select-case` is used.**
 
 
-    fastxReader, err := fasta.NewReader(seq.Unlimit, file, 1, 1, "")
+    fastxReader, err := fastx.NewReader(seq.Unlimit, file, 1, 1, "")
     checkError(err)
 
     // note that range is bufferd. using range will be failed
@@ -44,7 +44,7 @@ Reading the first record.
 
             // do some thing
 
-            reader.Cancel()
+            fastxReader.Cancel()
         default:
         }
     }

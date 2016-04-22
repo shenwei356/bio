@@ -1,4 +1,5 @@
-# fai
+/*Package fai implements fasta sequence file index handling, including creating
+, reading and random accessing.
 
 Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
@@ -11,11 +12,10 @@ Code of random accessing subsequences were copied from [2], but I extended them.
 
 Reference:
 
-[1]. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
+1. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
+2. https://github.com/brentp/faidx/blob/master/faidx.go
 
-[2]. https://github.com/brentp/faidx/blob/master/faidx.go
-
-## Usage
+Examples:
 
     import "github.com/shenwei356/bio/seqio/fai"
 
@@ -36,6 +36,5 @@ Reference:
     seq, err := idx.Seq("cel-mir-2")
     checkErr(err)
 
-## Documentation
-
-[Documentation on godoc](https://godoc.org/github.com/shenwei356/bio/seqio/fai).
+*/
+package fai

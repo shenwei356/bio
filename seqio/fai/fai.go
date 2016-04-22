@@ -1,151 +1,14 @@
-/*Package fai implements fasta sequence file index handling, including creating
-, reading and random accessing.
-
-Package fai implements fasta sequence file index handling, including creating
-, reading and random accessing.
-
-Code of fai data structure were copied and edited from [1].
-
-But I wrote the code of creating and reading fai, and so did test code.
-
-Code of random accessing subsequences were copied from [2], but I extended them.
-
-Reference:
-
-1. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
-2. https://github.com/brentp/faidx/blob/master/faidx.go
-
-Examples:
-
-	import "github.com/shenwei356/bio/seqio/fai"
-
-	file := "seq.fa"
-	idx, err := New(file)
-	checkErr(err)
-
-	// single base
-	s, err := idx.Base("cel-let-7", 1)
-	checkErr(err)
-
-	// subsequence
-	seq, err := idx.SubSeq("cel-mir-2", 15, 19)
-	checkErr(err)
-
-	// whole sequence
-	seq, err := idx.Seq("cel-mir-2")
-	checkErr(err)
-
-*/
 package fai
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/edsrzf/mmap-go"
 )
-
-// Faidx is
-type Faidx struct {
-	reader io.ReadSeeker
-	Index  Index
-	mmap   mmap.MMap
-}
-
-// New try to get Faidx from fasta file
-func New(file string) (*Faidx, error) {
-	fileFai := file + ".fai"
-	var index Index
-	if _, err := os.Stat(fileFai); os.IsNotExist(err) {
-		index, err = Create(file)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		index, err = Read(fileFai)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return NewWithIndex(file, index)
-}
-
-// NewWithIndex return faidx from file and readed Index.
-// Useful for using custom IDRegexp
-func NewWithIndex(file string, index Index) (*Faidx, error) {
-	reader, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := mmap.Map(reader, mmap.RDONLY, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Faidx{reader, index, m}, nil
-}
-
-// p is 0-based
-func position(r Record, p int) int64 {
-	if p < 0 {
-		p = 0
-	}
-	if p > r.Length {
-		p = r.Length
-	}
-	return r.Start + int64(p/r.BasesPerLine*r.BytesPerLine+p%r.BasesPerLine)
-}
-
-// Seq returns sequence of chr
-func (f *Faidx) Seq(chr string) (string, error) {
-	index, ok := f.Index[chr]
-	if !ok {
-		return "", fmt.Errorf("unknown sequence %s", chr)
-	}
-
-	pstart := position(index, 0)
-	pend := position(index, index.Length)
-	return string(cleanSeq(f.mmap[pstart:pend])), nil
-}
-
-// SubSeq returns subsequence of chr from start to end. start and end are 1-based.
-func (f *Faidx) SubSeq(chr string, start int, end int) (string, error) {
-	index, ok := f.Index[chr]
-	if !ok {
-		return "", fmt.Errorf("unknown sequence %s", chr)
-	}
-
-	pstart := position(index, start-1)
-	pend := position(index, end)
-	return string(cleanSeq(f.mmap[pstart:pend])), nil
-}
-
-// Base returns base in postion pos. pos is 1 based
-func (f *Faidx) Base(chr string, pos int) (byte, error) {
-	index, ok := f.Index[chr]
-	if !ok {
-		return '*', fmt.Errorf("unknown sequence %s", chr)
-	}
-
-	ppos := position(index, pos-1)
-	return f.mmap[ppos], nil
-}
-
-// Close the readers
-func (f *Faidx) Close() {
-	f.reader.(io.Closer).Close()
-	f.mmap.Unmap()
-}
-
-// ------------------------------------------------------------
 
 // Record is FASTA index record
 type Record struct {
@@ -200,7 +63,7 @@ func Read(file string) (Index, error) {
 				return nil, err
 			}
 
-			bytesPerLine, err = strconv.Atoi(items[3])
+			bytesPerLine, err = strconv.Atoi(items[4])
 			if err != nil {
 				return nil, err
 			}

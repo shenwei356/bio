@@ -65,30 +65,83 @@ func (seq *Seq) Length() int {
 	return len(seq.Seq)
 }
 
-// SubSeq returns a sub seq. start and end is 1-based.
-// end could be below than 0, e.g. SubSeq(1, -2) return
-// seq without the last base.
+/*SubSeq returns a sub seq. start and end is 1-based.
+
+Examples:
+
+ 1-based index    1 2 3 4 5 6 7 8 9 10
+negative index    0-9-8-7-6-5-4-3-2-1
+           seq    A C G T N a c g t n
+           1:1    A
+           2:4      C G T
+         -4:-2                c g t
+         -4:-1                c g t n
+         -1:-1                      n
+          2:-2      C G T N a c g t
+          1:-1    A C G T N a c g t n
+*/
 func (seq *Seq) SubSeq(start int, end int) *Seq {
-	if start < 1 {
-		start = 1
+	var newseq *Seq
+	start, end, ok := SubLocation(len(seq.Seq), start, end)
+	if ok {
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
+		if len(seq.Qual) > 0 {
+			newseq.Qual = seq.Qual[start-1 : end]
+		}
+		if len(seq.QualValue) > 0 {
+			newseq.QualValue = seq.QualValue[start-1 : end]
+		}
+	} else {
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
 	}
-	if end > len(seq.Seq) {
-		end = len(seq.Seq)
+
+	return newseq
+}
+
+/*SubLocation is my sublocation strategy,
+start, end and returned start and end are all 1-based
+
+ 1-based index    1 2 3 4 5 6 7 8 9 10
+negative index    0-9-8-7-6-5-4-3-2-1
+           seq    A C G T N a c g t n
+           1:1    A
+           2:4      C G T
+         -4:-2                c g t
+         -4:-1                c g t n
+         -1:-1                      n
+          2:-2      C G T N a c g t
+          1:-1    A C G T N a c g t n
+
+*/
+func SubLocation(length, start, end int) (int, int, bool) {
+	if start < 1 {
+		if start == 0 {
+			start = 1
+		} else if start < 0 {
+			if end < 0 && start > end {
+				return start, end, false
+			}
+		}
+		start = length + start + 1
+	}
+	if start > length {
+		return start, end, false
+	}
+
+	if end > length {
+		end = length
 	}
 	if end < 1 {
 		if end == 0 {
 			end = -1
 		}
-		end = len(seq.Seq) + end - 1
+		end = length + end + 1
 	}
-	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
-	if len(seq.Qual) > 0 {
-		newseq.Qual = seq.Qual[start-1 : end]
+
+	if start-1 > end {
+		return start - 1, end, false
 	}
-	if len(seq.QualValue) > 0 {
-		newseq.QualValue = seq.QualValue[start-1 : end]
-	}
-	return newseq
+	return start, end, true
 }
 
 // RemoveGaps remove gaps
