@@ -1,7 +1,6 @@
 package fastx
 
 import (
-	"errors"
 	"github.com/shenwei356/bio/seq"
 )
 
@@ -63,25 +62,28 @@ func GetSeqsMap(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize i
 }
 
 // GuessAlphabet guess the alphabet of the file by the first maxLen bases
-func GuessAlphabet(file string) (*seq.Alphabet, error) {
-	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
+func GuessAlphabet(file string) (*seq.Alphabet, bool, error) {
+	var isFastq bool
+	var alphabet *seq.Alphabet
+	fastxReader, err := NewReader(nil, file, 1, 1, "")
 	if err != nil {
-		return seq.Unlimit, err
+		return nil, false, err
 	}
-
+LOOP:
 	for {
 		select {
 		case chunk := <-fastxReader.Ch:
 			if chunk.Err != nil {
-				return seq.Unlimit, chunk.Err
+				return nil, false, chunk.Err
 			}
-			if len(chunk.Data) == 0 {
-				return seq.Unlimit, errors.New("no fasta records found in file: " + file)
-			}
-			firstRecord := chunk.Data[0]
+
+			isFastq = fastxReader.IsFastq
+			alphabet = fastxReader.Alphabet()
+
 			fastxReader.Cancel()
-			return seq.GuessAlphabet(firstRecord.Seq.Seq), nil
+			break LOOP
 		default:
 		}
 	}
+	return alphabet, isFastq, nil
 }

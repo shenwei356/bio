@@ -85,8 +85,16 @@ func Read(file string) (Index, error) {
 	return index, nil
 }
 
-// CreateWithIDRegexp is
+// CreateWithFullHead uses full head instead of just sequence ID
+func CreateWithFullHead(file string) (Index, error) {
+	return CreateWithIDRegexp(file, `^(.+)$`)
+}
+
+// CreateWithIDRegexp uses custom regular expression to get sequence ID
 func CreateWithIDRegexp(file string, idRegexp string) (Index, error) {
+	if !reCheckIDregexpStr.MatchString(idRegexp) {
+		return nil, fmt.Errorf(`regular expression must contains "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
+	}
 	var err error
 	IDRegexp, err = regexp.Compile(idRegexp)
 	if err != nil {
@@ -231,6 +239,8 @@ func Create(file string) (Index, error) {
 }
 
 // ------------------------------------------------------------
+
+var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // IDRegexp is regexp for parsing record id
 var IDRegexp = regexp.MustCompile(`^([^\s]+)\s?`)

@@ -1,26 +1,24 @@
 /*Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
-Package fai implements fasta sequence file index handling, including creating
-, reading and random accessing.
-
 Code of fai data structure were copied and edited from [1].
 
 But I wrote the code of creating and reading fai, and so did test code.
 
-Code of random accessing subsequences were copied from [2], but I extended them.
+Code of random accessing subsequences were copied from [2], but I extended them a lot.
 
 Reference:
 
-1. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
-2. https://github.com/brentp/faidx/blob/master/faidx.go
+[1]. https://github.com/biogo/biogo/blob/master/io/seqio/fai/fai.go
 
-Examples:
+[2]. https://github.com/brentp/faidx/blob/master/faidx.go
+
+## General Usage
 
     import "github.com/shenwei356/bio/seqio/fai"
 
     file := "seq.fa"
-    idx, err := New(file)
+    idx, err := fai.New(file)
     checkErr(err)
     defer idx.Close()
 
@@ -36,16 +34,18 @@ Examples:
     seq, err := idx.SubSeq("cel-mir-2", 15, 19)
     checkErr(err)
 
-    // extended subseq. last 12 bases
-    seq, err := idx.SubSeq("cel-mir-2", -12, -1)
-    checkErr(err)
 
-Extended SubSeq
-
-start and end are all 1-based.
+## Extended SubSeq
 
 
-    1-based index     1 2 3 4 5 6 7 8 9 10
+For extended SubSeq, negative position is allowed.
+
+
+This is my custom locating strategy. Start and end are all 1-based. 
+To better understand the locating strategy, see examples below:
+
+
+     1-based index    1 2 3 4 5 6 7 8 9 10
     negative index    0-9-8-7-6-5-4-3-2-1
                seq    A C G T N a c g t n
                1:1    A
@@ -55,6 +55,46 @@ start and end are all 1-based.
              -1:-1                      n
               2:-2      C G T N a c g t
               1:-1    A C G T N a c g t n
+
+Examples:
+
+    // last 12 bases
+    seq, err := idx.SubSeq("cel-mir-2", -12, -1)
+    checkErr(err)
+
+## Advanced Usage
+
+Function `fai.New(file string)` is a wraper to simplefy the process.
+Let's see what inside it:
+
+    func New(file string) (*Faidx, error) {
+            fileFai := file + ".fai"
+            var index Index
+            if _, err := os.Stat(fileFai); os.IsNotExist(err) {
+                    index, err = Create(file)
+                    if err != nil {
+                            return nil, err
+                    }
+            } else {
+                    index, err = Read(fileFai)
+                    if err != nil {
+                            return nil, err
+                    }
+            }
+
+            return NewWithIndex(file, index)
+    }
+
+By default, sequence ID is used as key in FASTA index file. 
+Inside the package, a regular expression is used to get sequence ID from
+full head. The default value is `^([^\s]+)\s?`, i.e. getting
+first non-space characters of head. 
+So you can just use `fai.Create(file string)` to create .fai file.
+
+If you want to use full head instead of sequence ID (first non-space characters of head),
+you could use `fai.CreateWithIDRegexp(file string, idRegexp string)` to create faidx. 
+Here, the `idRegexp` should be `^(.+)$`. For convenience, you can use another function
+`CreateWithFullHead`.
 
 */
 package fai
