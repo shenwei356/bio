@@ -64,8 +64,8 @@ Examples:
 
 ## Advanced Usage
 
-Function `fai.New(file string)` is a wraper to simplefy the process.
-Let's see what inside it:
+Function `fai.New(file string)` is a wraper to simplify the process of
+creating and reading FASTA index . Let's see what's happend inside:
 
     func New(file string) (*Faidx, error) {
             fileFai := file + ".fai"

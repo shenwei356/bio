@@ -66,8 +66,8 @@ Examples:
 
 ## Advanced Usage
 
-Function `fai.New(file string)` is a wraper to simplefy the process.
-Let's see what inside it:
+Function `fai.New(file string)` is a wraper to simplify the process of
+creating and reading FASTA index . Let's see what's happend inside:
 
     func New(file string) (*Faidx, error) {
             fileFai := file + ".fai"
@@ -87,7 +87,7 @@ Let's see what inside it:
             return NewWithIndex(file, index)
     }
 
-By default, sequence ID is used as key in FASTA index file. 
+By default, sequence IDa is used as key in FASTA index file. 
 Inside the package, a regular expression is used to get sequence ID from
 full head. The default value is `^([^\s]+)\s?`, i.e. getting
 first non-space characters of head. 
