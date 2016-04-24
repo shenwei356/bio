@@ -62,6 +62,7 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature
 		}
 		line = strings.TrimRight(line, "\r\n")
 		items := strings.Split(line, "\t")
+
 		if len(items) != 9 {
 			return nil, false, nil
 		}
@@ -77,7 +78,6 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature
 				return nil, false, nil
 			}
 		}
-
 		var err error
 
 		start, err := strconv.Atoi(items[3])
