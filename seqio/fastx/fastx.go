@@ -366,7 +366,12 @@ func (fastxReader *Reader) read() {
 }
 
 func (fastxReader *Reader) parseHeadID(head []byte) []byte {
-	found := fastxReader.IDRegexp.FindAllSubmatch(head, -1)
+	return ParseHeadID(fastxReader.IDRegexp, head)
+}
+
+// ParseHeadID parse ID from head by IDRegexp
+func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
+	found := idRegexp.FindAllSubmatch(head, -1)
 	if found == nil { // not match
 		return head
 	}
