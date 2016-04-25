@@ -205,8 +205,12 @@ func (seq *Seq) Complement() *Seq {
 		p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
 		s[i] = p
 	}
-
-	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
+	var newseq *Seq
+	if len(seq.Qual) > 0 {
+		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, seq.Qual)
+	} else {
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
+	}
 	return newseq
 }
 
