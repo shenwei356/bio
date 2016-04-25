@@ -16,11 +16,16 @@ type Faidx struct {
 }
 
 // New try to get Faidx from fasta file
-func New(file string) (*Faidx, error) {
-	fileFai := file + ".fai"
+func New(fileSeq string) (*Faidx, error) {
+	fileFai := fileSeq + ".fai"
+	return NewWithCustomExt(fileSeq, fileFai)
+}
+
+// NewWithCustomExt try to get Faidx from fasta file, and .fai is specified
+func NewWithCustomExt(fileSeq, fileFai string) (*Faidx, error) {
 	var index Index
 	if _, err := os.Stat(fileFai); os.IsNotExist(err) {
-		index, err = Create(file)
+		index, err = Create(fileSeq, fileFai)
 		if err != nil {
 			return nil, err
 		}
@@ -31,7 +36,7 @@ func New(file string) (*Faidx, error) {
 		}
 	}
 
-	return NewWithIndex(file, index)
+	return NewWithIndex(fileSeq, index)
 }
 
 // NewWithIndex return faidx from file and readed Index.

@@ -23,8 +23,8 @@ type Record struct {
 type Index map[string]Record
 
 // Read faidx from .fai file
-func Read(file string) (Index, error) {
-	fh, err := os.Open(file)
+func Read(fileFai string) (Index, error) {
+	fh, err := os.Open(fileFai)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +86,12 @@ func Read(file string) (Index, error) {
 }
 
 // CreateWithFullHead uses full head instead of just sequence ID
-func CreateWithFullHead(file string) (Index, error) {
-	return CreateWithIDRegexp(file, `^(.+)$`)
+func CreateWithFullHead(fileSeq, fileFai string) (Index, error) {
+	return CreateWithIDRegexp(fileSeq, fileFai, `^(.+)$`)
 }
 
 // CreateWithIDRegexp uses custom regular expression to get sequence ID
-func CreateWithIDRegexp(file string, idRegexp string) (Index, error) {
+func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error) {
 	if !reCheckIDregexpStr.MatchString(idRegexp) {
 		return nil, fmt.Errorf(`regular expression must contains "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
 	}
@@ -100,18 +100,18 @@ func CreateWithIDRegexp(file string, idRegexp string) (Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Create(file)
+	return Create(fileSeq, fileFai)
 }
 
 // Create .fai for file
-func Create(file string) (Index, error) {
-	fh, err := os.Open(file)
+func Create(fileSeq, fileFai string) (Index, error) {
+	fh, err := os.Open(fileSeq)
 	if err != nil {
 		return nil, err
 	}
 	defer fh.Close()
 
-	outfh, err := os.Create(file + ".fai")
+	outfh, err := os.Create(fileFai)
 	if err != nil {
 		return nil, err
 	}
