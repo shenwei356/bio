@@ -44,12 +44,12 @@ func NewWithCustomExt(fileSeq, fileFai string) (*Faidx, error) {
 func NewWithIndex(file string, index Index) (*Faidx, error) {
 	reader, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to open seq file: %s", err)
 	}
 
 	m, err := mmap.Map(reader, mmap.RDONLY, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mmap err: %s", err)
 	}
 
 	return &Faidx{reader, index, m}, nil

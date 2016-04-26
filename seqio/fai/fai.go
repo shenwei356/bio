@@ -26,7 +26,7 @@ type Index map[string]Record
 func Read(fileFai string) (Index, error) {
 	fh, err := os.Open(fileFai)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read faidx: %s", err)
 	}
 	defer fh.Close()
 
@@ -44,28 +44,28 @@ func Read(fileFai string) (Index, error) {
 			line = string(dropCR([]byte(line[0 : len(line)-1])))
 			items = strings.Split(line, "\t")
 			if len(items) != 5 {
-				return nil, fmt.Errorf("bad fai records: %s", line)
+				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
 			name = items[0]
 
 			length, err = strconv.Atoi(items[1])
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
 
 			start, err = strconv.ParseInt(items[2], 10, 64)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
 
 			BasesPerLine, err = strconv.Atoi(items[3])
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
 
 			bytesPerLine, err = strconv.Atoi(items[4])
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
 
 			index[name] = Record{
@@ -98,7 +98,7 @@ func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error)
 	var err error
 	IDRegexp, err = regexp.Compile(idRegexp)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to Compile idRegexp: %s", err)
 	}
 	return Create(fileSeq, fileFai)
 }
@@ -107,13 +107,13 @@ func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error)
 func Create(fileSeq, fileFai string) (Index, error) {
 	fh, err := os.Open(fileSeq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to open seq file: %s", err)
 	}
 	defer fh.Close()
 
 	outfh, err := os.Create(fileFai)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to write fai file: %s", err)
 	}
 	defer outfh.Close()
 

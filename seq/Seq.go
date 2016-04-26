@@ -3,7 +3,9 @@ package seq
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/shenwei356/util/byteutil"
 )
@@ -208,25 +210,66 @@ func (seq *Seq) ReverseInplace() *Seq {
 
 // Complement returns complement sequence.
 func (seq *Seq) Complement() *Seq {
+	var newseq *Seq
 	if seq.Alphabet == Unlimit {
-		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, []byte(""))
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
 		return newseq
 	}
 
+	l := len(seq.Seq)
 	s := make([]byte, len(seq.Seq))
-	var p byte
-	for i := 0; i < len(seq.Seq); i++ {
-		p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
-		s[i] = p
-	}
-	var newseq *Seq
+
 	if len(seq.Qual) > 0 {
 		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, seq.Qual)
 	} else {
 		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
 	}
+
+	if l < ComplementSeqLenThreshold {
+		var p byte
+		for i := 0; i < len(seq.Seq); i++ {
+			p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+			s[i] = p
+		}
+	} else {
+
+		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+		var wg sync.WaitGroup
+		tokens := make(chan int, ComplementThreads)
+		for i := 0; i < ComplementThreads; i++ {
+			start = i * chunkSize
+			end = (i + 1) * chunkSize
+			if end > l {
+				end = l
+			}
+			tokens <- 1
+			wg.Add(1)
+
+			go func(start, end int) {
+				defer func() {
+					<-tokens
+					wg.Done()
+				}()
+
+				var p byte
+				for i := start; i < end; i++ {
+					p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+					s[i] = p
+				}
+			}(start, end)
+		}
+		wg.Wait()
+	}
+
 	return newseq
 }
+
+// ComplementSeqLenThreshold is the threshold of sequence length that
+// needed to  parallelly complement sequence
+var ComplementSeqLenThreshold = 10000
+
+// ComplementThreads is the threads number of parallelly complement sequence
+var ComplementThreads = runtime.NumCPU()
 
 // ComplementInplace returns complement sequence.
 func (seq *Seq) ComplementInplace() *Seq {
@@ -234,11 +277,43 @@ func (seq *Seq) ComplementInplace() *Seq {
 		return seq
 	}
 
-	var p byte
-	for i := 0; i < len(seq.Seq); i++ {
-		p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
-		seq.Seq[i] = p
+	l := len(seq.Seq)
+	if l < ComplementSeqLenThreshold {
+		var p byte
+		for i := 0; i < len(seq.Seq); i++ {
+			p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+			seq.Seq[i] = p
+		}
+		return seq
 	}
+
+	chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+	var wg sync.WaitGroup
+	tokens := make(chan int, ComplementThreads)
+	for i := 0; i < ComplementThreads; i++ {
+		start = i * chunkSize
+		end = (i + 1) * chunkSize
+		if end > l {
+			end = l
+		}
+		tokens <- 1
+		wg.Add(1)
+
+		go func(start, end int) {
+			defer func() {
+				<-tokens
+				wg.Done()
+			}()
+
+			var p byte
+			for i := start; i < end; i++ {
+				p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+				seq.Seq[i] = p
+			}
+		}(start, end)
+	}
+	wg.Wait()
+
 	return seq
 }
 

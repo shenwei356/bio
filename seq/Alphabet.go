@@ -232,57 +232,62 @@ func (a *Alphabet) IsValid(s []byte) error {
 				return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
 			}
 		}
-	} else if ValidateWholeSeq {
-		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+		return nil
+	}
 
-		var wg sync.WaitGroup
-		tokens := make(chan int, ValidSeqThreads)
-		ch := make(chan seqCheckStatus, ValidSeqThreads)
-		done := make(chan struct{})
-		finished := false
-		for i := 0; i < ValidSeqThreads; i++ {
-			start = i * chunkSize
-			end = (i + 1) * chunkSize
-			if end > l {
-				end = l
-			}
-			tokens <- 1
-			wg.Add(1)
-			go func(start, end int) {
-				defer func() {
-					<-tokens
-					wg.Done()
-				}()
+	if ValidateWholeSeq || ValidSeqThreads == 0 {
+		ValidSeqThreads = len(s)
+	}
+	chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
 
-				select {
-				case <-done:
-					if !finished {
-						finished = true
-						close(ch)
-						return
-					}
-				default:
-
-				}
-
-				for i := start; i < end; i++ {
-					if !a.IsValidLetter(s[i]) {
-						ch <- seqCheckStatus{fmt.Errorf("invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
-						close(done)
-						return
-					}
-				}
-				ch <- seqCheckStatus{nil}
-			}(start, end)
+	var wg sync.WaitGroup
+	tokens := make(chan int, ValidSeqThreads)
+	ch := make(chan seqCheckStatus, ValidSeqThreads)
+	done := make(chan struct{})
+	finished := false
+	for i := 0; i < ValidSeqThreads; i++ {
+		start = i * chunkSize
+		end = (i + 1) * chunkSize
+		if end > l {
+			end = l
 		}
-		wg.Wait()
-		close(ch)
-		for status := range ch {
-			if status.err != nil {
-				return status.err
+		tokens <- 1
+		wg.Add(1)
+		go func(start, end int) {
+			defer func() {
+				<-tokens
+				wg.Done()
+			}()
+
+			select {
+			case <-done:
+				if !finished {
+					finished = true
+					close(ch)
+					return
+				}
+			default:
+
 			}
+
+			for i := start; i < end; i++ {
+				if !a.IsValidLetter(s[i]) {
+					ch <- seqCheckStatus{fmt.Errorf("invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
+					close(done)
+					return
+				}
+			}
+			ch <- seqCheckStatus{nil}
+		}(start, end)
+	}
+	wg.Wait()
+	close(ch)
+	for status := range ch {
+		if status.err != nil {
+			return status.err
 		}
 	}
+
 	return nil
 }
 

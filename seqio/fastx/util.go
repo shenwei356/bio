@@ -1,10 +1,14 @@
 package fastx
 
 import (
+	"runtime"
+	"strings"
+
 	"github.com/shenwei356/bio/seq"
+	"github.com/shenwei356/breader"
 )
 
-// GetSeqNames returns the names of a fasta file
+// GetSeqNames returns the names of a fasta/q file
 func GetSeqNames(file string) ([]string, error) {
 	names := []string{}
 	seq.ValidateSeq = false
@@ -22,6 +26,52 @@ func GetSeqNames(file string) ([]string, error) {
 		}
 	}
 	return names, nil
+}
+
+// GetSeqNumber returns the sequences number of FASTA/Q files
+func GetSeqNumber(file string) (int, error) {
+	n := 0
+	seq.ValidateSeq = false
+	fastxReader, err := NewReader(nil, file, 1, 1, "")
+	if err != nil {
+		return 0, nil
+	}
+	for chunk := range fastxReader.Ch {
+		if chunk.Err != nil {
+			return n, chunk.Err
+		}
+		n += len(chunk.Data)
+	}
+	return n, nil
+}
+
+// EstimateSeqNumber estimates sequences number of FASTA/Q files.
+// It may over count for FASTQ file.
+func EstimateSeqNumber(file string) (int, error) {
+	fn := func(line string) (interface{}, bool, error) {
+		line = strings.TrimRight(line, "\r\n")
+		if len(line) == 0 {
+			return 0, false, nil
+		}
+
+		if line[0] == '>' || line[0] == '@' {
+			return 1, true, nil
+		}
+		return 0, false, nil
+	}
+	reader, err := breader.NewBufferedReader(file, runtime.NumCPU(), 100, fn)
+	if err != nil {
+		return 0, err
+	}
+
+	n := 0
+	for chunk := range reader.Ch {
+		if chunk.Err != nil {
+			return n, err
+		}
+		n += len(chunk.Data)
+	}
+	return n, nil
 }
 
 // GetSeqs return fastx records of a file.
