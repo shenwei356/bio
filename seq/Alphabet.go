@@ -206,6 +206,9 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 // needed to  parallelly checking sequence
 var ValidSeqLengthThreshold = 100000
 
+// ValidateWholeSeq is used to determin whether validate all bases of a seq
+var ValidateWholeSeq = true
+
 // ValidSeqThreads is the threads number of parallelly checking sequence
 var ValidSeqThreads = runtime.NumCPU()
 
@@ -229,7 +232,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 				return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
 			}
 		}
-	} else {
+	} else if ValidateWholeSeq {
 		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
 
 		var wg sync.WaitGroup

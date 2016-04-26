@@ -180,6 +180,11 @@ func (seq *Seq) RevCom() *Seq {
 	return seq.Reverse().Complement()
 }
 
+// RevComInplace reverses complement sequence in place
+func (seq *Seq) RevComInplace() *Seq {
+	return seq.ReverseInplace().ComplementInplace()
+}
+
 // Reverse a sequence
 func (seq *Seq) Reverse() *Seq {
 	if len(seq.Qual) > 0 {
@@ -192,7 +197,16 @@ func (seq *Seq) Reverse() *Seq {
 	return newseq
 }
 
-// Complement returns complement sequence. Note that is will lose quality information
+// ReverseInplace reverses the sequence content
+func (seq *Seq) ReverseInplace() *Seq {
+	if len(seq.Qual) > 0 {
+		byteutil.ReverseByteSliceInplace(seq.Qual)
+	}
+	byteutil.ReverseByteSliceInplace(seq.Seq)
+	return seq
+}
+
+// Complement returns complement sequence.
 func (seq *Seq) Complement() *Seq {
 	if seq.Alphabet == Unlimit {
 		newseq, _ := NewSeqWithoutValidate(seq.Alphabet, []byte(""))
@@ -212,6 +226,20 @@ func (seq *Seq) Complement() *Seq {
 		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
 	}
 	return newseq
+}
+
+// ComplementInplace returns complement sequence.
+func (seq *Seq) ComplementInplace() *Seq {
+	if seq.Alphabet == Unlimit {
+		return seq
+	}
+
+	var p byte
+	for i := 0; i < len(seq.Seq); i++ {
+		p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+		seq.Seq[i] = p
+	}
+	return seq
 }
 
 // FormatSeq wrap seq

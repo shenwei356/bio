@@ -99,7 +99,7 @@ var DefaultIDRegexp = `^([^\s]+)\s?`
 //                     if record head does not match the idRegxp, whole name will be the id
 //
 func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRegexp string) (*Reader, error) {
-	if bufferSize < 0 {
+	if bufferSize <= 0 {
 		bufferSize = 0
 	}
 	if chunkSize < 1 {
