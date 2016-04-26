@@ -8,6 +8,9 @@ import (
 	"github.com/shenwei356/breader"
 )
 
+// Threads number
+var Threads = runtime.NumCPU()
+
 // GetSeqNames returns the names of a fasta/q file
 func GetSeqNames(file string) ([]string, error) {
 	names := []string{}
@@ -59,7 +62,7 @@ func EstimateSeqNumber(file string) (int, error) {
 		}
 		return 0, false, nil
 	}
-	reader, err := breader.NewBufferedReader(file, runtime.NumCPU(), 100, fn)
+	reader, err := breader.NewBufferedReader(file, Threads, 100, fn)
 	if err != nil {
 		return 0, err
 	}
