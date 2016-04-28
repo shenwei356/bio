@@ -2,7 +2,6 @@ package fai
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"regexp"
@@ -93,7 +92,7 @@ func CreateWithFullHead(fileSeq, fileFai string) (Index, error) {
 // CreateWithIDRegexp uses custom regular expression to get sequence ID
 func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error) {
 	if !reCheckIDregexpStr.MatchString(idRegexp) {
-		return nil, fmt.Errorf(`regular expression must contains "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
+		return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
 	}
 	var err error
 	IDRegexp, err = regexp.Compile(idRegexp)
@@ -120,9 +119,10 @@ func Create(fileSeq, fileFai string) (Index, error) {
 	index := make(map[string]Record)
 
 	reader := bufio.NewReader(fh)
-	buffer := bytes.Buffer{}
+	checkSeqType := true
+	seqLen := 0
 	var hasSeq bool
-	var lastName, thisName, sequence []byte
+	var lastName, thisName []byte
 	var id string
 	var lastStart, thisStart int64
 	var lineWidths, seqWidths []int
@@ -157,24 +157,32 @@ func Create(fileSeq, fileFai string) (Index, error) {
 				seqWidth = seqWidths[0]
 			}
 
-			sequence = buffer.Bytes()
-			buffer.Reset()
-
 			if _, ok := index[id]; ok {
-				return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
+				// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
+				os.Stderr.WriteString(fmt.Sprintf(`fai warning: ignoring duplicate sequence "%s" at byte offset %d\n`, id, lastStart))
+			} else {
+				outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
+				index[id] = Record{
+					Name:         id,
+					Length:       seqLen,
+					Start:        lastStart,
+					BasesPerLine: seqWidth,
+					BytesPerLine: lineWidth,
+				}
 			}
-			outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, len(sequence), lastStart, seqWidth, lineWidth))
-			index[id] = Record{
-				Name:         id,
-				Length:       len(sequence),
-				Start:        lastStart,
-				BasesPerLine: seqWidth,
-				BytesPerLine: lineWidth,
-			}
+
+			seqLen = 0
 
 			break
 		}
 
+		if checkSeqType {
+			if line[0] == '@' {
+				os.Remove(fileFai)
+				return nil, fmt.Errorf("FASTQ format not supported")
+			}
+			checkSeqType = false
+		}
 		if line[0] == '>' {
 			hasSeq = true
 			thisName = dropCR(line[1 : len(line)-1])
@@ -206,20 +214,21 @@ func Create(fileSeq, fileFai string) (Index, error) {
 					seqWidth = seqWidths[0]
 				}
 
-				sequence = buffer.Bytes()
-				buffer.Reset()
-
 				if _, ok := index[id]; ok {
-					return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
+					// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
+					os.Stderr.WriteString(fmt.Sprintf(`fai warning: ignoring duplicate sequence "%s" at byte offset %d\n`, id, lastStart))
+				} else {
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
+					index[id] = Record{
+						Name:         id,
+						Length:       seqLen,
+						Start:        lastStart,
+						BasesPerLine: seqWidth,
+						BytesPerLine: lineWidth,
+					}
 				}
-				outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, len(sequence), lastStart, seqWidth, lineWidth))
-				index[id] = Record{
-					Name:         id,
-					Length:       len(sequence),
-					Start:        lastStart,
-					BasesPerLine: seqWidth,
-					BytesPerLine: lineWidth,
-				}
+
+				seqLen = 0
 			}
 			lineWidths = []int{}
 			seqWidths = []int{}
@@ -227,7 +236,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 			lastStart = thisStart
 			lastName = thisName
 		} else if hasSeq {
-			buffer.Write(dropCR(line[0 : len(line)-1]))
+			seqLen += len((dropCR(line[0 : len(line)-1])))
 			thisStart += int64(len(line))
 
 			lineWidths = append(lineWidths, len(line))
@@ -258,16 +267,4 @@ func dropCR(data []byte) []byte {
 		return data[0 : len(data)-1]
 	}
 	return data
-}
-
-func cleanSeq(slice []byte) []byte {
-	newSlice := []byte{}
-	for _, b := range slice {
-		switch b {
-		case '\r', '\n':
-		default:
-			newSlice = append(newSlice, b)
-		}
-	}
-	return newSlice
 }

@@ -20,7 +20,7 @@ type Record struct {
 }
 
 func (record Record) String() string {
-	return record.Format(70)
+	return string(record.Format(70))
 }
 
 // NewRecord is constructor of type Record
@@ -41,15 +41,30 @@ func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) 
 	return &Record{id, name, seq}, nil
 }
 
-// Format formats output
-func (record *Record) Format(width int) string {
+// Format formats sequence record
+func (record *Record) Format(width int) []byte {
 	if len(record.Seq.Qual) > 0 {
-		return fmt.Sprintf("@%s\n%s\n+\n%s\n", record.Name,
-			byteutil.WrapByteSlice(record.Seq.Seq, width),
-			byteutil.WrapByteSlice(record.Seq.Qual, width))
+		return append(append(append(append([]byte(fmt.Sprintf("@%s\n", record.Name)),
+			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("+\n")...),
+			byteutil.WrapByteSlice(record.Seq.Qual, width)...), []byte("\n")...)
 	}
-	return fmt.Sprintf(">%s\n%s\n", record.Name,
-		byteutil.WrapByteSlice(record.Seq.Seq, width))
+	return append(append([]byte(fmt.Sprintf(">%s\n", record.Name)),
+		byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n")...)
+}
+
+// FormatToWriter formats and directly writes to writer
+func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
+	if len(record.Seq.Qual) > 0 {
+		outfh.Write([]byte(fmt.Sprintf("@%s\n", record.Name)))
+		outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+		outfh.Write([]byte("\n+\n"))
+		outfh.Write(byteutil.WrapByteSlice(record.Seq.Qual, width))
+		outfh.Write([]byte("\n"))
+		return
+	}
+	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
+	outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+	outfh.Write([]byte("\n"))
 }
 
 // RecordChunk  is
@@ -79,7 +94,7 @@ type Reader struct {
 }
 
 // regexp for checking idRegexp string.
-// The regular expression must contains "(" and ")" to capture matched ID
+// The regular expression must contain "(" and ")" to capture matched ID
 var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // DefaultIDRegexp is the default ID parsing regular expression
@@ -111,7 +126,7 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 		r = regexp.MustCompile(DefaultIDRegexp)
 	} else {
 		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`regular expression must contains "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
+			return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
 		}
 		var err error
 		r, err = regexp.Compile(idRegexp)
@@ -233,7 +248,7 @@ func (fastxReader *Reader) read() {
 					} else {
 						hasSeq = true
 						isReadQual = false
-						thisName = cleanEndSpace(line[1:])
+						thisName = dropCR(line[1 : len(line)-1])
 
 						if lastName != nil { // no-first seq head
 							sequence := []byte(string(lastSeq))
@@ -292,7 +307,6 @@ func (fastxReader *Reader) read() {
 
 				buffer.Write(dropCR(line))
 
-				// sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
 				sequence := []byte(string(buffer.Bytes()))
 				buffer.Reset()
 
@@ -321,9 +335,8 @@ func (fastxReader *Reader) read() {
 
 			if line[0] == '>' {
 				hasSeq = true
-				thisName = cleanEndSpace(line[1:])
+				thisName = dropCR(line[1 : len(line)-1])
 				if lastName != nil { // no-first seq head
-					// sequence := cleanSpace(buffer.Bytes()) // avoid using regexp
 					sequence := []byte(string(buffer.Bytes()))
 					buffer.Reset()
 

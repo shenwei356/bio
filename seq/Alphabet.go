@@ -204,7 +204,7 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 
 // ValidSeqLengthThreshold is the threshold of sequence length that
 // needed to  parallelly checking sequence
-var ValidSeqLengthThreshold = 100000
+var ValidSeqLengthThreshold = 10000
 
 // ValidateWholeSeq is used to determin whether validate all bases of a seq
 var ValidateWholeSeq = true

@@ -86,6 +86,29 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
+		if len(seq.Qual) > 0 {
+			newseq.Qual = []byte(string(seq.Qual[start-1 : end]))
+		}
+		if len(seq.QualValue) > 0 {
+			qv := make([]int, end-start+1)
+			for i, v := range seq.QualValue[start-1 : end] {
+				qv[i] = v
+			}
+			newseq.QualValue = qv
+		}
+	} else {
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
+	}
+
+	return newseq
+}
+
+// SubSeqInplace return subseq inplace
+func (seq *Seq) SubSeqInplace(start int, end int) *Seq {
+	var newseq *Seq
+	start, end, ok := SubLocation(len(seq.Seq), start, end)
+	if ok {
 		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
 		if len(seq.Qual) > 0 {
 			newseq.Qual = seq.Qual[start-1 : end]

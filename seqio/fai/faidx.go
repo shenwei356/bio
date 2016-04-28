@@ -71,6 +71,15 @@ var ErrSeqNotExists = fmt.Errorf("sequence not exists")
 
 // Seq returns sequence of chr
 func (f *Faidx) Seq(chr string) ([]byte, error) {
+	sequence, err := f.SeqNotCleaned(chr)
+	if err != nil {
+		return nil, err
+	}
+	return cleanSeq(sequence), nil
+}
+
+// SeqNotCleaned returns sequences without cleaning "\r", and "\n"
+func (f *Faidx) SeqNotCleaned(chr string) ([]byte, error) {
 	index, ok := f.Index[chr]
 	if !ok {
 		return nil, ErrSeqNotExists
@@ -78,11 +87,22 @@ func (f *Faidx) Seq(chr string) ([]byte, error) {
 
 	pstart := position(index, 0)
 	pend := position(index, index.Length)
-	return []byte(string(cleanSeq(f.mmap[pstart:pend]))), nil
+	return f.mmap[pstart:pend], nil
 }
 
 // SubSeq returns subsequence of chr from start to end. start and end are 1-based.
 func (f *Faidx) SubSeq(chr string, start int, end int) ([]byte, error) {
+	sequence, err := f.SubSeqNotCleaned(chr, start, end)
+	if err != nil {
+		return nil, err
+	}
+	return cleanSeq(sequence), nil
+}
+
+// SubSeqNotCleaned returns subsequence of chr from start to end.
+// start and end are 1-based.
+// "\r" and "\n"  are not cleaned.
+func (f *Faidx) SubSeqNotCleaned(chr string, start int, end int) ([]byte, error) {
 	index, ok := f.Index[chr]
 	if !ok {
 		return nil, ErrSeqNotExists
@@ -95,7 +115,7 @@ func (f *Faidx) SubSeq(chr string, start int, end int) ([]byte, error) {
 
 	pstart := position(index, start-1)
 	pend := position(index, end)
-	return []byte(string(cleanSeq(f.mmap[pstart:pend]))), nil
+	return f.mmap[pstart:pend], nil
 }
 
 // Base returns base in postion pos. pos is 1 based
@@ -159,4 +179,16 @@ func SubLocation(length, start, end int) (int, int, bool) {
 		return start - 1, end, false
 	}
 	return start, end, true
+}
+
+func cleanSeq(slice []byte) []byte {
+	newSlice := []byte{}
+	for _, b := range slice {
+		switch b {
+		case '\r', '\n':
+		default:
+			newSlice = append(newSlice, b)
+		}
+	}
+	return newSlice
 }
