@@ -25,7 +25,7 @@ Reference:
     // whole sequence
     seq, err := idx.Seq("cel-mir-2")
     checkErr(err)
-    
+
     // single base
     s, err := idx.Base("cel-let-7", 1)
     checkErr(err)
@@ -41,7 +41,7 @@ Reference:
 For extended SubSeq, negative position is allowed.
 
 
-This is my custom locating strategy. Start and end are all 1-based. 
+This is my custom locating strategy. Start and end are all 1-based.
 To better understand the locating strategy, see examples below:
 
 
@@ -85,16 +85,27 @@ creating and reading FASTA index . Let's see what's happend inside:
             return NewWithIndex(file, index)
     }
 
-By default, sequence ID is used as key in FASTA index file. 
+By default, sequence IDa is used as key in FASTA index file.
 Inside the package, a regular expression is used to get sequence ID from
 full head. The default value is `^([^\s]+)\s?`, i.e. getting
-first non-space characters of head. 
+first non-space characters of head.
 So you can just use `fai.Create(file string)` to create .fai file.
 
 If you want to use full head instead of sequence ID (first non-space characters of head),
-you could use `fai.CreateWithIDRegexp(file string, idRegexp string)` to create faidx. 
+you could use `fai.CreateWithIDRegexp(file string, idRegexp string)` to create faidx.
 Here, the `idRegexp` should be `^(.+)$`. For convenience, you can use another function
 `CreateWithFullHead`.
+
+
+## More Advanced Usages
+
+Note that, ***by default, whole file is mapped into shared memory***,
+which is OK for small file (smaller than your RAM).
+For very big file, you can choose to not do that by:
+
+    fai.MapWholeFile = false
+
+    // then do other things
 
 */
 package fai

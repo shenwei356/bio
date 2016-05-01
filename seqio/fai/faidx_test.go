@@ -8,7 +8,6 @@ func TestFastaReader(t *testing.T) {
 	file := "seq.fa"
 	idx, err := New(file)
 	checkErr(t, err)
-	defer idx.Close()
 
 	chr := "cel-let-7"
 	s, err := idx.Base(chr, 1)
@@ -65,6 +64,16 @@ func TestFastaReader(t *testing.T) {
 	if string(seq) != "" {
 		t.Errorf("unmatched sequences %s from %d to %d: %s", chr, start, end, seq)
 	}
+
+	err = idx.Close()
+	if err != nil {
+		t.Errorf("fail to close faidx: %v", err)
+	}
+}
+
+func TestFastaReaderNotMapWholeFile(t *testing.T) {
+	MapWholeFile = false
+	TestFastaReader(t)
 }
 
 func checkErr(t *testing.T, err error) {

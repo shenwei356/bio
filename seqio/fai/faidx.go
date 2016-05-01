@@ -2,15 +2,21 @@ package fai
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/edsrzf/mmap-go"
 )
 
+// MapWholeFile is a globle flag to decides whether map whole file
+var MapWholeFile = true
+
+var pageSize = int64(os.Getpagesize())
+var pageSizeInt = os.Getpagesize()
+
 // Faidx is
 type Faidx struct {
-	reader io.ReadSeeker
+	file   string
+	reader *os.File
 	Index  Index
 	mmap   mmap.MMap
 }
@@ -47,12 +53,15 @@ func NewWithIndex(file string, index Index) (*Faidx, error) {
 		return nil, fmt.Errorf("fail to open seq file: %s", err)
 	}
 
-	m, err := mmap.Map(reader, mmap.RDONLY, 0)
-	if err != nil {
-		return nil, fmt.Errorf("mmap err: %s", err)
+	var m mmap.MMap
+	if MapWholeFile {
+		m, err = mmap.Map(reader, mmap.RDONLY, 0)
+		if err != nil {
+			return nil, fmt.Errorf("mmap err: %s", err)
+		}
 	}
 
-	return &Faidx{reader, index, m}, nil
+	return &Faidx{file, reader, index, m}, nil
 }
 
 // p is 0-based
@@ -68,27 +77,6 @@ func position(r Record, p int) int64 {
 
 // ErrSeqNotExists means that sequence not exists
 var ErrSeqNotExists = fmt.Errorf("sequence not exists")
-
-// Seq returns sequence of chr
-func (f *Faidx) Seq(chr string) ([]byte, error) {
-	sequence, err := f.SeqNotCleaned(chr)
-	if err != nil {
-		return nil, err
-	}
-	return cleanSeq(sequence), nil
-}
-
-// SeqNotCleaned returns sequences without cleaning "\r", and "\n"
-func (f *Faidx) SeqNotCleaned(chr string) ([]byte, error) {
-	index, ok := f.Index[chr]
-	if !ok {
-		return nil, ErrSeqNotExists
-	}
-
-	pstart := position(index, 0)
-	pend := position(index, index.Length)
-	return f.mmap[pstart:pend], nil
-}
 
 // SubSeq returns subsequence of chr from start to end. start and end are 1-based.
 func (f *Faidx) SubSeq(chr string, start int, end int) ([]byte, error) {
@@ -115,24 +103,52 @@ func (f *Faidx) SubSeqNotCleaned(chr string, start int, end int) ([]byte, error)
 
 	pstart := position(index, start-1)
 	pend := position(index, end)
-	return f.mmap[pstart:pend], nil
+	if MapWholeFile {
+		return f.mmap[pstart:pend], nil
+	}
+
+	data := make([]byte, pend-pstart)
+	_, err := f.reader.ReadAt(data, pstart)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// Seq returns sequence of chr
+func (f *Faidx) Seq(chr string) ([]byte, error) {
+	sequence, err := f.SeqNotCleaned(chr)
+	if err != nil {
+		return nil, err
+	}
+	return cleanSeq(sequence), nil
+}
+
+// SeqNotCleaned returns sequences without cleaning "\r", and "\n"
+func (f *Faidx) SeqNotCleaned(chr string) ([]byte, error) {
+	sequence, err := f.SubSeqNotCleaned(chr, 1, -1)
+	if err != nil {
+		return nil, err
+	}
+	return sequence, nil
 }
 
 // Base returns base in postion pos. pos is 1 based
 func (f *Faidx) Base(chr string, pos int) (byte, error) {
-	index, ok := f.Index[chr]
-	if !ok {
-		return '*', ErrSeqNotExists
+	sequence, err := f.SubSeqNotCleaned(chr, pos, pos)
+	if err != nil {
+		return ' ', err
 	}
-
-	ppos := position(index, pos-1)
-	return f.mmap[ppos], nil
+	return sequence[0], nil
 }
 
 // Close the readers
-func (f *Faidx) Close() {
-	f.reader.(io.Closer).Close()
-	f.mmap.Unmap()
+func (f *Faidx) Close() error {
+	f.reader.Close()
+	if f.mmap == nil {
+		return nil
+	}
+	return f.mmap.Unmap()
 }
 
 /*SubLocation is my sublocation strategy,

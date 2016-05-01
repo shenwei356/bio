@@ -296,7 +296,6 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	if a.isUnlimit {
 		return b, nil
 	}
-
 	p := a.pairLetters[int(b)]
 	if p == 0 {
 		return b, fmt.Errorf("invalid letter: %c", b)

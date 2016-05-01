@@ -159,7 +159,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 			if _, ok := index[id]; ok {
 				// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
-				os.Stderr.WriteString(fmt.Sprintf(`fai warning: ignoring duplicate sequence "%s" at byte offset %d\n`, id, lastStart))
+				os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
 			} else {
 				outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
 				index[id] = Record{
@@ -216,7 +216,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 				if _, ok := index[id]; ok {
 					// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
-					os.Stderr.WriteString(fmt.Sprintf(`fai warning: ignoring duplicate sequence "%s" at byte offset %d\n`, id, lastStart))
+					os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
 				} else {
 					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
 					index[id] = Record{

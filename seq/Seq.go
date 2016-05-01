@@ -169,10 +169,10 @@ func SubLocation(length, start, end int) (int, int, bool) {
 	return start, end, true
 }
 
-// RemoveGaps remove gaps
+// RemoveGaps remove gaps in place
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, seq.Seq, seq.Qual)
+		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
 		return newseq
 	}
 
@@ -182,22 +182,29 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 		querySlice[int(letters[i])] = letters[i]
 	}
 
-	s := []byte{}
-	q := []byte{}
+	s := make([]byte, len(seq.Seq))
+	q := make([]byte, len(seq.Qual))
 	var b, g byte
+	var j int
 	for i := 0; i < len(seq.Seq); i++ {
 		b = seq.Seq[i]
 
 		g = querySlice[int(b)]
-		if g == 0 {
-			s = append(s, b)
+		if g == 0 { // not gap
+			s[j] = b
 			if len(seq.Qual) > 0 {
-				q = append(q, seq.Qual[i])
+				q[j] = seq.Qual[i]
 			}
+			j++
 		}
 	}
-	newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, s, q)
-	return newseq
+	var newSeq *Seq
+	if len(seq.Qual) > 0 {
+		newSeq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s[0:j], q[0:j])
+	} else {
+		newSeq, _ = NewSeqWithoutValidate(seq.Alphabet, s[0:j])
+	}
+	return newSeq
 }
 
 // RevCom returns reverse complement sequence
@@ -231,11 +238,18 @@ func (seq *Seq) ReverseInplace() *Seq {
 	return seq
 }
 
+// ComplementSeqLenThreshold is the threshold of sequence length that
+// needed to  parallelly complement sequence
+var ComplementSeqLenThreshold = 1000
+
+// ComplementThreads is the threads number of parallelly complement sequence
+var ComplementThreads = runtime.NumCPU()
+
 // Complement returns complement sequence.
 func (seq *Seq) Complement() *Seq {
 	var newseq *Seq
 	if seq.Alphabet == Unlimit {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)))
 		return newseq
 	}
 
@@ -255,7 +269,6 @@ func (seq *Seq) Complement() *Seq {
 			s[i] = p
 		}
 	} else {
-
 		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
 		var wg sync.WaitGroup
 		tokens := make(chan int, ComplementThreads)
@@ -286,13 +299,6 @@ func (seq *Seq) Complement() *Seq {
 
 	return newseq
 }
-
-// ComplementSeqLenThreshold is the threshold of sequence length that
-// needed to  parallelly complement sequence
-var ComplementSeqLenThreshold = 10000
-
-// ComplementThreads is the threads number of parallelly complement sequence
-var ComplementThreads = runtime.NumCPU()
 
 // ComplementInplace returns complement sequence.
 func (seq *Seq) ComplementInplace() *Seq {
