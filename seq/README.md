@@ -1,7 +1,7 @@
 seq
 ===
 
-This package defines a *Seq* type, and provides some basic operations of sequence,
+This package defines `Seq` and `Alphabet` type, and provides some basic operations of sequence,
 like validation of DNA/RNA/Protein sequence and getting reverse complement sequence.
 
 This package was inspired by

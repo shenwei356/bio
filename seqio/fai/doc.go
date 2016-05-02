@@ -18,20 +18,22 @@ Reference:
     import "github.com/shenwei356/bio/seqio/fai"
 
     file := "seq.fa"
-    idx, err := fai.New(file)
+    faidx, err := fai.New(file)
     checkErr(err)
-    defer idx.Close()
+    defer func() {
+        checkErr(faidx.Close())
+    }()
 
     // whole sequence
-    seq, err := idx.Seq("cel-mir-2")
+    seq, err := faidx.Seq("cel-mir-2")
     checkErr(err)
 
     // single base
-    s, err := idx.Base("cel-let-7", 1)
+    s, err := faidx.Base("cel-let-7", 1)
     checkErr(err)
 
     // subsequence. start and end are all 1-based
-    seq, err := idx.SubSeq("cel-mir-2", 15, 19)
+    seq, err := faidx.SubSeq("cel-mir-2", 15, 19)
     checkErr(err)
 
 
@@ -59,7 +61,7 @@ To better understand the locating strategy, see examples below:
 Examples:
 
     // last 12 bases
-    seq, err := idx.SubSeq("cel-mir-2", -12, -1)
+    seq, err := faidx.SubSeq("cel-mir-2", -12, -1)
     checkErr(err)
 
 ## Advanced Usage
@@ -100,9 +102,11 @@ Here, the `idRegexp` should be `^(.+)$`. For convenience, you can use another fu
 ## More Advanced Usages
 
 Note that, ***by default, whole file is mapped into shared memory***,
-which is OK for small file (smaller than your RAM).
-For very big file, you can choose to not do that by:
+which is OK for small files (smaller than your RAM).
+For very big files, you should disable that.
+Instead, file seeking is used.
 
+    // change the global variable
     fai.MapWholeFile = false
 
     // then do other things
