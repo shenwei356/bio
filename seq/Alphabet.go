@@ -148,13 +148,13 @@ func NewAlphabet(
 	}
 	a.pairLetters = make([]byte, max+1)
 	for i := 0; i < len(letters); i++ {
-		a.pairLetters[int(letters[i])] = pairs[i]
+		a.pairLetters[letters[i]-'\x00'] = pairs[i]
 	}
 	for _, v := range gap {
-		a.pairLetters[int(v)] = v
+		a.pairLetters[v-'\x00'] = v
 	}
 	for _, v := range ambiguous {
-		a.pairLetters[int(v)] = v
+		a.pairLetters[v-'\x00'] = v
 	}
 
 	return a, nil
@@ -296,7 +296,7 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	if a.isUnlimit {
 		return b, nil
 	}
-	p := a.pairLetters[int(b)]
+	p := a.pairLetters[b-'\x00']
 	if p == 0 {
 		return b, fmt.Errorf("invalid letter: %c", b)
 	}

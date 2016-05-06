@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/shenwei356/util/byteutil"
+	"github.com/shenwei356/util/stringutil"
 )
 
 // Seq struct has two attributes, alphabet, seq,
@@ -86,9 +87,9 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq[start-1:end])))
 		if len(seq.Qual) > 0 {
-			newseq.Qual = []byte(string(seq.Qual[start-1 : end]))
+			newseq.Qual = stringutil.Str2Bytes(string(seq.Qual[start-1 : end]))
 		}
 		if len(seq.QualValue) > 0 {
 			qv := make([]int, end-start+1)
@@ -172,7 +173,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 // RemoveGaps remove gaps in place
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
+		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq)), stringutil.Str2Bytes(string(seq.Qual)))
 		return newseq
 	}
 
@@ -249,7 +250,7 @@ var ComplementThreads = runtime.NumCPU()
 func (seq *Seq) Complement() *Seq {
 	var newseq *Seq
 	if seq.Alphabet == Unlimit {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)))
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq)))
 		return newseq
 	}
 
@@ -269,7 +270,7 @@ func (seq *Seq) Complement() *Seq {
 			s[i] = p
 		}
 	} else {
-		chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+		chunkSize, start, end := int(l/ComplementThreads), 0, 0
 		var wg sync.WaitGroup
 		tokens := make(chan int, ComplementThreads)
 		for i := 0; i < ComplementThreads; i++ {
@@ -281,7 +282,7 @@ func (seq *Seq) Complement() *Seq {
 			tokens <- 1
 			wg.Add(1)
 
-			go func(start, end int) {
+			go func(alphabet *Alphabet, start, end int) {
 				defer func() {
 					<-tokens
 					wg.Done()
@@ -289,10 +290,12 @@ func (seq *Seq) Complement() *Seq {
 
 				var p byte
 				for i := start; i < end; i++ {
-					p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
-					s[i] = p
+					p = alphabet.pairLetters[seq.Seq[i]-'\x00']
+					if p != 0 {
+						seq.Seq[i] = p
+					}
 				}
-			}(start, end)
+			}(seq.Alphabet, start, end)
 		}
 		wg.Wait()
 	}
@@ -316,7 +319,7 @@ func (seq *Seq) ComplementInplace() *Seq {
 		return seq
 	}
 
-	chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+	chunkSize, start, end := int(l/ComplementThreads), 0, 0
 	var wg sync.WaitGroup
 	tokens := make(chan int, ComplementThreads)
 	for i := 0; i < ComplementThreads; i++ {
@@ -328,7 +331,7 @@ func (seq *Seq) ComplementInplace() *Seq {
 		tokens <- 1
 		wg.Add(1)
 
-		go func(start, end int) {
+		go func(alphabet *Alphabet, start, end int) {
 			defer func() {
 				<-tokens
 				wg.Done()
@@ -336,10 +339,12 @@ func (seq *Seq) ComplementInplace() *Seq {
 
 			var p byte
 			for i := start; i < end; i++ {
-				p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
-				seq.Seq[i] = p
+				p = alphabet.pairLetters[seq.Seq[i]-'\x00']
+				if p != 0 {
+					seq.Seq[i] = p
+				}
 			}
-		}(start, end)
+		}(seq.Alphabet, start, end)
 	}
 	wg.Wait()
 

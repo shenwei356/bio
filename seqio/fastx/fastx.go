@@ -10,6 +10,7 @@ import (
 	"github.com/brentp/xopen"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/util/byteutil"
+	"github.com/shenwei356/util/stringutil"
 )
 
 // Record struct
@@ -214,8 +215,8 @@ func (fastxReader *Reader) read() {
 
 					buffer.Write(dropCR(line))
 
-					sequence := []byte(string(lastSeq))
-					qual := []byte(string(buffer.Bytes()))
+					sequence := stringutil.Str2Bytes(string(lastSeq))
+					qual := stringutil.Str2Bytes(string(buffer.Bytes()))
 					buffer.Reset()
 
 					if !(len(sequence) == 0 && len(lastName) == 0) {
@@ -251,8 +252,8 @@ func (fastxReader *Reader) read() {
 						thisName = dropCR(line[1 : len(line)-1])
 
 						if lastName != nil { // no-first seq head
-							sequence := []byte(string(lastSeq))
-							qual := []byte(string(buffer.Bytes()))
+							sequence := stringutil.Str2Bytes(string(lastSeq))
+							qual := stringutil.Str2Bytes(string(buffer.Bytes()))
 							buffer.Reset()
 
 							if !(len(sequence) == 0 && len(lastName) == 0) {
@@ -288,7 +289,7 @@ func (fastxReader *Reader) read() {
 						}
 					}
 				} else if line[0] == '+' {
-					lastSeq = []byte(string(buffer.Bytes()))
+					lastSeq = stringutil.Str2Bytes(string(buffer.Bytes()))
 					buffer.Reset()
 					isReadQual = true
 				} else if hasSeq { // append sequence / qual
@@ -307,7 +308,7 @@ func (fastxReader *Reader) read() {
 
 				buffer.Write(dropCR(line))
 
-				sequence := []byte(string(buffer.Bytes()))
+				sequence := stringutil.Str2Bytes(string(buffer.Bytes()))
 				buffer.Reset()
 
 				if !(len(sequence) == 0 && len(lastName) == 0) {
@@ -337,7 +338,7 @@ func (fastxReader *Reader) read() {
 				hasSeq = true
 				thisName = dropCR(line[1 : len(line)-1])
 				if lastName != nil { // no-first seq head
-					sequence := []byte(string(buffer.Bytes()))
+					sequence := stringutil.Str2Bytes(string(buffer.Bytes()))
 					buffer.Reset()
 
 					if !(len(sequence) == 0 && len(lastName) == 0) {
@@ -425,7 +426,7 @@ func cleanSpace(slice []byte) []byte {
 
 func cleanEndSpace(slice []byte) []byte {
 	l := len(slice)
-	newSlice := []byte(string(slice))
+	newSlice := stringutil.Str2Bytes(string(slice))
 	if slice[l-1] == '\n' {
 		newSlice = slice[0 : l-1]
 	}
