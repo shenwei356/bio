@@ -254,52 +254,14 @@ func (seq *Seq) Complement() *Seq {
 		return newseq
 	}
 
-	l := len(seq.Seq)
-	s := make([]byte, len(seq.Seq))
-
+	s := stringutil.Str2Bytes(string(seq.Seq))
 	if len(seq.Qual) > 0 {
-		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, seq.Qual)
+		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, stringutil.Str2Bytes(string(seq.Qual)))
 	} else {
 		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
 	}
 
-	if l < ComplementSeqLenThreshold {
-		var p byte
-		for i := 0; i < len(seq.Seq); i++ {
-			p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
-			s[i] = p
-		}
-	} else {
-		chunkSize, start, end := int(l/ComplementThreads), 0, 0
-		var wg sync.WaitGroup
-		tokens := make(chan int, ComplementThreads)
-		for i := 0; i < ComplementThreads; i++ {
-			start = i * chunkSize
-			end = (i + 1) * chunkSize
-			if end > l {
-				end = l
-			}
-			tokens <- 1
-			wg.Add(1)
-
-			go func(alphabet *Alphabet, start, end int) {
-				defer func() {
-					<-tokens
-					wg.Done()
-				}()
-
-				var p byte
-				for i := start; i < end; i++ {
-					p = alphabet.pairLetters[seq.Seq[i]-'\x00']
-					if p != 0 {
-						seq.Seq[i] = p
-					}
-				}
-			}(seq.Alphabet, start, end)
-		}
-		wg.Wait()
-	}
-
+	newseq = newseq.ComplementInplace()
 	return newseq
 }
 
