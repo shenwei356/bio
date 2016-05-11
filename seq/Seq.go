@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/shenwei356/util/byteutil"
-	"github.com/shenwei356/util/stringutil"
 )
 
 // Seq struct has two attributes, alphabet, seq,
@@ -68,6 +67,10 @@ func (seq *Seq) Length() int {
 	return len(seq.Seq)
 }
 
+func (seq *Seq) String() string {
+	return fmt.Sprintf("%s, len:%d, seq:%s, qual:%s", seq.Alphabet, len(seq.Seq), seq.Seq, seq.Qual)
+}
+
 /*SubSeq returns a sub seq. start and end is 1-based.
 
 Examples:
@@ -87,9 +90,9 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq[start-1:end])))
+		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
 		if len(seq.Qual) > 0 {
-			newseq.Qual = stringutil.Str2Bytes(string(seq.Qual[start-1 : end]))
+			newseq.Qual = []byte(string(seq.Qual[start-1 : end]))
 		}
 		if len(seq.QualValue) > 0 {
 			qv := make([]int, end-start+1)
@@ -173,7 +176,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 // RemoveGaps remove gaps in place
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq)), stringutil.Str2Bytes(string(seq.Qual)))
+		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
 		return newseq
 	}
 
@@ -249,18 +252,13 @@ var ComplementThreads = runtime.NumCPU()
 // Complement returns complement sequence.
 func (seq *Seq) Complement() *Seq {
 	var newseq *Seq
-	if seq.Alphabet == Unlimit {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, stringutil.Str2Bytes(string(seq.Seq)))
-		return newseq
-	}
 
-	s := stringutil.Str2Bytes(string(seq.Seq))
+	s := []byte(string(seq.Seq))
 	if len(seq.Qual) > 0 {
-		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, stringutil.Str2Bytes(string(seq.Qual)))
+		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, []byte(string(seq.Qual)))
 	} else {
 		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
 	}
-
 	newseq = newseq.ComplementInplace()
 	return newseq
 }
