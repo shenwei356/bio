@@ -226,9 +226,11 @@ func (a *Alphabet) IsValid(s []byte) error {
 	}
 
 	l := len(s)
+	var i int
 	if l < ValidSeqLengthThreshold {
 		for _, b := range s {
-			if !a.IsValidLetter(b) {
+			i = int(b)
+			if i >= len(a.pairLetters) || a.pairLetters[i] == 0 {
 				return fmt.Errorf("invalid %s letter: %s", a, []byte{b})
 			}
 		}
@@ -270,8 +272,10 @@ func (a *Alphabet) IsValid(s []byte) error {
 
 			}
 
+			var j int
 			for i := start; i < end; i++ {
-				if !a.IsValidLetter(s[i]) {
+				j = int(s[i])
+				if j >= len(a.pairLetters) || a.pairLetters[j] == 0 {
 					ch <- seqCheckStatus{fmt.Errorf("invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
 					close(done)
 					return

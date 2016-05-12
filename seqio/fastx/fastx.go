@@ -33,12 +33,29 @@ func NewRecord(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
 	return &Record{id, name, seq}, nil
 }
 
+// NewRecordWithSeq is constructor of type Record
+func NewRecordWithSeq(id, name []byte, s *seq.Seq) (*Record, error) {
+	return &Record{id, name, s}, nil
+}
+
+// NewSeqWithoutValidate is constructor of type Record
+func NewSeqWithoutValidate(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
+	seq, _ := seq.NewSeqWithoutValidate(t, s)
+	return &Record{id, name, seq}, nil
+}
+
 // NewRecordWithQual is constructor of type Record
 func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
-	seq, err := seq.NewSeqWithQualWithoutValidate(t, s, q)
+	seq, err := seq.NewSeqWithQual(t, s, q)
 	if err != nil {
 		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
 	}
+	return &Record{id, name, seq}, nil
+}
+
+// NewRecordWithQualWithoutValidate is constructor of type Record
+func NewRecordWithQualWithoutValidate(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
+	seq, _ := seq.NewSeqWithQualWithoutValidate(t, s, q)
 	return &Record{id, name, seq}, nil
 }
 
