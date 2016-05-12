@@ -336,18 +336,18 @@ func init() {
 	DNA, _ = NewAlphabet(
 		"DNA",
 		false,
-		[]byte("acgtACGT."),
-		[]byte("tgcaTGCA."),
+		[]byte("acgtACGT"),
+		[]byte("tgcaTGCA"),
 		[]byte(" -"),
-		[]byte("nxNX"))
+		[]byte("nN."))
 
 	DNAredundant, _ = NewAlphabet(
 		"DNAredundant",
 		false,
-		[]byte("acgtryswkmbdhvACGTRYSWKMBDHV."),
-		[]byte("tgcayrswmkvhdbTGCAYRSWMKVHDB."),
+		[]byte("acgtryswkmbdhvACGTRYSWKMBDHV"),
+		[]byte("tgcayrswmkvhdbTGCAYRSWMKVHDB"),
 		[]byte(" -"),
-		[]byte("nxNX"))
+		[]byte("nN."))
 
 	RNA, _ = NewAlphabet(
 		"RNA",
@@ -355,23 +355,23 @@ func init() {
 		[]byte("acguACGU"),
 		[]byte("ugcaUGCA"),
 		[]byte(" -"),
-		[]byte("nxNX"))
+		[]byte("nN"))
 
 	RNAredundant, _ = NewAlphabet(
 		"RNAredundant",
 		false,
-		[]byte("acguryswkmbdhvACGURYSWKMBDHV."),
-		[]byte("ugcayrswmkvhdbUGCAYRSWMKVHDB."),
+		[]byte("acguryswkmbdhvACGURYSWKMBDHV"),
+		[]byte("ugcayrswmkvhdbUGCAYRSWMKVHDB"),
 		[]byte(" -"),
-		[]byte("nxNX"))
+		[]byte("nN"))
 
 	Protein, _ = NewAlphabet(
 		"Protein",
 		false,
-		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ*_."),
-		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ*_."),
+		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ"),
+		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ"),
 		[]byte(" -"),
-		[]byte("xX"))
+		[]byte("xX*_."))
 
 	Unlimit, _ = NewAlphabet(
 		"Unlimit",
