@@ -1,3 +1,3 @@
-/*Package fastx parses FASTA and FASTQ format file
+/*Package fastx seamlessly parses FASTA and FASTQ format file
  */
 package fastx

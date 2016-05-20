@@ -20,7 +20,7 @@ this package seamlessly parses both FASTA and FASTQ formats.
         checkError(chunk.Err)
 
         for _, record := range chunk.Data {
-            fmt.Printf(">%s\n%s\n", record.Name, record.FormatSeq(lineWidth))
+            fmt.Printf(">%s\n%s\n", record.Name, record.Format(lineWidth))
         }
     }
 

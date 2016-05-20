@@ -47,14 +47,14 @@ func NewSeqWithQual(t *Alphabet, s []byte, q []byte) (*Seq, error) {
 	return seq, nil
 }
 
-// NewSeqWithoutValidate create Seq without check the sequences
-func NewSeqWithoutValidate(t *Alphabet, s []byte) (*Seq, error) {
+// NewSeqWithoutValidation create Seq without check the sequences
+func NewSeqWithoutValidation(t *Alphabet, s []byte) (*Seq, error) {
 	seq := &Seq{Alphabet: t, Seq: s}
 	return seq, nil
 }
 
-// NewSeqWithQualWithoutValidate create Seq with quality without check the sequences
-func NewSeqWithQualWithoutValidate(t *Alphabet, s []byte, q []byte) (*Seq, error) {
+// NewSeqWithQualWithoutValidation create Seq with quality without check the sequences
+func NewSeqWithQualWithoutValidation(t *Alphabet, s []byte, q []byte) (*Seq, error) {
 	if len(s) != len(q) {
 		return nil, fmt.Errorf("unmatched length of sequence (%d) and quality (%d)", len(s), len(q))
 	}
@@ -90,7 +90,7 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
 		if len(seq.Qual) > 0 {
 			newseq.Qual = []byte(string(seq.Qual[start-1 : end]))
 		}
@@ -102,7 +102,7 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 			newseq.QualValue = qv
 		}
 	} else {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, []byte(""))
 	}
 
 	return newseq
@@ -113,7 +113,7 @@ func (seq *Seq) SubSeqInplace(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, seq.Seq[start-1:end])
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, seq.Seq[start-1:end])
 		if len(seq.Qual) > 0 {
 			newseq.Qual = seq.Qual[start-1 : end]
 		}
@@ -121,7 +121,7 @@ func (seq *Seq) SubSeqInplace(start int, end int) *Seq {
 			newseq.QualValue = seq.QualValue[start-1 : end]
 		}
 	} else {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, []byte(""))
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, []byte(""))
 	}
 
 	return newseq
@@ -176,7 +176,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 // RemoveGaps remove gaps in place
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
+		newseq, _ := NewSeqWithQualWithoutValidation(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
 		return newseq
 	}
 
@@ -204,9 +204,9 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 	}
 	var newSeq *Seq
 	if len(seq.Qual) > 0 {
-		newSeq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s[0:j], q[0:j])
+		newSeq, _ = NewSeqWithQualWithoutValidation(seq.Alphabet, s[0:j], q[0:j])
 	} else {
-		newSeq, _ = NewSeqWithoutValidate(seq.Alphabet, s[0:j])
+		newSeq, _ = NewSeqWithoutValidation(seq.Alphabet, s[0:j])
 	}
 	return newSeq
 }
@@ -225,11 +225,11 @@ func (seq *Seq) RevComInplace() *Seq {
 func (seq *Seq) Reverse() *Seq {
 	if len(seq.Qual) > 0 {
 		s := byteutil.ReverseByteSlice(seq.Seq)
-		newseq, _ := NewSeqWithQualWithoutValidate(seq.Alphabet, s, byteutil.ReverseByteSlice(seq.Qual))
+		newseq, _ := NewSeqWithQualWithoutValidation(seq.Alphabet, s, byteutil.ReverseByteSlice(seq.Qual))
 		return newseq
 	}
 	s := byteutil.ReverseByteSlice(seq.Seq)
-	newseq, _ := NewSeqWithoutValidate(seq.Alphabet, s)
+	newseq, _ := NewSeqWithoutValidation(seq.Alphabet, s)
 	return newseq
 }
 
@@ -255,9 +255,9 @@ func (seq *Seq) Complement() *Seq {
 
 	s := []byte(string(seq.Seq))
 	if len(seq.Qual) > 0 {
-		newseq, _ = NewSeqWithQualWithoutValidate(seq.Alphabet, s, []byte(string(seq.Qual)))
+		newseq, _ = NewSeqWithQualWithoutValidation(seq.Alphabet, s, []byte(string(seq.Qual)))
 	} else {
-		newseq, _ = NewSeqWithoutValidate(seq.Alphabet, s)
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, s)
 	}
 	newseq = newseq.ComplementInplace()
 	return newseq

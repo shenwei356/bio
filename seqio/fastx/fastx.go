@@ -20,7 +20,7 @@ type Record struct {
 	Seq  *seq.Seq // seq
 }
 
-func (record Record) String() string {
+func (record *Record) String() string {
 	return string(record.Format(70))
 }
 
@@ -33,15 +33,15 @@ func NewRecord(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
 	return &Record{id, name, seq}, nil
 }
 
+// NewRecordWithoutValidation is constructor of type Record
+func NewRecordWithoutValidation(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
+	seq, _ := seq.NewSeqWithoutValidation(t, s)
+	return &Record{id, name, seq}, nil
+}
+
 // NewRecordWithSeq is constructor of type Record
 func NewRecordWithSeq(id, name []byte, s *seq.Seq) (*Record, error) {
 	return &Record{id, name, s}, nil
-}
-
-// NewSeqWithoutValidate is constructor of type Record
-func NewSeqWithoutValidate(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithoutValidate(t, s)
-	return &Record{id, name, seq}, nil
 }
 
 // NewRecordWithQual is constructor of type Record
@@ -53,9 +53,9 @@ func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) 
 	return &Record{id, name, seq}, nil
 }
 
-// NewRecordWithQualWithoutValidate is constructor of type Record
-func NewRecordWithQualWithoutValidate(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithQualWithoutValidate(t, s, q)
+// NewRecordWithQualWithoutValidation is constructor of type Record
+func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
+	seq, _ := seq.NewSeqWithQualWithoutValidation(t, s, q)
 	return &Record{id, name, seq}, nil
 }
 
