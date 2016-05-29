@@ -63,7 +63,7 @@ func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) 
 func (record *Record) Format(width int) []byte {
 	if len(record.Seq.Qual) > 0 {
 		return append(append(append(append([]byte(fmt.Sprintf("@%s\n", record.Name)),
-			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("+\n")...),
+			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n+\n")...),
 			byteutil.WrapByteSlice(record.Seq.Qual, width)...), []byte("\n")...)
 	}
 	return append(append([]byte(fmt.Sprintf(">%s\n", record.Name)),
@@ -305,7 +305,7 @@ func (fastxReader *Reader) read() {
 							lastName = thisName
 						}
 					}
-				} else if line[0] == '+' {
+				} else if line[0] == '+' && len(dropCR(line[0:len(line)-1])) == 1 {
 					lastSeq = stringutil.Str2Bytes(string(buffer.Bytes()))
 					buffer.Reset()
 					isReadQual = true
