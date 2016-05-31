@@ -20,6 +20,15 @@ type Record struct {
 	Seq  *seq.Seq // seq
 }
 
+// Clone of a Record
+func (record *Record) Clone() *Record {
+	return &Record{
+		[]byte(string(record.ID)),
+		[]byte(string(record.Name)),
+		record.Seq.Clone(),
+	}
+}
+
 func (record *Record) String() string {
 	return string(record.Format(70))
 }

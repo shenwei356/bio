@@ -160,6 +160,21 @@ func NewAlphabet(
 	return a, nil
 }
 
+// Clone of a Alphabet
+func (s *Alphabet) Clone() *Alphabet {
+	return &Alphabet{
+		t:           s.t,
+		isUnlimit:   s.isUnlimit,
+		letters:     []byte(string(s.letters)),
+		pairs:       []byte(string(s.pairs)),
+		gap:         []byte(string(s.gap)),
+		ambiguous:   []byte(string(s.ambiguous)),
+		allLetters:  []byte(string(s.allLetters)),
+		pairLetters: []byte(string(s.pairLetters)),
+	}
+
+}
+
 // Type returns type of the alphabet
 func (a *Alphabet) Type() string {
 	return a.t

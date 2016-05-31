@@ -95,7 +95,7 @@ func GetSeqs(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize int,
 		}
 
 		for _, record := range chunk.Data {
-			records = append(records, record)
+			records = append(records, record.Clone())
 		}
 	}
 	return records, nil

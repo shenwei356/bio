@@ -71,6 +71,18 @@ func (seq *Seq) String() string {
 	return fmt.Sprintf("%s, len:%d, seq:%s, qual:%s", seq.Alphabet, len(seq.Seq), seq.Seq, seq.Qual)
 }
 
+// Clone of a Seq
+func (seq *Seq) Clone() *Seq {
+	qv := make([]int, len(seq.QualValue))
+	copy(qv, seq.QualValue)
+	return &Seq{
+		Alphabet:  seq.Alphabet.Clone(),
+		Seq:       []byte(string(seq.Seq)),
+		Qual:      []byte(string(seq.Qual)),
+		QualValue: qv,
+	}
+}
+
 /*SubSeq returns a sub seq. start and end is 1-based.
 
 Examples:
