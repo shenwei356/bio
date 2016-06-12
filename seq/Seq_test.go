@@ -47,7 +47,7 @@ func TestBaseContent(t *testing.T) {
 }
 
 func TestSubSeq(t *testing.T) {
-	s, _ := NewSeqWithoutValidate(DNA, []byte("ACGTNacgtn"))
+	s, _ := NewSeqWithoutValidation(DNA, []byte("ACGTNacgtn"))
 	ok := string(s.SubSeq(1, 1).Seq) == "A" &&
 		string(s.SubSeq(2, 4).Seq) == "CGT" &&
 		string(s.SubSeq(-4, -2).Seq) == "cgt" &&

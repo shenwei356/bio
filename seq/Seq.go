@@ -122,21 +122,20 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 
 // SubSeqInplace return subseq inplace
 func (seq *Seq) SubSeqInplace(start int, end int) *Seq {
-	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, seq.Seq[start-1:end])
+		if len(seq.Seq) > 0 {
+			seq.Seq = seq.Seq[start-1 : end]
+		}
 		if len(seq.Qual) > 0 {
-			newseq.Qual = seq.Qual[start-1 : end]
+			seq.Qual = seq.Qual[start-1 : end]
 		}
 		if len(seq.QualValue) > 0 {
-			newseq.QualValue = seq.QualValue[start-1 : end]
+			seq.QualValue = seq.QualValue[start-1 : end]
 		}
-	} else {
-		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, []byte(""))
 	}
 
-	return newseq
+	return seq
 }
 
 /*SubLocation is my sublocation strategy,
