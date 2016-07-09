@@ -199,7 +199,6 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 	}
 
 	bufferPool = bpool.NewSizedBufferPool(bufferSize*chunkSize*2, defaultBytesBufferSize)
-
 	var r *regexp.Regexp
 	if idRegexp == "" {
 		r = regexp.MustCompile(DefaultIDRegexp)

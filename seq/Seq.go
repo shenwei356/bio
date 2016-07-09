@@ -10,6 +10,14 @@ import (
 	"github.com/shenwei356/util/byteutil"
 )
 
+var defaultBytesBufferSize = 10 << 20
+
+var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
+
+func init() {
+	bufferedByteSliceWrapper = byteutil.NewBufferedByteSliceWrapper(1, defaultBytesBufferSize)
+}
+
 // Seq struct has two attributes, alphabet, seq,
 type Seq struct {
 	Alphabet  *Alphabet
@@ -73,12 +81,19 @@ func (seq *Seq) String() string {
 
 // Clone of a Seq
 func (seq *Seq) Clone() *Seq {
+	s := make([]byte, len(seq.Seq))
+	copy(s, seq.Seq)
+
+	q := make([]byte, len(seq.Qual))
+	copy(q, seq.Qual)
+
 	qv := make([]int, len(seq.QualValue))
 	copy(qv, seq.QualValue)
+
 	return &Seq{
 		Alphabet:  seq.Alphabet.Clone(),
-		Seq:       []byte(string(seq.Seq)),
-		Qual:      []byte(string(seq.Qual)),
+		Seq:       s,
+		Qual:      q,
 		QualValue: qv,
 	}
 }
@@ -102,7 +117,9 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
 	start, end, ok := SubLocation(len(seq.Seq), start, end)
 	if ok {
-		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, []byte(string(seq.Seq[start-1:end])))
+		s := make([]byte, end-start+1)
+		copy(s, seq.Seq[start-1:end])
+		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, s)
 		if len(seq.Qual) > 0 {
 			newseq.Qual = []byte(string(seq.Qual[start-1 : end]))
 		}
@@ -187,8 +204,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 // RemoveGaps remove gaps in place
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
-		newseq, _ := NewSeqWithQualWithoutValidation(seq.Alphabet, []byte(string(seq.Seq)), []byte(string(seq.Qual)))
-		return newseq
+		return seq.Clone()
 	}
 
 	// do not use map
@@ -234,14 +250,7 @@ func (seq *Seq) RevComInplace() *Seq {
 
 // Reverse a sequence
 func (seq *Seq) Reverse() *Seq {
-	if len(seq.Qual) > 0 {
-		s := byteutil.ReverseByteSlice(seq.Seq)
-		newseq, _ := NewSeqWithQualWithoutValidation(seq.Alphabet, s, byteutil.ReverseByteSlice(seq.Qual))
-		return newseq
-	}
-	s := byteutil.ReverseByteSlice(seq.Seq)
-	newseq, _ := NewSeqWithoutValidation(seq.Alphabet, s)
-	return newseq
+	return seq.Clone().ReverseInplace()
 }
 
 // ReverseInplace reverses the sequence content
@@ -262,16 +271,7 @@ var ComplementThreads = runtime.NumCPU()
 
 // Complement returns complement sequence.
 func (seq *Seq) Complement() *Seq {
-	var newseq *Seq
-
-	s := []byte(string(seq.Seq))
-	if len(seq.Qual) > 0 {
-		newseq, _ = NewSeqWithQualWithoutValidation(seq.Alphabet, s, []byte(string(seq.Qual)))
-	} else {
-		newseq, _ = NewSeqWithoutValidation(seq.Alphabet, s)
-	}
-	newseq = newseq.ComplementInplace()
-	return newseq
+	return seq.Clone().ComplementInplace()
 }
 
 // ComplementInplace returns complement sequence.
