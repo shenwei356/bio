@@ -1,8 +1,9 @@
 bio
 ===
+[![GoDoc](https://godoc.org/github.com/shenwei356/bio?status.svg)](https://godoc.org/github.com/shenwei356/bio)
 
 A simple but high-performance 
-(see [fakit](https://github.com/shenwei356/fakit#performance-comparison-with-other-tools) benchmark of FASTA parsing) 
+(see [fakit](https://github.com/shenwei356/fakit#benchmark) benchmark of FASTA parsing) 
 bioinformatics package
 
 
@@ -10,7 +11,7 @@ Install
 -------
 This package is "go-gettable", just:
 
-    go get github.com/shenwei356/bio
+    go get -u github.com/shenwei356/bio
 
 
 More
