@@ -13,7 +13,7 @@ import (
 	"github.com/shenwei356/util/byteutil"
 )
 
-var defaultBytesBufferSize = 10 << 20
+var defaultBytesBufferSize = 1 << 20
 
 var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
 
@@ -26,30 +26,17 @@ var bufferPool *bpool.SizedBufferPool
 
 // Record struct
 type Record struct {
-	ID     []byte   // id
-	Name   []byte   // full name
-	Seq    *seq.Seq // seq
-	bS, bQ *bytes.Buffer
+	ID   []byte   // id
+	Name []byte   // full name
+	Seq  *seq.Seq // seq
 }
 
 // Clone of a Record
 func (record *Record) Clone() *Record {
-	bS := bufferPool.Get()
-	bS.Write(record.Seq.Seq)
-
-	bQ := bufferPool.Get()
-	bQ.Write(record.Seq.Qual)
-
-	a := record.Seq.Alphabet.Clone()
-
-	s, _ := seq.NewSeqWithQualWithoutValidation(a, bS.Bytes(), bQ.Bytes())
-
 	return &Record{
 		[]byte(string(record.ID)),
 		[]byte(string(record.Name)),
-		s,
-		bS,
-		bQ,
+		record.Seq.Clone(),
 	}
 }
 
@@ -57,49 +44,39 @@ func (record *Record) String() string {
 	return string(record.Format(70))
 }
 
-// Recycle put the bytes.Buffer to pool
-func (record *Record) Recycle() {
-	if record.bS != nil {
-		bufferPool.Put(record.bS)
-	}
-	if record.bQ != nil {
-		bufferPool.Put(record.bQ)
-	}
-}
-
 // NewRecord is constructor of type Record
-func NewRecord(t *seq.Alphabet, id, name, s []byte, bS *bytes.Buffer) (*Record, error) {
+func NewRecord(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
 	seq, err := seq.NewSeq(t, s)
 	if err != nil {
 		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
 	}
-	return &Record{id, name, seq, bS, nil}, nil
+	return &Record{id, name, seq}, nil
 }
 
 // NewRecordWithoutValidation is constructor of type Record
-func NewRecordWithoutValidation(t *seq.Alphabet, id, name, s []byte, bS *bytes.Buffer) (*Record, error) {
+func NewRecordWithoutValidation(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
 	seq, _ := seq.NewSeqWithoutValidation(t, s)
-	return &Record{id, name, seq, bS, nil}, nil
+	return &Record{id, name, seq}, nil
 }
 
 // NewRecordWithSeq is constructor of type Record
-func NewRecordWithSeq(id, name []byte, s *seq.Seq, bS *bytes.Buffer) (*Record, error) {
-	return &Record{id, name, s, bS, nil}, nil
+func NewRecordWithSeq(id, name []byte, s *seq.Seq) (*Record, error) {
+	return &Record{id, name, s}, nil
 }
 
 // NewRecordWithQual is constructor of type Record
-func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte, bS, bQ *bytes.Buffer) (*Record, error) {
+func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
 	seq, err := seq.NewSeqWithQual(t, s, q)
 	if err != nil {
 		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
 	}
-	return &Record{id, name, seq, bS, bQ}, nil
+	return &Record{id, name, seq}, nil
 }
 
 // NewRecordWithQualWithoutValidation is constructor of type Record
-func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte, bS, bQ *bytes.Buffer) (*Record, error) {
+func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
 	seq, _ := seq.NewSeqWithQualWithoutValidation(t, s, q)
-	return &Record{id, name, seq, bS, bQ}, nil
+	return &Record{id, name, seq}, nil
 }
 
 // Format formats sequence record
@@ -136,6 +113,7 @@ func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 		return
 	}
 	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
+
 	// outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
 	text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
 	outfh.Write(text)
@@ -198,7 +176,6 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 		chunkSize = 1
 	}
 
-	bufferPool = bpool.NewSizedBufferPool(bufferSize*chunkSize*2, defaultBytesBufferSize)
 	var r *regexp.Regexp
 	if idRegexp == "" {
 		r = regexp.MustCompile(DefaultIDRegexp)
@@ -294,20 +271,16 @@ func (fastxReader *Reader) read() {
 					buffer.Write(dropCR(line))
 
 					// sequence := []byte(string(lastSeq))
-					// sequence := make([]byte, len(lastSeq))
-					// copy(sequence, lastSeq)
-					bS := bufferPool.Get()
-					bS.Write(lastSeq)
+					sequence := make([]byte, len(lastSeq))
+					copy(sequence, lastSeq)
 
 					// qual := []byte(string(buffer.Bytes()))
-					// qual := make([]byte, buffer.Len())
-					// copy(qual, buffer.Bytes())
-					bQ := bufferPool.Get()
-					bQ.Write(buffer.Bytes())
+					qual := make([]byte, buffer.Len())
+					copy(qual, buffer.Bytes())
 
 					buffer.Reset()
 
-					if !(bS.Len() == 0 && len(lastName) == 0) {
+					if !(len(sequence) == 0 && len(lastName) == 0) {
 						if fastxReader.firstseq {
 							if fastxReader.t == nil {
 								fastxReader.t = seq.DNAredundant
@@ -315,7 +288,7 @@ func (fastxReader *Reader) read() {
 							fastxReader.firstseq = false
 						}
 						var fastxRecord *Record
-						fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, bS.Bytes(), bQ.Bytes(), bS, bQ)
+						fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence, qual)
 						if err != nil {
 							fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
 							fastxReader.fh.Close()
@@ -341,20 +314,16 @@ func (fastxReader *Reader) read() {
 
 						if lastName != nil { // no-first seq head
 							// sequence := []byte(string(lastSeq))
-							// sequence := make([]byte, len(lastSeq))
-							// copy(sequence, lastSeq)
-							bS := bufferPool.Get()
-							bS.Write(lastSeq)
+							sequence := make([]byte, len(lastSeq))
+							copy(sequence, lastSeq)
 
 							// qual := []byte(string(buffer.Bytes()))
-							// qual := make([]byte, buffer.Len())
-							// copy(qual, buffer.Bytes())
-							bQ := bufferPool.Get()
-							bQ.Write(buffer.Bytes())
+							qual := make([]byte, buffer.Len())
+							copy(qual, buffer.Bytes())
 
 							buffer.Reset()
 
-							if !(bS.Len() == 0 && len(lastName) == 0) {
+							if !(len(sequence) == 0 && len(lastName) == 0) {
 								if fastxReader.firstseq {
 									if fastxReader.t == nil {
 										fastxReader.t = seq.DNAredundant
@@ -363,7 +332,7 @@ func (fastxReader *Reader) read() {
 								}
 
 								var fastxRecord *Record
-								fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, bS.Bytes(), bQ.Bytes(), bS, bQ)
+								fastxRecord, err = NewRecordWithQual(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence, qual)
 								if err != nil {
 									fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
 									fastxReader.fh.Close()
@@ -387,7 +356,10 @@ func (fastxReader *Reader) read() {
 						}
 					}
 				} else if line[0] == '+' && len(dropCR(line[0:len(line)-1])) == 1 {
-					lastSeq = []byte(string(buffer.Bytes()))
+					//lastSeq = []byte(string(buffer.Bytes()))
+					lastSeq = make([]byte, buffer.Len())
+					copy(lastSeq, buffer.Bytes())
+
 					buffer.Reset()
 					isReadQual = true
 				} else if hasSeq { // append sequence / qual
@@ -407,21 +379,19 @@ func (fastxReader *Reader) read() {
 				buffer.Write(dropCR(line))
 
 				// sequence := []byte(string(buffer.Bytes()))
-				// sequence := make([]byte, buffer.Len())
-				// copy(sequence, buffer.Bytes())
-				bS := bufferPool.Get()
-				bS.Write(buffer.Bytes())
+				sequence := make([]byte, buffer.Len())
+				copy(sequence, buffer.Bytes())
 
 				buffer.Reset()
 
-				if !(bS.Len() == 0 && len(lastName) == 0) {
+				if !(len(sequence) == 0 && len(lastName) == 0) {
 					if fastxReader.firstseq {
 						if fastxReader.t == nil {
-							fastxReader.t = seq.GuessAlphabetLessConservatively(bS.Bytes())
+							fastxReader.t = seq.GuessAlphabetLessConservatively(sequence)
 						}
 						fastxReader.firstseq = false
 					}
-					fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, bS.Bytes(), bS)
+					fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence)
 					if err != nil {
 						fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
 						fastxReader.fh.Close()
@@ -442,21 +412,19 @@ func (fastxReader *Reader) read() {
 				thisName = dropCR(line[1 : len(line)-1])
 				if lastName != nil { // no-first seq head
 					// sequence := []byte(string(buffer.Bytes()))
-					// sequence := make([]byte, buffer.Len())
-					// copy(sequence, buffer.Bytes())
-					bS := bufferPool.Get()
-					bS.Write(buffer.Bytes())
+					sequence := make([]byte, buffer.Len())
+					copy(sequence, buffer.Bytes())
 
 					buffer.Reset()
 
-					if !(bS.Len() == 0 && len(lastName) == 0) {
+					if !(len(sequence) == 0 && len(lastName) == 0) {
 						if fastxReader.firstseq {
 							if fastxReader.t == nil {
-								fastxReader.t = seq.GuessAlphabetLessConservatively(bS.Bytes())
+								fastxReader.t = seq.GuessAlphabetLessConservatively(sequence)
 							}
 							fastxReader.firstseq = false
 						}
-						fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, bS.Bytes(), bS)
+						fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(lastName), lastName, sequence)
 						if err != nil {
 							fastxReader.Ch <- RecordChunk{id, chunkData[0:i], err}
 							fastxReader.fh.Close()
@@ -537,6 +505,7 @@ func cleanEndSpace(slice []byte) []byte {
 	// newSlice := []byte(string(slice))
 	newSlice := make([]byte, len(slice))
 	copy(newSlice, slice)
+
 	if slice[l-1] == '\n' {
 		newSlice = slice[0 : l-1]
 	}
