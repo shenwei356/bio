@@ -225,6 +225,7 @@ func (fastxReader *Reader) read() {
 		reader := bufio.NewReader(fastxReader.fh)
 		// buffer := bytes.Buffer{}
 		buffer := bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+		// var buffer bbuffer.Buffer
 		var i int
 		var id uint64
 		checkSeqType := true
@@ -271,12 +272,18 @@ func (fastxReader *Reader) read() {
 					buffer.Write(dropCR(line))
 
 					// sequence := []byte(string(lastSeq))
+
 					sequence := make([]byte, len(lastSeq))
 					copy(sequence, lastSeq)
 
+					// sequence := lastSeq
+
 					// qual := []byte(string(buffer.Bytes()))
+
 					qual := make([]byte, buffer.Len())
 					copy(qual, buffer.Bytes())
+
+					// qual := buffer.Bytes()
 
 					buffer.Reset()
 
@@ -314,12 +321,18 @@ func (fastxReader *Reader) read() {
 
 						if lastName != nil { // no-first seq head
 							// sequence := []byte(string(lastSeq))
+
 							sequence := make([]byte, len(lastSeq))
 							copy(sequence, lastSeq)
 
+							// sequence := lastSeq
+
 							// qual := []byte(string(buffer.Bytes()))
+
 							qual := make([]byte, buffer.Len())
 							copy(qual, buffer.Bytes())
+
+							// qual := buffer.Bytes()
 
 							buffer.Reset()
 
@@ -357,8 +370,11 @@ func (fastxReader *Reader) read() {
 					}
 				} else if line[0] == '+' && len(dropCR(line[0:len(line)-1])) == 1 {
 					//lastSeq = []byte(string(buffer.Bytes()))
+
 					lastSeq = make([]byte, buffer.Len())
 					copy(lastSeq, buffer.Bytes())
+
+					lastSeq = buffer.Bytes()
 
 					buffer.Reset()
 					isReadQual = true
@@ -379,8 +395,11 @@ func (fastxReader *Reader) read() {
 				buffer.Write(dropCR(line))
 
 				// sequence := []byte(string(buffer.Bytes()))
+
 				sequence := make([]byte, buffer.Len())
 				copy(sequence, buffer.Bytes())
+
+				// sequence := buffer.Bytes()
 
 				buffer.Reset()
 
@@ -412,8 +431,11 @@ func (fastxReader *Reader) read() {
 				thisName = dropCR(line[1 : len(line)-1])
 				if lastName != nil { // no-first seq head
 					// sequence := []byte(string(buffer.Bytes()))
+
 					sequence := make([]byte, buffer.Len())
 					copy(sequence, buffer.Bytes())
+
+					// sequence := buffer.Bytes()
 
 					buffer.Reset()
 
