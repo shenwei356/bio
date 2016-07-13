@@ -9,118 +9,7 @@ import (
 
 	"github.com/brentp/xopen"
 	"github.com/shenwei356/bio/seq"
-	"github.com/shenwei356/bpool"
-	"github.com/shenwei356/util/byteutil"
 )
-
-var defaultBytesBufferSize = 1 << 20
-
-var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
-
-func init() {
-	bufferedByteSliceWrapper = byteutil.NewBufferedByteSliceWrapper(1, defaultBytesBufferSize)
-}
-
-// bufferPool is a pool of bytes.Buffer
-var bufferPool *bpool.SizedBufferPool
-
-// Record struct
-type Record struct {
-	ID   []byte   // id
-	Name []byte   // full name
-	Seq  *seq.Seq // seq
-}
-
-// Clone of a Record
-func (record *Record) Clone() *Record {
-	return &Record{
-		[]byte(string(record.ID)),
-		[]byte(string(record.Name)),
-		record.Seq.Clone(),
-	}
-}
-
-func (record *Record) String() string {
-	return string(record.Format(70))
-}
-
-// NewRecord is constructor of type Record
-func NewRecord(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
-	seq, err := seq.NewSeq(t, s)
-	if err != nil {
-		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
-	}
-	return &Record{id, name, seq}, nil
-}
-
-// NewRecordWithoutValidation is constructor of type Record
-func NewRecordWithoutValidation(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithoutValidation(t, s)
-	return &Record{id, name, seq}, nil
-}
-
-// NewRecordWithSeq is constructor of type Record
-func NewRecordWithSeq(id, name []byte, s *seq.Seq) (*Record, error) {
-	return &Record{id, name, s}, nil
-}
-
-// NewRecordWithQual is constructor of type Record
-func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
-	seq, err := seq.NewSeqWithQual(t, s, q)
-	if err != nil {
-		return nil, fmt.Errorf("error when parsing seq: %s (%s)", id, err)
-	}
-	return &Record{id, name, seq}, nil
-}
-
-// NewRecordWithQualWithoutValidation is constructor of type Record
-func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithQualWithoutValidation(t, s, q)
-	return &Record{id, name, seq}, nil
-}
-
-// Format formats sequence record
-func (record *Record) Format(width int) []byte {
-	if len(record.Seq.Qual) > 0 {
-		return append(append(append(append([]byte(fmt.Sprintf("@%s\n", record.Name)),
-			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n+\n")...),
-			byteutil.WrapByteSlice(record.Seq.Qual, width)...), []byte("\n")...)
-	}
-	return append(append([]byte(fmt.Sprintf(">%s\n", record.Name)),
-		byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n")...)
-}
-
-// FormatToWriter formats and directly writes to writer
-func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
-	if len(record.Seq.Qual) > 0 {
-		outfh.Write([]byte(fmt.Sprintf("@%s\n", record.Name)))
-
-		// outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
-		text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
-		outfh.Write(text)
-		outfh.Flush()
-		bufferedByteSliceWrapper.Recycle(b)
-
-		outfh.Write([]byte("\n+\n"))
-
-		// outfh.Write(byteutil.WrapByteSlice(record.Seq.Qual, width))
-		text, b = bufferedByteSliceWrapper.Wrap(record.Seq.Qual, width)
-		outfh.Write(text)
-		outfh.Write([]byte("\n"))
-		outfh.Flush()
-		bufferedByteSliceWrapper.Recycle(b)
-
-		return
-	}
-	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
-
-	// outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
-	text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
-	outfh.Write(text)
-	outfh.Write([]byte("\n"))
-	outfh.Flush()
-	bufferedByteSliceWrapper.Recycle(b)
-}
 
 // RecordChunk  is
 type RecordChunk struct {
@@ -170,7 +59,7 @@ var DefaultIDRegexp = `^([^\s]+)\s?`
 //
 func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRegexp string) (*Reader, error) {
 	if bufferSize <= 0 {
-		bufferSize = 1
+		bufferSize = 0
 	}
 	if chunkSize < 1 {
 		chunkSize = 1
@@ -181,18 +70,18 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 		r = regexp.MustCompile(DefaultIDRegexp)
 	} else {
 		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
+			return nil, fmt.Errorf(`bio.seqio.fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
 		}
 		var err error
 		r, err = regexp.Compile(idRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("fail to compile regexp: %s", idRegexp)
+			return nil, fmt.Errorf("bio.seqio.fastx: fail to compile regexp: %s", idRegexp)
 		}
 	}
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bio.seqio.fastx: %s", err)
 	}
 
 	fastxReader := &Reader{
@@ -215,10 +104,10 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 }
 
 // ErrCanceled means that the reading process is canceled
-var ErrCanceled = errors.New("reading canceled")
+var ErrCanceled = errors.New("bio.seqio.fastx: reading canceled")
 
 // ErrBadFASTQFormat means bad fastq format
-var ErrBadFASTQFormat = errors.New("bad fastq format")
+var ErrBadFASTQFormat = errors.New("bio.seqio.fastx: bad fastq format")
 
 func (fastxReader *Reader) read() {
 	go func() {
