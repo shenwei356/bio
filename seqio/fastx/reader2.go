@@ -98,7 +98,7 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 		cancelled:  false,
 	}
 
-	fastxReader.read()
+	fastxReader.read2()
 
 	return fastxReader, nil
 }
@@ -106,8 +106,195 @@ func NewReader(t *seq.Alphabet, file string, bufferSize int, chunkSize int, idRe
 // ErrCanceled means that the reading process is canceled
 var ErrCanceled = errors.New("bio.seqio.fastx: reading canceled")
 
+// ErrNotFASTXFormat means that the file is not FASTA/Q
+var ErrNotFASTXFormat = errors.New("bio.seqio.fastx: not FASTA/Q format")
+
 // ErrBadFASTQFormat means bad fastq format
 var ErrBadFASTQFormat = errors.New("bio.seqio.fastx: bad fastq format")
+
+func (fastxReader *Reader) read2() {
+	// c := make(chan int)
+	go func() {
+		checkSeqType := true
+
+		buf := make([]byte, 16384)
+		buffer := bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+		var lastByte byte
+
+		var ci int
+		var id uint64
+		chunkData := make([]*Record, fastxReader.ChunkSize)
+
+	FORREAD:
+		for {
+			select {
+			case <-fastxReader.done:
+				if !fastxReader.finished {
+					fastxReader.Ch <- RecordChunk{id, chunkData[0:ci], ErrCanceled}
+
+					fastxReader.finished = true
+					fastxReader.fh.Close()
+					close(fastxReader.Ch)
+					return
+				}
+			default:
+
+			}
+
+			n, err := fastxReader.fh.Read(buf)
+			if err != nil { // Error
+				break
+			}
+			if n < 0 { // EOF
+				break
+			}
+			if n < cap(buf) { // last part of file
+				buf = buf[0:n]
+			}
+
+			r := 0
+			if checkSeqType {
+				pn := 0
+			FORCHECK:
+				for i := range buf {
+					switch buf[i] {
+					case '>':
+						checkSeqType = false
+						r = i + 1
+						break FORCHECK
+					case '@':
+						fastxReader.IsFastq = true
+						r = i + 1
+						break FORCHECK
+					case '\n': // allow some line
+						pn++
+						if pn > 100 {
+							if i > 10240 { // ErrNotFASTXFormat
+								break FORREAD
+							}
+						}
+						// break FORCHECK
+					default: // not typical FASTA/Q
+						if i > 10240 { // ErrNotFASTXFormat
+							break FORREAD
+						}
+					}
+				}
+				checkSeqType = false
+			}
+
+			if !fastxReader.IsFastq {
+				for {
+					if r >= len(buf) {
+						break
+					}
+					if i := bytes.IndexByte(buf[r:], '>'); i >= 0 {
+						if i > 0 {
+							lastByte = buf[r+i-1]
+						}
+						if lastByte == '\n' { // yes!
+							if i > 0 {
+								buffer.Write(dropCR(buf[r : r+i-1]))
+							}
+
+							head, sequence := extractHeadAndSeq(buffer)
+
+							// guess alphabet
+							if fastxReader.firstseq {
+								if fastxReader.t == nil {
+									fastxReader.t = seq.GuessAlphabetLessConservatively(sequence)
+								}
+								fastxReader.firstseq = false
+							}
+
+							// new record
+							fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(head), head, sequence)
+							if err != nil {
+								fastxReader.Ch <- RecordChunk{id, chunkData[0:ci], err}
+								fastxReader.fh.Close()
+								close(fastxReader.Ch)
+								return
+							}
+
+							// add to chunk
+							chunkData[ci] = fastxRecord
+							ci++
+
+							// chunk is full
+							if ci == fastxReader.ChunkSize {
+								fastxReader.Ch <- RecordChunk{id, chunkData[0:ci], nil}
+								id++
+								ci = 0
+								chunkData = make([]*Record, fastxReader.ChunkSize)
+							}
+
+							buffer.Reset()
+						} else { // inline ">"
+							buffer.Write(buf[r : r+i+1])
+						}
+
+						r += i + 1
+						continue
+					}
+					buffer.Write(buf[r:])
+					break
+				}
+			}
+		}
+
+		if buffer.Len() > 0 {
+			head, sequence := extractHeadAndSeq(buffer)
+
+			if fastxReader.firstseq {
+				if fastxReader.t == nil {
+					fastxReader.t = seq.GuessAlphabetLessConservatively(sequence)
+				}
+				fastxReader.firstseq = false
+			}
+			fastxRecord, err := NewRecord(fastxReader.t, fastxReader.parseHeadID(head), head, sequence)
+			if err != nil {
+				fastxReader.Ch <- RecordChunk{id, chunkData[0:ci], err}
+				fastxReader.fh.Close()
+				close(fastxReader.Ch)
+				return
+			}
+			chunkData[ci] = fastxRecord
+			ci++
+
+			fastxReader.Ch <- RecordChunk{id, chunkData[0:ci], nil}
+			close(fastxReader.Ch)
+
+			buffer.Reset()
+		}
+		// c <- 1
+	}()
+
+	// <-c
+}
+
+func extractHeadAndSeq(buffer *bytes.Buffer) ([]byte, []byte) {
+	var head []byte
+	// using bytes.Buffer is faster than checking every byte
+	sequence := bytes.NewBuffer(make([]byte, 0, buffer.Len()))
+	var p = buffer.Bytes()
+	if j := bytes.IndexByte(p, '\n'); j > 0 {
+		head = []byte(string(dropCR(p[0:j])))
+
+		r := j + 1
+		for {
+			if k := bytes.IndexByte(p[r:], '\n'); k > 0 {
+				sequence.Write(dropCR(p[r : r+k]))
+				r += k + 1
+				continue
+			}
+			sequence.Write(dropCR(p[r:]))
+			break
+		}
+		return head, sequence.Bytes()
+	}
+	head = []byte(string(p))
+	return head, sequence.Bytes()
+}
 
 func (fastxReader *Reader) read() {
 	go func() {

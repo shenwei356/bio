@@ -9,7 +9,7 @@ import (
 
 func TestFastaReader(t *testing.T) {
 	file := "test.fa"
-	fastxReader, err := NewReader(seq.Unlimit, file, 1, 0, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		t.Error(t)
 	}
@@ -30,7 +30,7 @@ func TestFastaReader(t *testing.T) {
 
 func TestFastqReader(t *testing.T) {
 	file := "test.fq"
-	fastxReader, err := NewReader(seq.Unlimit, file, 1, 0, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		t.Error(t)
 	}
@@ -50,7 +50,7 @@ func TestFastqReader(t *testing.T) {
 }
 func TestFastqReader2(t *testing.T) {
 	file := "test2.fq"
-	fastxReader, err := NewReader(seq.Unlimit, file, 1, 0, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		t.Error(t)
 	}
@@ -71,7 +71,7 @@ func TestFastqReader2(t *testing.T) {
 
 func TestFastqReader3(t *testing.T) {
 	file := "test3.fq"
-	fastxReader, err := NewReader(seq.Unlimit, file, 1, 0, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		t.Error(t)
 	}
@@ -101,7 +101,7 @@ func TestFastqReader3(t *testing.T) {
 
 func TestBlankFile(t *testing.T) {
 	file := "blank.fx"
-	fastxReader, err := NewReader(seq.Unlimit, file, 1, 0, "")
+	fastxReader, err := NewReader(seq.Unlimit, file, 0, 1, "")
 	if err != nil {
 		t.Error(t)
 	}
