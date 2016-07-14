@@ -25,7 +25,7 @@ func (record *Record) Clone() *Record {
 }
 
 func (record *Record) String() string {
-	return string(record.Format(70))
+	return string(record.Format(60))
 }
 
 // NewRecord is constructor of type Record for FASTA
