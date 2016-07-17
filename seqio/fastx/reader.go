@@ -106,8 +106,6 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 
-	// fastxReader.read()
-
 	return fastxReader, nil
 }
 
@@ -150,8 +148,10 @@ func (fastxReader *Reader) read() {
 				}
 			}
 
-			if n < len(fastxReader.buf) { // last part of file
-				fastxReader.lastPart = true
+			// last part of file OR just because reader not fullfill the buf,
+			// like reading from stdin
+			if n < len(fastxReader.buf) {
+				// fastxReader.lastPart = true
 				fastxReader.buf = fastxReader.buf[0:n] // very important!
 			}
 			fastxReader.r = 0 /// TO CHECK
