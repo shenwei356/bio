@@ -246,7 +246,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 		for _, b := range s {
 			i = int(b)
 			if i >= len(a.pairLetters) || a.pairLetters[i] == 0 {
-				return fmt.Errorf("bio.seq: invalid %s letter: %s", a, []byte{b})
+				return fmt.Errorf("seq: invalid %s letter: %s", a, []byte{b})
 			}
 		}
 		return nil
@@ -291,7 +291,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 			for i := start; i < end; i++ {
 				j = int(s[i])
 				if j >= len(a.pairLetters) || a.pairLetters[j] == 0 {
-					ch <- seqCheckStatus{fmt.Errorf("bio.seq: invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
+					ch <- seqCheckStatus{fmt.Errorf("seq: invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
 					close(done)
 					return
 				}
@@ -317,7 +317,7 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	}
 	p := a.pairLetters[b-'\x00']
 	if p == 0 {
-		return b, fmt.Errorf("bio.seq: invalid letter: %c", b)
+		return b, fmt.Errorf("seq: invalid letter: %c", b)
 	}
 	return p, nil
 }

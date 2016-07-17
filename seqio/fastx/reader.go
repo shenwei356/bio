@@ -12,41 +12,43 @@ import (
 	"github.com/shenwei356/bio/seq"
 )
 
-// ErrClosed means that the reading process is canceled
-var ErrClosed = errors.New("bio.seqio.fastx: reading canceled")
-
 // ErrNotFASTXFormat means that the file is not FASTA/Q
-var ErrNotFASTXFormat = errors.New("bio.seqio.fastx: not FASTA/Q format")
+var ErrNotFASTXFormat = errors.New("fastx: not FASTA/Q format")
 
 // ErrBadFASTQFormat means bad fastq format
-var ErrBadFASTQFormat = errors.New("bio.seqio.fastx: bad fastq format")
+var ErrBadFASTQFormat = errors.New("fastx: bad fastq format")
+
+// ErrUnequalSeqAndQual means unequal sequence and quality
+var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 
 // Reader asynchronously parse FASTX file with buffer,
 // each buffer contain a chunk of multiple fastx records (RecordChunk).
 // Reader also support safe cancellation.
 type Reader struct {
-	fh                 *xopen.Reader // file handle, xopen is such a wonderful package
-	lastPart           bool
-	buf                []byte
-	buffer             *bytes.Buffer
+	fh *xopen.Reader // file handle, xopen is such a wonderful package
+
+	buf                []byte // for store readed data from fh
+	r                  int
+	buffer             *bytes.Buffer // buffer of a record
 	needMoreCheckOfBuf bool
 	lastByte           byte
+	checkSeqType       bool
+	lastPart           bool
+	finished           bool
+
+	firstseq bool // for guess alphabet by the first seq
+	delim    byte
+	IsFastq  bool
 
 	t        *seq.Alphabet  // alphabet
 	IDRegexp *regexp.Regexp // regexp for parsing record id
 
-	checkSeqType    bool
-	firstseq        bool // for guess alphabet by the first seq
-	r               int
 	head, seq, qual []byte
 	seqBuffer       *bytes.Buffer
+	qualBuffer      *bytes.Buffer
 	record          *Record
 
-	delim   byte
-	IsFastq bool
-
-	Err      error
-	finished bool
+	Err error
 }
 
 // regexp for checking idRegexp string.
@@ -78,18 +80,18 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 		r = regexp.MustCompile(DefaultIDRegexp)
 	} else {
 		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`bio.seqio.fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
+			return nil, fmt.Errorf(`fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
 		}
 		var err error
 		r, err = regexp.Compile(idRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("bio.seqio.fastx: fail to compile regexp: %s", idRegexp)
+			return nil, fmt.Errorf("fastx: fail to compile regexp: %s", idRegexp)
 		}
 	}
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return nil, fmt.Errorf("bio.seqio.fastx: %s", err)
+		return nil, fmt.Errorf("fastx: %s", err)
 	}
 
 	fastxReader := &Reader{
@@ -102,6 +104,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	}
 	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 
 	// fastxReader.read()
 
@@ -112,7 +115,10 @@ func (fastxReader *Reader) close() {
 	fastxReader.fh.Close()
 }
 
-// Next reads and return the record
+// Read reads and return one FASTA/Q record.
+// Note that, similar to bytes.Buffer.Bytes() method,
+// the current record will change after your another call of this method.
+// So, you could use record.Clone() to make a copy.
 func (fastxReader *Reader) Read() (*Record, error) {
 	fastxReader.read()
 	return fastxReader.record, fastxReader.Err
@@ -120,7 +126,6 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 func (fastxReader *Reader) read() {
 	if fastxReader.lastPart && fastxReader.finished {
-		// fmt.Println("shit---------------------------------")
 		fastxReader.Err = io.EOF
 		return
 	}
@@ -130,14 +135,13 @@ func (fastxReader *Reader) read() {
 
 	var n int
 	var err error
+	var p []byte
 
 	for {
 		if !fastxReader.needMoreCheckOfBuf && !fastxReader.lastPart {
-			// fmt.Println("----- read data ------")
 			n, err = fastxReader.fh.Read(fastxReader.buf)
-			if err != nil { // Error
+			if err != nil {
 				if err == io.EOF {
-					// fmt.Println("----- eof of reading ------")
 					fastxReader.lastPart = true
 				} else {
 					fastxReader.Err = err
@@ -147,7 +151,6 @@ func (fastxReader *Reader) read() {
 			}
 
 			if n < len(fastxReader.buf) { // last part of file
-				// fmt.Println("----- eof ------", n, len(fastxReader.buf))
 				fastxReader.lastPart = true
 				fastxReader.buf = fastxReader.buf[0:n] // very important!
 			}
@@ -170,7 +173,7 @@ func (fastxReader *Reader) read() {
 					fastxReader.delim = '@'
 					fastxReader.r = i + 1
 					break FORCHECK
-				case '\n': // allow some line
+				case '\n': // allow some lines
 					pn++
 					if pn > 100 {
 						if i > 10240 { // ErrNotFASTXFormat
@@ -181,7 +184,7 @@ func (fastxReader *Reader) read() {
 					}
 					// break FORCHECK
 				default: // not typical FASTA/Q
-					if i > 10240 { // ErrNotFASTXFormat
+					if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
 						fastxReader.Err = ErrNotFASTXFormat
 						fastxReader.close()
 						return
@@ -191,74 +194,122 @@ func (fastxReader *Reader) read() {
 			fastxReader.checkSeqType = false
 		}
 
-	FORFOUND:
+		var shorterQual bool
+	FORSEARCH:
 		for {
-			// fmt.Printf("======r:%d, buffer: =%s=, buf: =%s=\n", fastxReader.r,
-			// 	fastxReader.buffer.Bytes(), fastxReader.buf[fastxReader.r:])
 			if i := bytes.IndexByte(fastxReader.buf[fastxReader.r:], fastxReader.delim); i >= 0 {
 				if i > 0 {
 					fastxReader.lastByte = fastxReader.buf[fastxReader.r+i-1]
+				} else {
+					p = fastxReader.buffer.Bytes()
+					fastxReader.lastByte = p[len(p)-1]
 				}
 				if fastxReader.lastByte == '\n' { // yes!
-					// fmt.Println("----- found ------")
 					if i > 0 {
 						fastxReader.buffer.Write(dropCR(fastxReader.buf[fastxReader.r : fastxReader.r+i-1]))
+					} else {
+						fastxReader.buffer.WriteByte('\n')
 					}
 
-					fastxReader.parseRecord()
+					// we have to avoid the case of quality line starts with "@"
+					shorterQual, err = fastxReader.parseRecord()
+					if fastxReader.IsFastq && err != nil && err == ErrUnequalSeqAndQual {
+						if shorterQual {
+							fastxReader.buffer.WriteByte('\n')
+							fastxReader.buffer.WriteByte(fastxReader.delim)
+							fastxReader.needMoreCheckOfBuf = true
+							fastxReader.r += i + 1
+							continue FORSEARCH
+						}
+						fastxReader.Err = ErrBadFASTQFormat
+						return
+					}
 					fastxReader.buffer.Reset()
 					fastxReader.needMoreCheckOfBuf = true
 					fastxReader.r += i + 1
 					return
 				}
-				// fmt.Println("----- inline ------")
-				// inline ">"
+				// inline >/@
 				fastxReader.buffer.Write(fastxReader.buf[fastxReader.r : fastxReader.r+i+1])
 				fastxReader.r += i + 1
 				fastxReader.needMoreCheckOfBuf = true
-				continue FORFOUND
+				continue FORSEARCH
 			}
 
 			fastxReader.buffer.Write(fastxReader.buf[fastxReader.r:])
 			if fastxReader.lastPart {
-				// fmt.Println("----- last part ------")
-				fastxReader.parseRecord()
+				_, err = fastxReader.parseRecord()
+				if err != nil { // no any chance
+					fastxReader.Err = err
+					fastxReader.close()
+					return
+				}
 				fastxReader.buffer.Reset()
 				fastxReader.close()
 				fastxReader.finished = true
 				return
 			}
-			// fmt.Println("----- need more data ------")
 			fastxReader.needMoreCheckOfBuf = false
-			break FORFOUND
+			break FORSEARCH
 		}
 	}
 }
 
-func (fastxReader *Reader) parseRecord() {
+// parseRecord parse a FASTA/Q record from the fastxReader.buffer
+func (fastxReader *Reader) parseRecord() (bool, error) {
 	fastxReader.seqBuffer.Reset()
+	fastxReader.qualBuffer.Reset()
 
 	var p = fastxReader.buffer.Bytes()
 	if j := bytes.IndexByte(p, '\n'); j > 0 {
 		fastxReader.head = dropCR(p[0:j])
-
 		r := j + 1
-		for {
-			if k := bytes.IndexByte(p[r:], '\n'); k >= 0 {
-				fastxReader.seqBuffer.Write(dropCR(p[r : r+k]))
-				r += k + 1
-				continue
+
+		if !fastxReader.IsFastq { // FASTA
+			for {
+				if k := bytes.IndexByte(p[r:], '\n'); k >= 0 {
+					fastxReader.seqBuffer.Write(dropCR(p[r : r+k]))
+					r += k + 1
+					continue
+				}
+				fastxReader.seqBuffer.Write(dropCR(p[r:]))
+				break
 			}
-			fastxReader.seqBuffer.Write(dropCR(p[r:]))
-			break
+			fastxReader.seq = fastxReader.seqBuffer.Bytes()
+		} else { // FASTQ
+			var isQual bool
+			for {
+				if k := bytes.IndexByte(p[r:], '\n'); k >= 0 {
+					if k > 0 && p[r] == '+' && !isQual {
+						isQual = true
+					} else if isQual {
+						fastxReader.qualBuffer.Write(dropCR(p[r : r+k]))
+					} else {
+						fastxReader.seqBuffer.Write(dropCR(p[r : r+k]))
+					}
+					r += k + 1
+					continue
+				}
+				if isQual {
+					fastxReader.qualBuffer.Write(dropCR(p[r:]))
+				}
+				break
+			}
+
+			// may be the case of quality line starts with "@"
+			if fastxReader.seqBuffer.Len() != fastxReader.qualBuffer.Len() {
+				return fastxReader.seqBuffer.Len() > fastxReader.qualBuffer.Len(), ErrUnequalSeqAndQual
+			}
+
+			fastxReader.seq = fastxReader.seqBuffer.Bytes()
+			fastxReader.qual = fastxReader.qualBuffer.Bytes()
 		}
-		fastxReader.seq = fastxReader.seqBuffer.Bytes()
+
 	} else {
 		fastxReader.head = p
 		fastxReader.seq = []byte{}
+		fastxReader.qual = []byte{}
 	}
-
-	// fmt.Printf("head:%s\nseq:=%s=\nseq len:%d\n", fastxReader.head, fastxReader.seq, len(fastxReader.seq))
 
 	// guess alphabet
 	if fastxReader.firstseq {
@@ -269,11 +320,21 @@ func (fastxReader *Reader) parseRecord() {
 	}
 
 	// new record
-	fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
-		fastxReader.parseHeadID(fastxReader.head), fastxReader.head, fastxReader.seq)
+	if fastxReader.IsFastq {
+		fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
+			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+			fastxReader.seq, fastxReader.qual)
+	} else {
+		fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
+			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+			fastxReader.seq)
+	}
+
 	if fastxReader.Err != nil {
 		fastxReader.close()
 	}
+
+	return false, fastxReader.Err
 }
 
 func (fastxReader *Reader) parseHeadID(head []byte) []byte {
@@ -287,11 +348,6 @@ func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 		return head
 	}
 	return found[0][1]
-}
-
-// Cancel method cancel the reading process
-func (fastxReader *Reader) Cancel() {
-	fastxReader.close()
 }
 
 // Alphabet returns Alphabet of the file
@@ -322,6 +378,10 @@ type RecordChunk struct {
 	Err  error
 }
 
+// ChunkChan asynchronously reads FASTA/Q records, and returns a channel of
+// Record Chunk, from which you can easily access the records.
+// bufferSize is the number of buffered chunks, and chunkSize is the size
+// of records in a chunk.
 func (fastxReader *Reader) ChunkChan(bufferSize int, chunkSize int) chan RecordChunk {
 	var ch chan RecordChunk
 	if bufferSize <= 0 {
