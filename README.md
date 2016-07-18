@@ -39,6 +39,10 @@ Result
     af9e765363ffe03aaaaa0a23509f7b32  t.seqtk.fa
     af9e765363ffe03aaaaa0a23509f7b32  t.fakit.fa
 
+For the memory usage, the real-time memory is actually about 300 MB.
+However, it's higher due to the limitation of garbage collection mechanism in
+ Go programming language, and it may be solved in the future.
+    
 Install
 -------
 This package is "go-gettable", just:
