@@ -1,0 +1,1 @@
+../../fakit/benchmark/run.pl

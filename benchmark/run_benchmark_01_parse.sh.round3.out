@@ -1,0 +1,40 @@
+Test: FASTA/Q Parsing
+Output sequences of all apps are not wrapped to fixed length.
+== seqtk
+data: dataset_A.fa
+read file once by cat
+
+elapsed time: 7.428
+peak rss: 7460
+
+data: dataset_B.fa
+read file once by cat
+
+elapsed time: 7.835
+peak rss: 244768
+
+data: dataset_C.fq
+read file once by cat
+
+elapsed time: 9.486
+peak rss: 992
+
+== fakit
+data: dataset_A.fa
+read file once by cat
+
+elapsed time: 10.249
+peak rss: 38228
+
+data: dataset_B.fa
+read file once by cat
+
+elapsed time: 8.316
+peak rss: 786732
+
+data: dataset_C.fq
+read file once by cat
+
+elapsed time: 13.582
+peak rss: 11964
+
