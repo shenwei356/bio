@@ -90,29 +90,41 @@ func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 	if len(record.Seq.Qual) > 0 {
 		outfh.Write([]byte(fmt.Sprintf("@%s\n", record.Name)))
 
-		// outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+		if len(record.Seq.Seq) <= pageSize {
+			outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+		} else {
+			text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
+			outfh.Write(text)
+			outfh.Flush()
+			bufferedByteSliceWrapper.Recycle(b)
+		}
+
+		outfh.Write([]byte("\n+\n"))
+
+		if len(record.Seq.Qual) <= pageSize {
+			outfh.Write(byteutil.WrapByteSlice(record.Seq.Qual, width))
+		} else {
+			text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Qual, width)
+			outfh.Write(text)
+			outfh.Flush()
+			bufferedByteSliceWrapper.Recycle(b)
+		}
+
+		outfh.Write([]byte("\n"))
+
+		return
+	}
+
+	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
+
+	if len(record.Seq.Seq) <= pageSize {
+		outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+	} else {
 		text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
 		outfh.Write(text)
 		outfh.Flush()
 		bufferedByteSliceWrapper.Recycle(b)
-
-		outfh.Write([]byte("\n+\n"))
-
-		// outfh.Write(byteutil.WrapByteSlice(record.Seq.Qual, width))
-		text, b = bufferedByteSliceWrapper.Wrap(record.Seq.Qual, width)
-		outfh.Write(text)
-		outfh.Write([]byte("\n"))
-		outfh.Flush()
-		bufferedByteSliceWrapper.Recycle(b)
-
-		return
 	}
-	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
 
-	// outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
-	text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
-	outfh.Write(text)
 	outfh.Write([]byte("\n"))
-	outfh.Flush()
-	bufferedByteSliceWrapper.Recycle(b)
 }

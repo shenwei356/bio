@@ -1,0 +1,7 @@
+dataset        software   second     memory   realative.speed
+dataset_A.fa   seqtk       9.377     7.34MB   1.00      
+dataset_A.fa   fakit       8.568    38.07MB   1.09 
+dataset_B.fa   seqtk      10.983   239.03MB   1.00
+dataset_B.fa   fakit      11.536   768.63MB   0.95
+dataset_C.fa   seqtk       9.572    956.0KB   1.00
+dataset_C.fa   fakit      15.580    13.11MB   0.61

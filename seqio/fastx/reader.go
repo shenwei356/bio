@@ -21,6 +21,8 @@ var ErrBadFASTQFormat = errors.New("fastx: bad fastq format")
 // ErrUnequalSeqAndQual means unequal sequence and quality
 var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 
+var pageSize = syscall.Getpagesize()
+
 // Reader asynchronously parse FASTX file with buffer,
 // each buffer contain a chunk of multiple fastx records (RecordChunk).
 // Reader also support safe cancellation.
@@ -57,6 +59,7 @@ var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // DefaultIDRegexp is the default ID parsing regular expression
 var DefaultIDRegexp = `^([^\s]+)\s?`
+var isUsingDefaultIDRegexp bool
 
 // NewDefaultReader automaticly recognizes sequence type and parses id with default manner
 func NewDefaultReader(file string) (*Reader, error) {
@@ -78,6 +81,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
 	if idRegexp == "" {
 		r = regexp.MustCompile(DefaultIDRegexp)
+		isUsingDefaultIDRegexp = true
 	} else {
 		if !reCheckIDregexpStr.MatchString(idRegexp) {
 			return nil, fmt.Errorf(`fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
@@ -86,6 +90,9 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 		r, err = regexp.Compile(idRegexp)
 		if err != nil {
 			return nil, fmt.Errorf("fastx: fail to compile regexp: %s", idRegexp)
+		}
+		if idRegexp == DefaultIDRegexp {
+			isUsingDefaultIDRegexp = true
 		}
 	}
 
@@ -96,7 +103,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 
 	fastxReader := &Reader{
 		fh:           fh,
-		buf:          make([]byte, syscall.Getpagesize()),
+		buf:          make([]byte, pageSize),
 		t:            t,
 		IDRegexp:     r,
 		firstseq:     true,
@@ -343,11 +350,18 @@ func (fastxReader *Reader) parseHeadID(head []byte) []byte {
 
 // ParseHeadID parse ID from head by IDRegexp
 func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
-	found := idRegexp.FindAllSubmatch(head, -1)
+	if isUsingDefaultIDRegexp {
+		if i := bytes.IndexByte(head, ' '); i > 0 {
+			return head[0:i]
+		}
+		return head
+	}
+
+	found := idRegexp.FindSubmatch(head)
 	if found == nil { // not match
 		return head
 	}
-	return found[0][1]
+	return found[1]
 }
 
 // Alphabet returns Alphabet of the file
