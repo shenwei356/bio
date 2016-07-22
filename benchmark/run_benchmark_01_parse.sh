@@ -18,14 +18,14 @@ done
 
 
 
-echo == fakit
+echo == seqkit
 for f in dataset_*.f{a,q}; do    
     echo data: $f;
     
     echo read file once by cat
     cat $f > t; /bin/rm t; # warm up
 
-    memusg -t -H fakit seq $f -w 0 > t;
+    memusg -t -H seqkit seq $f -w 0 > t;
     
     /bin/rm t;
 done

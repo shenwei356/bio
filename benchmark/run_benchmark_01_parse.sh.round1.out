@@ -19,7 +19,7 @@ read file once by cat
 elapsed time: 11.836
 peak rss: 980
 
-== fakit
+== seqkit
 data: dataset_A.fa
 read file once by cat
 

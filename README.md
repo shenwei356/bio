@@ -3,7 +3,7 @@ bio
 [![GoDoc](https://godoc.org/github.com/shenwei356/bio?status.svg)](https://godoc.org/github.com/shenwei356/bio)
 
 A lightweight and high-performance
-(see [fakit](https://github.com/shenwei356/fakit#benchmark) benchmark)
+(see [seqkit](https://github.com/shenwei356/seqkit#benchmark) benchmark)
 bioinformatics package.
 
 FASTA/Q parsing
@@ -18,7 +18,7 @@ To test the performance, three datasets are used:
 - dataset_B, human genome,     2.9G
 - dataset_C, Illumina reads,   2.2G
 
-Summary by [`fakit`](https://github.com/shenwei356/fakit):
+Summary by [`seqkit`](https://github.com/shenwei356/seqkit):
 
     file           seq_format   seq_type   num_seqs   min_len        avg_len       max_len
     dataset_A.fa   FASTA        DNA          67,748        56       41,442.5     5,976,145
@@ -28,10 +28,10 @@ Summary by [`fakit`](https://github.com/shenwei356/fakit):
 [`seqtk`](https://github.com/lh3/seqtk/)
 (Version [1.1-r92-dirty](https://github.com/lh3/seqtk/tree/fb85aad4ce1fc7b3d4543623418a1ae88fe1cea6),
 using `kseq.h`)
-and [`fakit`](https://github.com/shenwei356/fakit)
-(Version [v0.2.8](https://github.com/shenwei356/fakit/releases/tag/v0.2.8),
+and [`seqkit`](https://github.com/shenwei356/seqkit)
+(Version [v0.2.8](https://github.com/shenwei356/seqkit/releases/tag/v0.2.8),
 using this package) were used to test.
-**Note** that `seqtk` does not support wrapped (fixed line width) ouputing, so `fakit` uses
+**Note** that `seqtk` does not support wrapped (fixed line width) ouputing, so `seqkit` uses
 `-w 0` to disable outputing wrapping.
 Script [`memusg`](https://github.com/shenwei356/memusg) is used to assess running time
 and peak memory usage.

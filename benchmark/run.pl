@@ -1,1 +1,1 @@
-../../fakit/benchmark/run.pl
+../../seqkit/benchmark/run.pl
