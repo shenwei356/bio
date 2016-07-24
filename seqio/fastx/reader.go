@@ -40,7 +40,7 @@ type Reader struct {
 
 	firstseq bool // for guess alphabet by the first seq
 	delim    byte
-	IsFastq  bool
+	IsFastq  bool // if the file is fastq format
 
 	t        *seq.Alphabet  // alphabet
 	IDRegexp *regexp.Regexp // regexp for parsing record id
@@ -50,7 +50,7 @@ type Reader struct {
 	qualBuffer      *bytes.Buffer
 	record          *Record
 
-	Err error
+	Err error // Current error
 }
 
 // regexp for checking idRegexp string.
@@ -385,7 +385,7 @@ func dropLF(data []byte) []byte {
 
 // -------------------------------------------------
 
-// RecordChunk  is
+// RecordChunk is chunk for records
 type RecordChunk struct {
 	ID   uint64
 	Data []*Record
