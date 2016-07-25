@@ -2,6 +2,7 @@ package fai
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"regexp"
@@ -91,13 +92,16 @@ func CreateWithFullHead(fileSeq, fileFai string) (Index, error) {
 
 // CreateWithIDRegexp uses custom regular expression to get sequence ID
 func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error) {
-	if !reCheckIDregexpStr.MatchString(idRegexp) {
-		return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
-	}
-	var err error
-	IDRegexp, err = regexp.Compile(idRegexp)
-	if err != nil {
-		return nil, fmt.Errorf("fail to Compile idRegexp: %s", err)
+	if idRegexp != defaultIDRegexp {
+		if !reCheckIDregexpStr.MatchString(idRegexp) {
+			return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
+		}
+		var err error
+		IDRegexp, err = regexp.Compile(idRegexp)
+		if err != nil {
+			return nil, fmt.Errorf("fail to Compile idRegexp: %s", err)
+		}
+		isUsingDefaultIDRegexp = false
 	}
 	return Create(fileSeq, fileFai)
 }
@@ -251,15 +255,25 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
+var defaultIDRegexp = `^([^\s]+)\s?`
+
 // IDRegexp is regexp for parsing record id
-var IDRegexp = regexp.MustCompile(`^([^\s]+)\s?`)
+var IDRegexp = regexp.MustCompile(defaultIDRegexp)
+var isUsingDefaultIDRegexp = true
 
 func parseHeadID(head []byte) []byte {
-	found := IDRegexp.FindAllSubmatch(head, -1)
+	if isUsingDefaultIDRegexp {
+		if i := bytes.IndexByte(head, ' '); i > 0 {
+			return head[0:i]
+		}
+		return head
+	}
+
+	found := IDRegexp.FindSubmatch(head)
 	if found == nil { // not match
 		return head
 	}
-	return found[0][1]
+	return found[1]
 }
 
 func dropCR(data []byte) []byte {

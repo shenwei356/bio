@@ -1,5 +1,7 @@
 # fastx
 
+[![GoDoc](https://godoc.org/github.com/shenwei356/bio?status.svg)](https://godoc.org/github.com/shenwei356/bio/seqio/fastx)
+
 This package seamlessly parses both FASTA and FASTQ formats.
 
 ## Examples

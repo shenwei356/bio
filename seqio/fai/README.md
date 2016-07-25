@@ -1,5 +1,8 @@
 # fai
 
+[![GoDoc](https://godoc.org/github.com/shenwei356/bio?status.svg)](https://godoc.org/github.com/shenwei356/bio/seqio/fai)
+
+
 Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
@@ -89,7 +92,7 @@ creating and reading FASTA index . Let's see what's happend inside:
             return NewWithIndex(file, index)
     }
 
-By default, sequence IDa is used as key in FASTA index file.
+By default, sequence ID is used as key in FASTA index file.
 Inside the package, a regular expression is used to get sequence ID from
 full head. The default value is `^([^\s]+)\s?`, i.e. getting
 first non-space characters of head.
