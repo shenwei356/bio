@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/shenwei356/xopen"
 	"github.com/shenwei356/bio/seq"
+	"github.com/shenwei356/xopen"
 )
 
 // ErrNotFASTXFormat means that the file is not FASTA/Q
@@ -345,11 +345,20 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 }
 
 func (fastxReader *Reader) parseHeadID(head []byte) []byte {
-	return ParseHeadID(fastxReader.IDRegexp, head)
+	return parseHeadID(fastxReader.IDRegexp, head)
 }
 
 // ParseHeadID parse ID from head by IDRegexp
 func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
+	found := idRegexp.FindSubmatch(head)
+	if found == nil { // not match
+		return head
+	}
+	return found[1]
+}
+
+// ParseHeadID parse ID from head by IDRegexp
+func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
 			return head[0:i]

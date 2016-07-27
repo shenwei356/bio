@@ -36,3 +36,19 @@ func TestGTF2(t *testing.T) {
 		fmt.Println(feature)
 	}
 }
+
+func TestGTF3(t *testing.T) {
+	file := "test3.gtf"
+	features, err := ReadFeatures(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(features) != 6 {
+		t.Error(err)
+		return
+	}
+	for _, feature := range features {
+		fmt.Println(feature)
+	}
+}

@@ -1,0 +1,6 @@
+NC_002516.2	genbank	gene	6261828	6263564	.	-	0	gene_id ""; transcript_id ""; db_xref "GeneID:878127"; product ""; 
+NC_002516.2	genbank	CDS	6261828	6263564	.	-	0	gene_id ""; transcript_id ""; protein_id "NP_254255.1"; db_xref "GI:15600761"; db_xref "GeneID:878127"; product "inner membrane protein translocase subunit YidC"; 
+NC_002516.2	genbank	gene	6263805	6264212	.	-	0	gene_id "rnpA"; transcript_id "rnpA"; gene_id "rnpA"; db_xref "GeneID:877910"; product ""; 
+NC_002516.2	genbank	CDS	6263805	6264212	.	-	0	gene_id "rnpA"; transcript_id "rnpA"; gene_id "rnpA"; protein_id "NP_254256.1"; db_xref "GI:15600762"; db_xref "GeneID:877910"; product "ribonuclease P"; 
+NC_002516.2	genbank	gene	6264227	6264361	.	-	0	gene_id "rpmH"; transcript_id "rpmH"; gene_id "rpmH"; db_xref "GeneID:877911"; product ""; 
+NC_002516.2	genbank	CDS	6264227	6264361	.	-	0	gene_id "rpmH"; transcript_id "rpmH"; gene_id "rpmH"; protein_id "NP_254257.1"; db_xref "GI:15600763"; db_xref "GeneID:877911"; product "50S ribosomal protein L34"; 

@@ -38,11 +38,11 @@ var Threads = runtime.NumCPU()
 
 // ReadFeatures returns gtf features of a file
 func ReadFeatures(file string) ([]Feature, error) {
-	return ReadFilteredFeatures(file, []string{}, []string{})
+	return ReadFilteredFeatures(file, []string{}, []string{}, []string{})
 }
 
 // ReadFilteredFeatures returns gtf features of specific chrs in a file
-func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature, error) {
+func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []string) ([]Feature, error) {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -54,6 +54,11 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature
 	featsMap := make(map[string]struct{}, len(feats))
 	for _, f := range feats {
 		featsMap[strings.ToLower(f)] = struct{}{}
+	}
+
+	attrsMap := make(map[string]struct{}, len(attrs))
+	for _, f := range attrs {
+		attrsMap[strings.ToLower(f)] = struct{}{}
 	}
 
 	fn := func(line string) (interface{}, bool, error) {
@@ -124,10 +129,14 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string) ([]Feature
 
 		tagValues := strings.Split(items[8], "; ")
 		if len(tagValues) > 0 {
+			var ok bool
 			feature.Attributes = []Attribute{}
 			for _, tagValue := range tagValues[0 : len(tagValues)-1] {
-				items2 := strings.Split(tagValue, " ")
+				items2 := strings.SplitN(tagValue, " ", 2)
 				tag := items2[0]
+				if _, ok = attrsMap[tag]; !ok {
+					continue
+				}
 				value := items2[1]
 				// if value[len(value)-1] == ';' {
 				// 	value = value[0 : len(value)-1]
