@@ -296,6 +296,10 @@ func (seq *Seq) ComplementInplace() *Seq {
 	for i := 0; i < ComplementThreads; i++ {
 		start = i * chunkSize
 		end = (i + 1) * chunkSize
+		if i == ComplementThreads-1 && end < l {
+			end = l
+		}
+
 		if end > l {
 			end = l
 		}
