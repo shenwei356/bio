@@ -8,8 +8,8 @@ Output sequences of all apps are not wrapped to fixed length.
 data: dataset_A.fa
 read file once by cat
 
-elapsed time: 12.194
-peak rss: 7620
+elapsed time: 7.826
+peak rss: 7608
 
 3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqtk.fa
 file                   format  type  num_seqs        sum_len  min_len   avg_len    max_len
@@ -19,8 +19,8 @@ dataset_A.fa.seqtk.fa  FASTA   DNA     67,748  2,807,643,808       56  41,442.5 
 data: dataset_B.fa
 read file once by cat
 
-elapsed time: 7.923
-peak rss: 244900
+elapsed time: 7.884
+peak rss: 244816
 
 af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqtk.fa
 file                   format  type  num_seqs        sum_len  min_len       avg_len      max_len
@@ -30,8 +30,8 @@ dataset_B.fa.seqtk.fa  FASTA   DNA        194  3,099,750,718      970  15,978,09
 data: dataset_C.fq
 read file once by cat
 
-elapsed time: 11.306
-peak rss: 936
+elapsed time: 8.812
+peak rss: 1092
 
 f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqtk.fa
 file                   format  type   num_seqs      sum_len  min_len  avg_len  max_len
@@ -44,8 +44,8 @@ dataset_C.fq.seqtk.fa  FASTQ   DNA   9,186,045  918,604,500      100      100   
 data: dataset_A.fa
 read file once by cat
 
-elapsed time: 13.545
-peak rss: 38644
+elapsed time: 6.133
+peak rss: 36676
 
 3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqkit.fa
 file                    format  type  num_seqs        sum_len  min_len   avg_len    max_len
@@ -55,8 +55,8 @@ dataset_A.fa.seqkit.fa  FASTA   DNA     67,748  2,807,643,808       56  41,442.5
 data: dataset_B.fa
 read file once by cat
 
-elapsed time: 13.473
-peak rss: 787168
+elapsed time: 7.611
+peak rss: 786576
 
 af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fa
 file                    format  type  num_seqs        sum_len  min_len       avg_len      max_len
@@ -66,8 +66,8 @@ dataset_B.fa.seqkit.fa  FASTA   DNA        194  3,099,750,718      970  15,978,0
 data: dataset_C.fq
 read file once by cat
 
-elapsed time: 12.680
-peak rss: 12032
+elapsed time: 12.082
+peak rss: 12288
 
 f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fa
 file                    format  type   num_seqs      sum_len  min_len  avg_len  max_len

@@ -1,7 +1,7 @@
 test	dataset	app	time_mean	time_stdev	mem_mean	mem_stdev
-FASTA/Q Parsing	dataset_A.fa	seqkit	9.58	0.96	37677	935
-FASTA/Q Parsing	dataset_A.fa	seqtk	8.14	0.53	7461	1
-FASTA/Q Parsing	dataset_B.fa	seqkit	8.16	0.14	786502	166
-FASTA/Q Parsing	dataset_B.fa	seqtk	8.91	0.89	244798	49
-FASTA/Q Parsing	dataset_C.fq	seqkit	13.43	0.19	11964	104
-FASTA/Q Parsing	dataset_C.fq	seqtk	11.01	1.08	969	24
+FASTA/Q Parsing	dataset_A.fa	seqkit	10.74	2.50	37720	1032
+FASTA/Q Parsing	dataset_A.fa	seqtk	10.27	1.66	7586	35
+FASTA/Q Parsing	dataset_B.fa	seqkit	10.84	2.35	786966	243
+FASTA/Q Parsing	dataset_B.fa	seqtk	9.38	2.27	244822	40
+FASTA/Q Parsing	dataset_C.fq	seqkit	12.44	0.20	12111	171
+FASTA/Q Parsing	dataset_C.fq	seqtk	11.39	2.21	1024	62

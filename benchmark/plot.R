@@ -42,7 +42,7 @@ if (is.null(args$infile)) {
   quit("no", 1)
 }
 if (args$outfile == "") {
-  args$outfile = paste(args$infile, ".png", sep="")
+  args$outfile = paste(args$infile, ".png", sep = "")
 }
 
 w <- args$width
@@ -60,35 +60,48 @@ df$dataset <-
 max_mem <- max(df$mem_mean)
 unit <- "KB"
 if (max_mem > 1024 * 1024) {
-  df <- df %>% mutate(mem_mean2 = mem_mean / 1024 / 1024)
+  df <- df %>% mutate(mem_mean2 = mem_mean / 1024 / 1024,
+                      mem_stdev2 = mem_stdev / 1024 / 1024)
   unit <- "GB"
 } else if (max_mem > 1024) {
-  df <- df %>% mutate(mem_mean2 = mem_mean / 1024)
+  df <- df %>% mutate(mem_mean2 = mem_mean / 1024,
+                      mem_stdev2 = mem_stdev / 1024)
   unit <- "MB"
 } else {
-  df <- df %>% mutate(mem_mean2 = mem_mean / 1)
+  df <- df %>% mutate(mem_mean2 = mem_mean / 1,
+                      mem_stdev2 = mem_stdev / 1)
   unit <- "KB"
 }
 
 p <-
-  ggplot(df, aes(
-    x = mem_mean2, y = time_mean,
-    color = app, shape = dataset, label = app
-  )) +
+  ggplot(
+    df, aes(
+      x = mem_mean2, y = time_mean,
+      xmin = mem_mean2 - mem_stdev2,
+      xmax = mem_mean2 + mem_stdev2,
+      ymin = time_mean - time_stdev,
+      ymax = time_mean + time_stdev,
+      color = app, shape = dataset, label = app
+    )
+  ) +
   
-  geom_point(size = 3) +
   geom_hline(aes(yintercept = time_mean, color = app), size = 0.1, alpha = 0.4) +
   geom_vline(aes(xintercept = mem_mean2, color = app), size = 0.1, alpha = 0.4) +
-  geom_text_repel(size = 6) +
+  
+  geom_point(size = 3) +
+#   geom_errorbar(width = 20, size = 0.5, alpha = 0.5) +
+#   geom_errorbarh(height = 0.5, size = 0.5, alpha = 0.5) +
+  
+  geom_text_repel(size = 6, max.iter = 200000) +
   scale_color_wsj() +
-  facet_wrap( ~ test) +
-  ylim(0, max(df$time_mean)) +
-  xlim(0, max(df$mem_mean2)) +
+  facet_wrap(~ test) +
+  ylim(0, max(df$time_mean) + max(df$time_stdev)) +
+  xlim(0, max(df$mem_mean2) + max(df$mem_stdev2)) +
   
   # ggtitle(paste("FASTA/Q Manipulation Performance\n", test1, sep = "")) +
   ylab("Time (s)") +
   xlab(paste("Peak Memory (", unit, ")", sep = "")) +
-  labs(color=args$labcolor, shape=args$labshape)
+  labs(color = args$labcolor, shape = args$labshape)
 
 p <- p +
   theme_bw() +
@@ -120,7 +133,11 @@ p <- p +
     plot.title = element_text(size = 15)
   )
 
-ggsave(p, file = args$outfile, width = w, height = h, dpi=args$dpi)
+if (grepl("tiff?$", args$outfile, perl=TRUE, ignore.case=TRUE)) {
+  ggsave(p, file = args$outfile, width = w, height = h, dpi=args$dpi, compress="lzw")
+} else {
+  ggsave(p, file = args$outfile, width = w, height = h, dpi=args$dpi)
+}
 
 #   p <- p + scale_color_manual(values = rep("black", length(df$app)))
 #
