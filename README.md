@@ -38,7 +38,7 @@ and peak memory usage.
 
 [Commands](https://github.com/shenwei356/bio/blob/master/benchmark/run_benchmark_01_parse.sh)
 
-Tests were repeated 5 times.
+Tests were repeated 5 times and average time and memory usage were computed.
 
 Results:
 

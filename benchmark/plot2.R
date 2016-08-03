@@ -106,10 +106,10 @@ p <-
 #                  height = 40/max(df$mem2)*max(df$time), 
 #                  size = 1, alpha = 1) +
 #   
-#   geom_point(data=df, aes(x = mem2, y = time,
-#                           xmin=NULL, xmax=NULL, 
-#                           ymin=NULL, ymax=NULL),
-#              size = 1.5, alpha = 0.6) +
+  geom_point(data=df, aes(x = mem2, y = time,
+                          xmin=NULL, xmax=NULL, 
+                          ymin=NULL, ymax=NULL),
+             size = 1, alpha = 0.6) +
   
   geom_text_repel(size = 6, max.iter = 200000) +
   scale_color_wsj() +

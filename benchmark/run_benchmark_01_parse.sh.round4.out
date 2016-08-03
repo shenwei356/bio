@@ -2,73 +2,60 @@ Test: FASTA/Q Parsing
 Output sequences of all apps are not wrapped to fixed length.
 
 ============================================
-== seqtk
+read file once with cat
 
 ------------------------------------
-data: dataset_A.fa
-read file once by cat
-
-elapsed time: 9.940
-peak rss: 7528
-
-3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqtk.fa
-file                   format  type  num_seqs        sum_len  min_len   avg_len    max_len
-dataset_A.fa.seqtk.fa  FASTA   DNA     67,748  2,807,643,808       56  41,442.5  5,976,145
-
-------------------------------------
-data: dataset_B.fa
-read file once by cat
-
-elapsed time: 9.236
-peak rss: 244792
-
-af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqtk.fa
-file                   format  type  num_seqs        sum_len  min_len       avg_len      max_len
-dataset_B.fa.seqtk.fa  FASTA   DNA        194  3,099,750,718      970  15,978,096.5  248,956,422
-
-------------------------------------
-data: dataset_C.fq
-read file once by cat
-
-elapsed time: 9.657
-peak rss: 1000
-
-f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqtk.fa
-file                   format  type   num_seqs      sum_len  min_len  avg_len  max_len
-dataset_C.fq.seqtk.fa  FASTQ   DNA   9,186,045  918,604,500      100      100      100
-
-============================================
 == seqkit
-
-------------------------------------
 data: dataset_A.fa
-read file once by cat
 
-elapsed time: 11.685
-peak rss: 38596
+elapsed time: 7.890
+peak rss: 36444
 
 3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqkit.fa
-file                    format  type  num_seqs        sum_len  min_len   avg_len    max_len
-dataset_A.fa.seqkit.fa  FASTA   DNA     67,748  2,807,643,808       56  41,442.5  5,976,145
 
 ------------------------------------
-data: dataset_B.fa
-read file once by cat
+== seqtk
+data: dataset_A.fa
 
-elapsed time: 13.640
-peak rss: 786992
+elapsed time: 7.755
+peak rss: 7488
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqtk.fa
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_B.fa
+
+elapsed time: 9.651
+peak rss: 786896
 
 af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fa
-file                    format  type  num_seqs        sum_len  min_len       avg_len      max_len
-dataset_B.fa.seqkit.fa  FASTA   DNA        194  3,099,750,718      970  15,978,096.5  248,956,422
 
 ------------------------------------
-data: dataset_C.fq
-read file once by cat
+== seqtk
+data: dataset_B.fa
 
-elapsed time: 12.430
-peak rss: 12008
+elapsed time: 9.885
+peak rss: 244892
+
+af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqtk.fa
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_C.fq
+
+elapsed time: 12.788
+peak rss: 12040
 
 f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fa
-file                    format  type   num_seqs      sum_len  min_len  avg_len  max_len
-dataset_C.fq.seqkit.fa  FASTQ   DNA   9,186,045  918,604,500      100      100      100
+
+------------------------------------
+== seqtk
+data: dataset_C.fq
+
+elapsed time: 8.518
+peak rss: 1048
+
+f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqtk.fa
