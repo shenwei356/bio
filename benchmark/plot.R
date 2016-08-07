@@ -125,10 +125,11 @@ p <-
 p <- p +
   theme_bw() +
   theme(
-    panel.border = element_rect(color = "black", size = 1.2),
+    panel.border = element_rect(color = "black", size = 0.8),
     panel.background = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    plot.margin = unit(c(0.1,0.4,0.1,0.1),"cm"),
     axis.ticks.y = element_line(size = 0.8),
     axis.ticks.x = element_line(size = 0.8),
     

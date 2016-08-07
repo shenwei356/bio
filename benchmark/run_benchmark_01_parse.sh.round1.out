@@ -8,8 +8,8 @@ read file once with cat
 == seqkit
 data: dataset_A.fa
 
-elapsed time: 6.384
-peak rss: 36716
+elapsed time: 5.129
+peak rss: 37024
 
 3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqkit.fa
 
@@ -17,8 +17,8 @@ peak rss: 36716
 == seqtk
 data: dataset_A.fa
 
-elapsed time: 11.900
-peak rss: 7500
+elapsed time: 6.242
+peak rss: 7472
 
 3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqtk.fa
 read file once with cat
@@ -27,8 +27,8 @@ read file once with cat
 == seqkit
 data: dataset_B.fa
 
-elapsed time: 11.326
-peak rss: 787036
+elapsed time: 5.964
+peak rss: 785284
 
 af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fa
 
@@ -36,8 +36,8 @@ af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fa
 == seqtk
 data: dataset_B.fa
 
-elapsed time: 9.882
-peak rss: 244808
+elapsed time: 7.150
+peak rss: 244820
 
 af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqtk.fa
 read file once with cat
@@ -46,8 +46,8 @@ read file once with cat
 == seqkit
 data: dataset_C.fq
 
-elapsed time: 12.352
-peak rss: 12132
+elapsed time: 14.194
+peak rss: 10816
 
 f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fa
 
@@ -55,7 +55,7 @@ f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fa
 == seqtk
 data: dataset_C.fq
 
-elapsed time: 9.546
-peak rss: 992
+elapsed time: 9.249
+peak rss: 960
 
 f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqtk.fa
