@@ -2,13 +2,9 @@ package fastx
 
 import (
 	"io"
-	"runtime"
 
 	"github.com/shenwei356/bio/seq"
 )
-
-// Threads number
-var Threads = runtime.NumCPU()
 
 // GetSeqNames returns the names of a fasta/q file
 func GetSeqNames(file string) ([]string, error) {

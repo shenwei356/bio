@@ -125,7 +125,7 @@ p <-
 p <- p +
   theme_bw() +
   theme(
-    panel.border = element_rect(color = "black", size = 0.8),
+    panel.border = element_rect(color = "black", size = 1.2),
     panel.background = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
