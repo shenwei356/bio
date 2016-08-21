@@ -354,7 +354,7 @@ func (seq *Seq) BaseContent(list string) float64 {
 
 // GC returns the GC content
 func (seq *Seq) GC() float64 {
-	return seq.BaseContent("gc")
+	return seq.BaseContent("gcs")
 }
 
 // DegenerateBaseMapNucl mappings nucleic acid degenerate base to
