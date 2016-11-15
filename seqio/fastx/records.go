@@ -3,9 +3,9 @@ package fastx
 import (
 	"fmt"
 
-	"github.com/shenwei356/xopen"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/util/byteutil"
+	"github.com/shenwei356/xopen"
 )
 
 // Record is a struct for FASTA/Q

@@ -29,7 +29,7 @@ This package seamlessly parses both FASTA and FASTQ formats.
 ***Note that***, similar to `bytes.Buffer.Bytes()` method,
 the current record will change after your another call of this method.
 So, you could use `record.Clone()` to make a copy.
-    
+
 ### Asynchronously parsing
 
 ChunkChan asynchronously reads FASTA/Q records, and returns a channel of
@@ -53,7 +53,7 @@ of records in a chunk.
     }
 
 ***Note that***, these's no need to clone the record by `record.Clone()` here.
-    
+
 ### Custom alphabet and identifier regular expression
 
     import (
