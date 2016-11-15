@@ -61,7 +61,7 @@ var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 var DefaultIDRegexp = `^([^\s]+)\s?`
 var isUsingDefaultIDRegexp bool
 
-// NewDefaultReader automaticly recognizes sequence type and parses id with default manner
+// NewDefaultReader automaticlly recognizes sequence type and parses id with default manner
 func NewDefaultReader(file string) (*Reader, error) {
 	return NewReader(nil, file, "")
 }
@@ -155,7 +155,7 @@ func (fastxReader *Reader) read() {
 				}
 			}
 
-			// last part of file OR just because reader not fullfill the buf,
+			// last part of file OR just because reader not fulfill the buf,
 			// like reading from stdin
 			if n < len(fastxReader.buf) {
 				// fastxReader.lastPart = true

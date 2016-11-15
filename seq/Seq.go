@@ -70,7 +70,7 @@ func NewSeqWithQualWithoutValidation(t *Alphabet, s []byte, q []byte) (*Seq, err
 	return seq, nil
 }
 
-// Length returns the lenght of sequence
+// Length returns the length of sequence
 func (seq *Seq) Length() int {
 	return len(seq.Seq)
 }

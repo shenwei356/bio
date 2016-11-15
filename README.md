@@ -1,6 +1,7 @@
 bio
 ===
 [![GoDoc](https://godoc.org/github.com/shenwei356/bio?status.svg)](https://godoc.org/github.com/shenwei356/bio)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/bio)](https://goreportcard.com/report/github.com/shenwei356/bio)
 
 A lightweight and high-performance
 (see [seqkit](https://github.com/shenwei356/seqkit#benchmark) benchmark)

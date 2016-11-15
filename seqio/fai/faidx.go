@@ -133,7 +133,7 @@ func (f *Faidx) SeqNotCleaned(chr string) ([]byte, error) {
 	return sequence, nil
 }
 
-// Base returns base in postion pos. pos is 1 based
+// Base returns base in position pos. pos is 1 based
 func (f *Faidx) Base(chr string, pos int) (byte, error) {
 	sequence, err := f.SubSeqNotCleaned(chr, pos, pos)
 	if err != nil {

@@ -81,7 +81,7 @@ import (
 /*Alphabet could be defined. Attention that,
 **the letters are case sensitive**.
 
-For exmaple, DNA:
+For example, DNA:
 
 	DNA, _ = NewAlphabet(
 		"DNA",
