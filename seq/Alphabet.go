@@ -161,16 +161,16 @@ func NewAlphabet(
 }
 
 // Clone of a Alphabet
-func (s *Alphabet) Clone() *Alphabet {
+func (a *Alphabet) Clone() *Alphabet {
 	return &Alphabet{
-		t:           s.t,
-		isUnlimit:   s.isUnlimit,
-		letters:     []byte(string(s.letters)),
-		pairs:       []byte(string(s.pairs)),
-		gap:         []byte(string(s.gap)),
-		ambiguous:   []byte(string(s.ambiguous)),
-		allLetters:  []byte(string(s.allLetters)),
-		pairLetters: []byte(string(s.pairLetters)),
+		t:           a.t,
+		isUnlimit:   a.isUnlimit,
+		letters:     []byte(string(a.letters)),
+		pairs:       []byte(string(a.pairs)),
+		gap:         []byte(string(a.gap)),
+		ambiguous:   []byte(string(a.ambiguous)),
+		allLetters:  []byte(string(a.allLetters)),
+		pairLetters: []byte(string(a.pairLetters)),
 	}
 
 }
@@ -409,6 +409,9 @@ var AlphabetGuessSeqLenghtThreshold = 10000
 
 // GuessAlphabet guesses alphabet by given
 func GuessAlphabet(seqs []byte) *Alphabet {
+	if len(seqs) == 0 {
+		return Unlimit
+	}
 	var alphabetMap map[byte]bool
 	if AlphabetGuessSeqLenghtThreshold == 0 || len(seqs) <= AlphabetGuessSeqLenghtThreshold {
 		alphabetMap = slice2map(byteutil.Alphabet(seqs))
