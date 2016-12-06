@@ -313,7 +313,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 		}
 
 	} else {
-		fastxReader.head = p
+		fastxReader.head = dropCR(dropLF(p))
 		fastxReader.seq = []byte{}
 		fastxReader.qual = []byte{}
 	}
@@ -326,6 +326,9 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 		fastxReader.firstseq = false
 	}
 
+	if len(fastxReader.head) == 0 && len(fastxReader.seq) == 0 {
+		return false, io.EOF
+	}
 	// new record
 	if fastxReader.IsFastq {
 		fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
