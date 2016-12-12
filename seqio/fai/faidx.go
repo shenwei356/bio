@@ -164,9 +164,14 @@ negative index    0-9-8-7-6-5-4-3-2-1
          -1:-1                      n
           2:-2      C G T N a c g t
           1:-1    A C G T N a c g t n
+		  1:12    A C G T N a c g t n
+		-12:-1    A C G T N a c g t n
 
 */
 func SubLocation(length, start, end int) (int, int, bool) {
+	if length == 0 {
+		return 0, 0, false
+	}
 	if start < 1 {
 		if start == 0 {
 			start = 1
@@ -174,8 +179,13 @@ func SubLocation(length, start, end int) (int, int, bool) {
 			if end < 0 && start > end {
 				return start, end, false
 			}
+
+			if -start > length {
+				start = 1
+			} else {
+				start = length + start + 1
+			}
 		}
-		start = length + start + 1
 	}
 	if start > length {
 		return start, end, false
