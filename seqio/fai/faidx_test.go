@@ -16,8 +16,15 @@ func TestFastaReader(t *testing.T) {
 		t.Errorf("unmatched sequences %s: %s", chr, []byte{s})
 	}
 
-	chr = "cel-mir-2"
+	chr = "blank"
 	seq, err := idx.Seq(chr)
+	checkErr(t, err)
+	if string(seq) != "" {
+		t.Errorf("unmatched sequences %s: %s", chr, seq)
+	}
+
+	chr = "cel-mir-2"
+	seq, err = idx.Seq(chr)
 	checkErr(t, err)
 	if string(seq) != "UAAACAGUAUACAGAAAGCCAUCAAAGC" {
 		t.Errorf("unmatched sequences %s: %s", chr, seq)

@@ -96,6 +96,10 @@ func (f *Faidx) SubSeqNotCleaned(chr string, start int, end int) ([]byte, error)
 		return nil, ErrSeqNotExists
 	}
 
+	if index.Length == 0 {
+		return []byte{}, nil
+	}
+
 	start, end, ok = SubLocation(index.Length, start, end)
 	if !ok {
 		return []byte{}, nil
