@@ -53,9 +53,7 @@ func GetSeqNumber(file string) (int, error) {
 // when idRegexp is "", default idRegexp ( ^([^\s]+)\s? ) will be used.
 func GetSeqs(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize int, idRegexp string) ([]*Record, error) {
 	records := []*Record{}
-	if alphabet == nil || alphabet == seq.Unlimit {
-		alphabet = nil
-	}
+
 	reader, err := NewReader(alphabet, file, idRegexp)
 	if err != nil {
 		return records, err

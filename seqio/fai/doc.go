@@ -57,6 +57,8 @@ To better understand the locating strategy, see examples below:
              -1:-1                      n
               2:-2      C G T N a c g t
               1:-1    A C G T N a c g t n
+              1:12    A C G T N a c g t n
+            -12:-1    A C G T N a c g t n
 
 Examples:
 
