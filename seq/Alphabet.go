@@ -353,7 +353,7 @@ func init() {
 		false,
 		[]byte("acgtACGT"),
 		[]byte("tgcaTGCA"),
-		[]byte(" -"),
+		[]byte(" -."),
 		[]byte("nN."))
 
 	DNAredundant, _ = NewAlphabet(
@@ -361,7 +361,7 @@ func init() {
 		false,
 		[]byte("acgtryswkmbdhvACGTRYSWKMBDHV"),
 		[]byte("tgcayrswmkvhdbTGCAYRSWMKVHDB"),
-		[]byte(" -"),
+		[]byte(" -."),
 		[]byte("nN."))
 
 	RNA, _ = NewAlphabet(
@@ -369,7 +369,7 @@ func init() {
 		false,
 		[]byte("acguACGU"),
 		[]byte("ugcaUGCA"),
-		[]byte(" -"),
+		[]byte(" -."),
 		[]byte("nN"))
 
 	RNAredundant, _ = NewAlphabet(
@@ -377,7 +377,7 @@ func init() {
 		false,
 		[]byte("acguryswkmbdhvACGURYSWKMBDHV"),
 		[]byte("ugcayrswmkvhdbUGCAYRSWMKVHDB"),
-		[]byte(" -"),
+		[]byte(" -."),
 		[]byte("nN"))
 
 	Protein, _ = NewAlphabet(
