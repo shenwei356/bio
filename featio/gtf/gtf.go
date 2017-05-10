@@ -87,19 +87,23 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 
 		start, err := strconv.Atoi(items[3])
 		if err != nil {
-			return nil, false, fmt.Errorf("bad start: %s", items[3])
+			return nil, false, fmt.Errorf("%s: bad start: %s", items[0], items[3])
 		}
 
 		end, err := strconv.Atoi(items[4])
 		if err != nil {
-			return nil, false, fmt.Errorf("bad end: %s", items[4])
+			return nil, false, fmt.Errorf("%s: bad end: %s", items[0], items[4])
+		}
+
+		if start > end {
+			return nil, false, fmt.Errorf("%s: start (%d) must be < end (%d)", items[0], start, end)
 		}
 
 		var score *float64
 		if items[5] != "." {
 			s, err := strconv.ParseFloat(items[5], 64)
 			if err != nil {
-				return nil, false, fmt.Errorf("bad score: %s", items[5])
+				return nil, false, fmt.Errorf("%s: bad score: %s", items[0], items[5])
 			}
 			score = &s
 		}
@@ -108,7 +112,7 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 		if items[6] != "." {
 			s := items[6]
 			if !(s == "+" || s == "-") {
-				return nil, false, fmt.Errorf("illigal strand: %s", s)
+				return nil, false, fmt.Errorf("%s: illigal strand: %s", items[0], s)
 			}
 			strand = &s
 		}
@@ -117,10 +121,10 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 		if items[7] != "." {
 			f, err := strconv.Atoi(items[7])
 			if err != nil {
-				return nil, false, fmt.Errorf("bad frame: %s", items[7])
+				return nil, false, fmt.Errorf("%s: bad frame: %s", items[0], items[7])
 			}
 			if !(f == 0 || f == 1 || f == 2) {
-				return nil, false, fmt.Errorf("illigal frame: %d", f)
+				return nil, false, fmt.Errorf("%s: illigal frame: %d", items[0], f)
 			}
 			frame = &f
 		}
