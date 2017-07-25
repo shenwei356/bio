@@ -3,6 +3,8 @@ package seq
 import (
 	"errors"
 	"math"
+
+	"github.com/shenwei356/util/byteutil"
 )
 
 // ErrInvalidPhredQuality occurs for phred quality less than 0.
@@ -97,7 +99,7 @@ func (qe QualityEncoding) QualityRange() []int {
 	case Illumina1p3:
 		return []int{64, 104}
 	case Illumina1p5:
-		return []int{67, 104}
+		return []int{66, 105}
 	case Illumina1p8:
 		return []int{33, 74}
 	}
@@ -121,7 +123,7 @@ func (qe QualityEncoding) Offset() int {
 	return 0
 }
 
-// Offset is the ASCII offset
+// IsSolexa tells whether the encoding is Solexa
 func (qe QualityEncoding) IsSolexa() bool {
 	switch qe {
 	case Solexa:
@@ -170,6 +172,9 @@ func QualityConvert(from, to QualityEncoding, quality []byte) ([]byte, error) {
 			}
 			qualityNew[i] = byte(int(q2) + offsetTo)
 		} else {
+			if from == Illumina1p5 && q == 2 { // special case of Illumina 1.5
+				q = 0
+			}
 			q2, err = Phred2Solexa(float64(q))
 			if err != nil {
 				return nil, err
@@ -186,10 +191,19 @@ func GuessQualityEncoding(quality []byte) []QualityEncoding {
 	min, max := qualRange(quality)
 	var encoding QualityEncoding
 	var r []int
+	var count map[byte]int
 	for i := 1; i < NQualityEncoding; i++ {
 		encoding = QualityEncoding(i)
 		r = encoding.QualityRange()
 		if min >= r[0] && max <= r[1] {
+			if encoding == Illumina1p5 {
+				if count == nil {
+					count = byteutil.CountOfByte(quality)
+				}
+				if count['@'] > 0 || count['A'] > 0 { // exclude Illumina 1.5
+					continue
+				}
+			}
 			encodings = append(encodings, encoding)
 		}
 	}
