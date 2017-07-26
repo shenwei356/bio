@@ -185,13 +185,19 @@ func QualityConvert(from, to QualityEncoding, quality []byte) ([]byte, error) {
 	return qualityNew, nil
 }
 
-// GuessQualityEncoding returns potential quality encoding type
+// NMostCommonThreshold is the threshold of 'B' in
+// top N most common quality for guessing Illumina 1.5.
+var NMostCommonThreshold = 4
+
+// GuessQualityEncoding returns potential quality encodings.
 func GuessQualityEncoding(quality []byte) []QualityEncoding {
 	var encodings []QualityEncoding
 	min, max := qualRange(quality)
 	var encoding QualityEncoding
 	var r []int
 	var count map[byte]int
+	var countSorted byteutil.ByteCountList
+	var BEnriched bool
 	for i := 1; i < NQualityEncoding; i++ {
 		encoding = QualityEncoding(i)
 		r = encoding.QualityRange()
@@ -202,6 +208,18 @@ func GuessQualityEncoding(quality []byte) []QualityEncoding {
 				}
 				if count['@'] > 0 || count['A'] > 0 { // exclude Illumina 1.5
 					continue
+				} else { //
+					countSorted = byteutil.SortCountOfByte(count, true)
+					BEnriched = false
+					for i := 0; i < NMostCommonThreshold; i++ {
+						if countSorted[i].Key == 'B' {
+							BEnriched = true
+							break
+						}
+					}
+					if BEnriched {
+						return []QualityEncoding{Illumina1p5}
+					}
 				}
 			}
 			encodings = append(encodings, encoding)
