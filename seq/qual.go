@@ -149,8 +149,10 @@ func QualityValue(encoding QualityEncoding, quality []byte) ([]int, error) {
 	return qv, nil
 }
 
-// QualityConvert convert quality from one encoding to another encoding
-func QualityConvert(from, to QualityEncoding, quality []byte) ([]byte, error) {
+// QualityConvert convert quality from one encoding to another encoding.
+// Force means forcely truncate scores > 40 to 40 when converting Illumina-1.8+
+// to Sanger.
+func QualityConvert(from, to QualityEncoding, quality []byte, force bool) ([]byte, error) {
 	if from == to || from == Unknown || to == Unknown {
 		return quality, nil
 	}
@@ -163,6 +165,17 @@ func QualityConvert(from, to QualityEncoding, quality []byte) ([]byte, error) {
 
 	qualityNew := make([]byte, len(quality))
 	for i, q := range qv {
+		if force {
+			if from == Sanger && to == Illumina1p8 { // no change
+				qualityNew[i] = byte(q)
+			} else if from == Illumina1p8 && to == Sanger {
+				if q > 40 {
+					q = 40
+				}
+				qualityNew[i] = byte(q)
+			}
+		}
+
 		if isSolexaFrom == isSolexaTo {
 			qualityNew[i] = byte(q + offsetTo)
 		} else if isSolexaFrom {
