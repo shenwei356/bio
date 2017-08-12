@@ -40,7 +40,10 @@ func NewRecord(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
 // NewRecordWithoutValidation is constructor of type Record for FASTA
 // without validation of the sequence
 func NewRecordWithoutValidation(t *seq.Alphabet, id, name, s []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithoutValidation(t, s)
+	seq, err := seq.NewSeqWithoutValidation(t, s)
+	if err != nil {
+		return nil, err
+	}
 	return &Record{id, name, seq}, nil
 }
 
@@ -61,7 +64,10 @@ func NewRecordWithQual(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) 
 
 // NewRecordWithQualWithoutValidation is constructor of type Record for FASTQ
 func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) (*Record, error) {
-	seq, _ := seq.NewSeqWithQualWithoutValidation(t, s, q)
+	seq, err := seq.NewSeqWithQualWithoutValidation(t, s, q)
+	if err != nil {
+		return nil, err
+	}
 	return &Record{id, name, seq}, nil
 }
 
