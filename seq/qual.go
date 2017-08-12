@@ -165,15 +165,15 @@ func QualityConvert(from, to QualityEncoding, quality []byte, force bool) ([]byt
 
 	qualityNew := make([]byte, len(quality))
 	for i, q := range qv {
-		if force {
-			if from == Sanger && to == Illumina1p8 { // no change
-				qualityNew[i] = byte(q)
-			} else if from == Illumina1p8 && to == Sanger {
-				if q > 40 {
-					q = 40
-				}
-				qualityNew[i] = byte(q)
+
+		if force { // Illumina -> Sanger
+			if from == Illumina1p8 && to == Sanger && q > 40 {
+				q = 40
 			}
+		}
+
+		if from == Illumina1p5 && q == 2 { // special case of Illumina 1.5
+			q = 0
 		}
 
 		if isSolexaFrom == isSolexaTo {
@@ -185,9 +185,6 @@ func QualityConvert(from, to QualityEncoding, quality []byte, force bool) ([]byt
 			}
 			qualityNew[i] = byte(int(q2) + offsetTo)
 		} else {
-			if from == Illumina1p5 && q == 2 { // special case of Illumina 1.5
-				q = 0
-			}
 			q2, err = Phred2Solexa(float64(q))
 			if err != nil {
 				return nil, err
