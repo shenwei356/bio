@@ -221,7 +221,7 @@ func GuessQualityEncoding(quality []byte) []QualityEncoding {
 				} else { //
 					countSorted = byteutil.SortCountOfByte(count, true)
 					BEnriched = false
-					for i := 0; i < NMostCommonThreshold; i++ {
+					for i := 0; i < len(countSorted) && i < NMostCommonThreshold; i++ {
 						if countSorted[i].Key == 'B' {
 							BEnriched = true
 							break
