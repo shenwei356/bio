@@ -32,7 +32,7 @@ This package seamlessly parses both FASTA and FASTQ formats.
 
     	reader, err := fastx.NewDefaultReader("-")
     	checkError(err)
-        var record *fastx.Record
+    	var record *fastx.Record
     	for {
     		record, err = reader.Read()
     		if err != nil {
