@@ -29,11 +29,12 @@ This package seamlessly parses both FASTA and FASTQ formats.
 
     	// disable sequence validation could reduce time when reading large sequences
     	// seq.ValidateSeq = false
-        
+
     	reader, err := fastx.NewDefaultReader("-")
     	checkError(err)
+        var record *fastx.Record
     	for {
-    		record, err := reader.Read()
+    		record, err = reader.Read()
     		if err != nil {
     			if err == io.EOF {
     				break
