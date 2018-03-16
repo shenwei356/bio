@@ -49,15 +49,21 @@ IUPAC amino acid code: `ACGTRYSWKMBDHV`
 	L	Leu	Leucine
 	M	Met	Methionine
 	N	Asn	Asparagine
+	O	    pyrrolysine [6]
 	P	Pro	Proline
 	Q	Gln	Glutamine
 	R	Arg	Arginine
 	S	Ser	Serine
 	T	Thr	Threonine
+	U	Sec selenocysteine [5,6]
 	V	Val	Valine
 	W	Trp	Tryptophan
 	Y	Tyr	Tyrosine
 	Z	Glx	Glutamine or Glutamic acid [2]
+
+	X   unknown amino acid
+	.   gaps
+	*   End
 
 Other links:
 
@@ -65,6 +71,8 @@ Other links:
 	2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
 	3. http://www.bioinformatics.org/sms2/iupac.html
 	4. http://www.matrixscience.com/blog/non-standard-amino-acid-residues.html
+	5. http://www.sbcs.qmul.ac.uk/iupac/AminoAcid/A2021.html#AA21
+	6. https://en.wikipedia.org/wiki/Amino_acid
 
 */
 package seq
@@ -383,8 +391,8 @@ func init() {
 	Protein, _ = NewAlphabet(
 		"Protein",
 		false,
-		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ"),
-		[]byte("abcdefghijklmnpqrstvwyzABCDEFGHIJKLMNPQRSTVWYZ"),
+		[]byte("abcdefghijklmnopqrstuvwyzABCDEFGHIJKLMNOPQRSTUVWYZ"),
+		[]byte("abcdefghijklmnopqrstuvwyzABCDEFGHIJKLMNOPQRSTUVWYZ"),
 		[]byte(" -"),
 		[]byte("xX*_."))
 
