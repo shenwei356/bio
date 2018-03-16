@@ -33,7 +33,7 @@ http://droog.gs.washington.edu/parc/images/iupac.html
 	.	not A/C/G/T
 	 or-	gap
 
-IUPAC amino acid code: `ACGTRYSWKMBDHV`
+IUPAC amino acid code
 
 	A	Ala	Alanine
 	B	Asx	Aspartic acid or Asparagine [2]
@@ -49,23 +49,23 @@ IUPAC amino acid code: `ACGTRYSWKMBDHV`
 	L	Leu	Leucine
 	M	Met	Methionine
 	N	Asn	Asparagine
-	O	    pyrrolysine [6]
+	O		pyrrolysine [6]
 	P	Pro	Proline
 	Q	Gln	Glutamine
 	R	Arg	Arginine
 	S	Ser	Serine
 	T	Thr	Threonine
-	U	Sec selenocysteine [5,6]
+	U	Sec	selenocysteine [5,6]
 	V	Val	Valine
 	W	Trp	Tryptophan
 	Y	Tyr	Tyrosine
 	Z	Glx	Glutamine or Glutamic acid [2]
 
-	X   unknown amino acid
-	.   gaps
-	*   End
+	X	unknown amino acid
+	.	gaps
+	*	End
 
-Other links:
+Reference:
 
 	1. http://www.bioinformatics.org/sms/iupac.html
 	2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
