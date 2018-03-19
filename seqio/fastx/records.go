@@ -71,9 +71,12 @@ func NewRecordWithQualWithoutValidation(t *seq.Alphabet, id, name, s, q []byte) 
 	return &Record{id, name, seq}, nil
 }
 
+// ForcelyOutputFastq means outputing record as fastq even if it has no quality (zero-length fastq)
+var ForcelyOutputFastq bool
+
 // Format returns formated (wrapped with fixed length of) sequence record
 func (record *Record) Format(width int) []byte {
-	if len(record.Seq.Qual) > 0 {
+	if len(record.Seq.Qual) > 0 || ForcelyOutputFastq {
 		return append(append(append(append([]byte(fmt.Sprintf("@%s\n", record.Name)),
 			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n+\n")...),
 			byteutil.WrapByteSlice(record.Seq.Qual, width)...), []byte("\n")...)
@@ -93,7 +96,7 @@ func init() {
 
 // FormatToWriter formats and directly writes to writer
 func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
-	if len(record.Seq.Qual) > 0 {
+	if len(record.Seq.Qual) > 0 || ForcelyOutputFastq {
 		outfh.Write([]byte(fmt.Sprintf("@%s\n", record.Name)))
 
 		if len(record.Seq.Seq) <= pageSize {

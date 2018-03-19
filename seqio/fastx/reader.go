@@ -23,9 +23,7 @@ var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 
 var pageSize = syscall.Getpagesize()
 
-// Reader asynchronously parse FASTX file with buffer,
-// each buffer contain a chunk of multiple fastx records (RecordChunk).
-// Reader also support safe cancellation.
+// Reader seamlessly parse both FASTA and FASTQ formats
 type Reader struct {
 	fh *xopen.Reader // file handle, xopen is such a wonderful package
 
