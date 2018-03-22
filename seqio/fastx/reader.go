@@ -13,7 +13,7 @@ import (
 )
 
 // ErrNotFASTXFormat means that the file is not FASTA/Q
-var ErrNotFASTXFormat = errors.New("fastx: not FASTA/Q format")
+var ErrNotFASTXFormat = errors.New("fastx: invalid FASTA/Q format")
 
 // ErrBadFASTQFormat means bad fastq format
 var ErrBadFASTQFormat = errors.New("fastx: bad fastq format")
@@ -189,11 +189,11 @@ func (fastxReader *Reader) read() {
 					}
 					// break FORCHECK
 				default: // not typical FASTA/Q
-					if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
-						fastxReader.Err = ErrNotFASTXFormat
-						fastxReader.close()
-						return
-					}
+					// if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
+					fastxReader.Err = ErrNotFASTXFormat
+					fastxReader.close()
+					return
+					// }
 				}
 			}
 			fastxReader.checkSeqType = false
