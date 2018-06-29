@@ -114,7 +114,8 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	return fastxReader, nil
 }
 
-func (fastxReader *Reader) close() {
+// Close closes the reader
+func (fastxReader *Reader) Close() {
 	fastxReader.fh.Close()
 }
 
@@ -148,7 +149,7 @@ func (fastxReader *Reader) read() {
 					fastxReader.lastPart = true
 				} else {
 					fastxReader.Err = err
-					fastxReader.close()
+					fastxReader.Close()
 					return
 				}
 			}
@@ -183,7 +184,7 @@ func (fastxReader *Reader) read() {
 					if pn > 100 {
 						if i > 10240 { // ErrNotFASTXFormat
 							fastxReader.Err = ErrNotFASTXFormat
-							fastxReader.close()
+							fastxReader.Close()
 							return
 						}
 					}
@@ -191,7 +192,7 @@ func (fastxReader *Reader) read() {
 				default: // not typical FASTA/Q
 					// if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
 					fastxReader.Err = ErrNotFASTXFormat
-					fastxReader.close()
+					fastxReader.Close()
 					return
 					// }
 				}
@@ -246,11 +247,11 @@ func (fastxReader *Reader) read() {
 				_, err = fastxReader.parseRecord()
 				if err != nil { // no any chance
 					fastxReader.Err = err
-					fastxReader.close()
+					fastxReader.Close()
 					return
 				}
 				fastxReader.buffer.Reset()
-				fastxReader.close()
+				fastxReader.Close()
 				fastxReader.finished = true
 				return
 			}
@@ -339,7 +340,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	}
 
 	if fastxReader.Err != nil {
-		fastxReader.close()
+		fastxReader.Close()
 	}
 
 	return false, fastxReader.Err
