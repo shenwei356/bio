@@ -21,6 +21,9 @@ var ErrBadFASTQFormat = errors.New("fastx: bad fastq format")
 // ErrUnequalSeqAndQual means unequal sequence and quality
 var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 
+// ErrNoContent means nothing in the file or stream
+var ErrNoContent = errors.New("fastx: no content found")
+
 var pageSize = syscall.Getpagesize()
 
 // Reader seamlessly parse both FASTA and FASTQ formats
@@ -96,6 +99,15 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
+		if err == xopen.ErrNoContent {
+			return &Reader{
+					fh:       nil,
+					finished: true,
+					lastPart: true,
+					Err:      io.EOF,
+				},
+				nil
+		}
 		return nil, fmt.Errorf("fastx: %s", err)
 	}
 
@@ -116,7 +128,9 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 
 // Close closes the reader
 func (fastxReader *Reader) Close() {
-	fastxReader.fh.Close()
+	if fastxReader.fh != nil {
+		fastxReader.fh.Close()
+	}
 }
 
 // Read reads and return one FASTA/Q record.
@@ -427,6 +441,10 @@ func (fastxReader *Reader) ChunkChan(bufferSize int, chunkSize int) chan RecordC
 			record, err := fastxReader.Read()
 			if err != nil {
 				if err == io.EOF {
+					if i == 0 { // no any seqs
+						close(ch)
+						return
+					}
 					break
 				}
 				ch <- RecordChunk{id, chunkData[0:i], err}

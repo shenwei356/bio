@@ -2,6 +2,7 @@ package fastx
 
 import (
 	// "fmt"
+
 	"io"
 	"testing"
 )
@@ -10,7 +11,7 @@ func TestFastaReader2(t *testing.T) {
 	file := "test.fa"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	for {
 		_, err := reader.Read()
@@ -29,7 +30,7 @@ func TestFastaReader3(t *testing.T) {
 	file := "test.fa"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 
 	for chunk := range reader.ChunkChan(0, 1) {
@@ -46,7 +47,7 @@ func TestFastqReadern(t *testing.T) {
 	file := "test.fq"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 
 	for {
@@ -68,7 +69,7 @@ func TestFastaReader(t *testing.T) {
 	file := "test.fa"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
@@ -89,7 +90,7 @@ func TestFastqReader(t *testing.T) {
 	file := "test.fq"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
@@ -109,7 +110,7 @@ func TestFastqReader2(t *testing.T) {
 	file := "test2.fq"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
@@ -130,7 +131,7 @@ func TestFastqReader3(t *testing.T) {
 	file := "test3.fq"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	n := 0
 	l := -1
@@ -160,7 +161,7 @@ func TestBlankFile(t *testing.T) {
 	file := "blank.fx"
 	reader, err := NewDefaultReader(file)
 	if err != nil {
-		t.Error(t)
+		t.Error(err)
 	}
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
@@ -168,5 +169,18 @@ func TestBlankFile(t *testing.T) {
 				t.Error(chunk.Err)
 			}
 		}
+	}
+}
+
+func TestEmptyFile(t *testing.T) {
+	file := "empty.fx"
+	reader, err := NewDefaultReader(file)
+	if err != nil {
+		t.Error(err)
+	}
+	for chunk := range reader.ChunkChan(0, 1) {
+		// should not reach here
+		t.Errorf("should not reach here. error: %s", chunk.Err)
+		return
 	}
 }
