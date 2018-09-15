@@ -411,9 +411,9 @@ func init() {
 	abRNA = slice2map(byteutil.Alphabet(RNA.AllLetters()))
 }
 
-// AlphabetGuessSeqLenghtThreshold is the length of sequence prefix of the first FASTA record
+// AlphabetGuessSeqLengthThreshold is the length of sequence prefix of the first FASTA record
 // based which FastaRecord guesses the sequence type. 0 for whole seq
-var AlphabetGuessSeqLenghtThreshold = 10000
+var AlphabetGuessSeqLengthThreshold = 10000
 
 // GuessAlphabet guesses alphabet by given
 func GuessAlphabet(seqs []byte) *Alphabet {
@@ -421,10 +421,10 @@ func GuessAlphabet(seqs []byte) *Alphabet {
 		return Unlimit
 	}
 	var alphabetMap map[byte]bool
-	if AlphabetGuessSeqLenghtThreshold == 0 || len(seqs) <= AlphabetGuessSeqLenghtThreshold {
+	if AlphabetGuessSeqLengthThreshold == 0 || len(seqs) <= AlphabetGuessSeqLengthThreshold {
 		alphabetMap = slice2map(byteutil.Alphabet(seqs))
 	} else { // reduce guessing time
-		alphabetMap = slice2map(byteutil.Alphabet(seqs[0:AlphabetGuessSeqLenghtThreshold]))
+		alphabetMap = slice2map(byteutil.Alphabet(seqs[0:AlphabetGuessSeqLengthThreshold]))
 	}
 	if isSubset(alphabetMap, abDNA) {
 		return DNA
