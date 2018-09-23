@@ -25,24 +25,24 @@ import (
 	"testing"
 )
 
-func TestRNAToProteinInvalidInputs(t *testing.T) {
-	rna := []byte("ATGGGCAAAGGCAAAGGC")
+func TestDNAToProteinInvalidInputs(t *testing.T) {
+	dna := []byte("ATGGGCAAAGGCAAAGGC")
 	transl_table := 99
-	_, err := RNAToProtein(rna, transl_table)
+	_, err := DNAToProtein(dna, transl_table)
 	if err == nil {
 		t.Error("invalid transl table number should have been detected")
 		return
 	}
 }
 
-func TestRNAToProteinTransl1(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UUUGCUUCAACC`, ""))
+func TestDNAToProteinTransl1(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`FAST`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -50,9 +50,9 @@ func TestRNAToProteinTransl1(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 1)
+	translatedProtein, err := DNAToProtein(dna, 1)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -61,20 +61,20 @@ func TestRNAToProteinTransl1(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 
 }
 
-func TestRNAToProteinTransl2(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AGAAGGAUAUGA`, ""))
+func TestDNAToProteinTransl2(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AGAAGGATATGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`**MW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -82,9 +82,9 @@ func TestRNAToProteinTransl2(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 2)
+	translatedProtein, err := DNAToProtein(dna, 2)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -93,19 +93,19 @@ func TestRNAToProteinTransl2(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl3(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AUACUUCUCCUACUGUGA`, ""))
+func TestDNAToProteinTransl3(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`ATACTTCTCCTACTGTGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`MTTTTW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -113,9 +113,9 @@ func TestRNAToProteinTransl3(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 3)
+	translatedProtein, err := DNAToProtein(dna, 3)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -124,19 +124,19 @@ func TestRNAToProteinTransl3(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl4(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UUUGCUUCAACCUGA`, ""))
+func TestDNAToProteinTransl4(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACCTGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`FASTW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -144,9 +144,9 @@ func TestRNAToProteinTransl4(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 4)
+	translatedProtein, err := DNAToProtein(dna, 4)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -155,19 +155,19 @@ func TestRNAToProteinTransl4(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl5(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AGAAGGAUAUGA`, ""))
+func TestDNAToProteinTransl5(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AGAAGGATATGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`SSMW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -175,9 +175,9 @@ func TestRNAToProteinTransl5(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 5)
+	translatedProtein, err := DNAToProtein(dna, 5)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -186,19 +186,19 @@ func TestRNAToProteinTransl5(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl6(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAAUAG`, ""))
+func TestDNAToProteinTransl6(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAATAG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`QQ`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -206,9 +206,9 @@ func TestRNAToProteinTransl6(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 6)
+	translatedProtein, err := DNAToProtein(dna, 6)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -217,19 +217,19 @@ func TestRNAToProteinTransl6(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl9(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AAAAGAAGGUGA`, ""))
+func TestDNAToProteinTransl9(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AAAAGAAGGTGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`NSSW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -237,9 +237,9 @@ func TestRNAToProteinTransl9(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 9)
+	translatedProtein, err := DNAToProtein(dna, 9)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -248,19 +248,19 @@ func TestRNAToProteinTransl9(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl10(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UGA`, ""))
+func TestDNAToProteinTransl10(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`C`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -268,9 +268,9 @@ func TestRNAToProteinTransl10(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 10)
+	translatedProtein, err := DNAToProtein(dna, 10)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -279,19 +279,19 @@ func TestRNAToProteinTransl10(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl11(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UUUGCUUCAACC`, ""))
+func TestDNAToProteinTransl11(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`FAST`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -299,9 +299,9 @@ func TestRNAToProteinTransl11(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 11)
+	translatedProtein, err := DNAToProtein(dna, 11)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -310,19 +310,19 @@ func TestRNAToProteinTransl11(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl12(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`CUG`, ""))
+func TestDNAToProteinTransl12(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`CTG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`S`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -330,9 +330,9 @@ func TestRNAToProteinTransl12(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 12)
+	translatedProtein, err := DNAToProtein(dna, 12)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -341,19 +341,19 @@ func TestRNAToProteinTransl12(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl13(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AGAAGGAUAUGA`, ""))
+func TestDNAToProteinTransl13(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AGAAGGATATGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`GGMW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -361,9 +361,9 @@ func TestRNAToProteinTransl13(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 13)
+	translatedProtein, err := DNAToProtein(dna, 13)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -372,19 +372,19 @@ func TestRNAToProteinTransl13(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl14(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AAAAGAAGGUAAUGA`, ""))
+func TestDNAToProteinTransl14(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AAAAGAAGGTAATGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`NSSYW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -392,9 +392,9 @@ func TestRNAToProteinTransl14(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 14)
+	translatedProtein, err := DNAToProtein(dna, 14)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -403,19 +403,19 @@ func TestRNAToProteinTransl14(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl16(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAG`, ""))
+func TestDNAToProteinTransl16(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`L`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -423,9 +423,9 @@ func TestRNAToProteinTransl16(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 16)
+	translatedProtein, err := DNAToProtein(dna, 16)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -434,19 +434,19 @@ func TestRNAToProteinTransl16(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl21(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UGAAUAAGAAGGAAA`, ""))
+func TestDNAToProteinTransl21(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TGAATAAGAAGGAAA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`WMSSN`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -454,9 +454,9 @@ func TestRNAToProteinTransl21(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 21)
+	translatedProtein, err := DNAToProtein(dna, 21)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -465,19 +465,19 @@ func TestRNAToProteinTransl21(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl22(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UCAUAG`, ""))
+func TestDNAToProteinTransl22(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TCATAG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`*L`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -485,9 +485,9 @@ func TestRNAToProteinTransl22(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 22)
+	translatedProtein, err := DNAToProtein(dna, 22)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -496,19 +496,19 @@ func TestRNAToProteinTransl22(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl23(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UUUGCUUCAACC`, ""))
+func TestDNAToProteinTransl23(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`FAST`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -516,9 +516,9 @@ func TestRNAToProteinTransl23(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 23)
+	translatedProtein, err := DNAToProtein(dna, 23)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -527,19 +527,19 @@ func TestRNAToProteinTransl23(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl24(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`AGAAGGUGA`, ""))
+func TestDNAToProteinTransl24(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`AGAAGGTGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`SKW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -547,9 +547,9 @@ func TestRNAToProteinTransl24(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 24)
+	translatedProtein, err := DNAToProtein(dna, 24)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -558,19 +558,19 @@ func TestRNAToProteinTransl24(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl25(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UGA`, ""))
+func TestDNAToProteinTransl25(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`G`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -578,9 +578,9 @@ func TestRNAToProteinTransl25(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 25)
+	translatedProtein, err := DNAToProtein(dna, 25)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -589,19 +589,19 @@ func TestRNAToProteinTransl25(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl26(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`CUG`, ""))
+func TestDNAToProteinTransl26(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`CTG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`A`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -609,9 +609,9 @@ func TestRNAToProteinTransl26(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 26)
+	translatedProtein, err := DNAToProtein(dna, 26)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -620,19 +620,19 @@ func TestRNAToProteinTransl26(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl27(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAGUAAUGA`, ""))
+func TestDNAToProteinTransl27(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAGTAATGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`GG*`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -640,9 +640,9 @@ func TestRNAToProteinTransl27(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 27)
+	translatedProtein, err := DNAToProtein(dna, 27)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -651,19 +651,19 @@ func TestRNAToProteinTransl27(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl28(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAAUAGUGA`, ""))
+func TestDNAToProteinTransl28(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAATAGTGA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`GGW`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -671,9 +671,9 @@ func TestRNAToProteinTransl28(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 28)
+	translatedProtein, err := DNAToProtein(dna, 28)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -682,19 +682,19 @@ func TestRNAToProteinTransl28(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl29(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAAUAG`, ""))
+func TestDNAToProteinTransl29(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAATAG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`YY`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -702,9 +702,9 @@ func TestRNAToProteinTransl29(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 29)
+	translatedProtein, err := DNAToProtein(dna, 29)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -713,19 +713,19 @@ func TestRNAToProteinTransl29(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl30(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UAAUAG`, ""))
+func TestDNAToProteinTransl30(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TAATAG`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`GG`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -733,9 +733,9 @@ func TestRNAToProteinTransl30(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 30)
+	translatedProtein, err := DNAToProtein(dna, 30)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -744,19 +744,19 @@ func TestRNAToProteinTransl30(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
 
-func TestRNAToProteinTransl31(t *testing.T) {
-	rna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
-		`UGAUAGUAA`, ""))
+func TestDNAToProteinTransl31(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TGATAGTAA`, ""))
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`YGG`, ""))
-	rnaValid := RNA.IsValid(rna) == nil
-	if !rnaValid {
-		t.Error("validating RNA sequence failed.")
+	dnaValid := DNA.IsValid(dna) == nil
+	if !dnaValid {
+		t.Error("validating DNA sequence failed.")
 		return
 	}
 	proteinValid := Protein.IsValid(protein) == nil
@@ -764,9 +764,9 @@ func TestRNAToProteinTransl31(t *testing.T) {
 		t.Error("validating protein sequence failed.")
 		return
 	}
-	translatedProtein, err := RNAToProtein(rna, 31)
+	translatedProtein, err := DNAToProtein(dna, 31)
 	if err != nil {
-		t.Error("error converting RNA to protein")
+		t.Error("error converting DNA to protein")
 		return
 	}
 	tranlatedProteinValid := Protein.IsValid(translatedProtein) == nil
@@ -775,7 +775,7 @@ func TestRNAToProteinTransl31(t *testing.T) {
 		return
 	}
 	if !bytes.Equal(protein, translatedProtein) {
-		t.Error("converting RNA to protein doesnt match")
+		t.Error("converting DNA to protein doesnt match")
 		return
 	}
 }
