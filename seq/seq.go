@@ -480,3 +480,37 @@ func (seq *Seq) Degenerate2Regexp() string {
 	}
 	return strings.Join(s, "")
 }
+
+// Translate translate the RNA/DNA to amino acid sequence.
+// Available frame: 1, 2, 3, -1, -2 ,-3.
+// If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
+// If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
+func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*Seq, error) {
+	if !(seq.Alphabet == DNA || seq.Alphabet == DNAredundant || seq.Alphabet == RNA || seq.Alphabet == RNAredundant) {
+		return nil, fmt.Errorf("seq: only DNA/RNA sequence can all method Translate, the alphabet is %s", seq.Alphabet)
+	}
+	var codonTable *CodonTable
+	var ok bool
+	if codonTable, ok = CodonTables[transl_table]; !ok {
+		return nil, fmt.Errorf("seq: invalid codon table: %d", transl_table)
+	}
+	if !(frame == 1 || frame == 2 || frame == 3 || frame == -1 || frame == -2 || frame == -3) {
+		fmt.Errorf("seq: invalid frame %d. available: 1, 2, 3, -1, -2, -3", frame)
+	}
+
+	s := seq
+	if frame < 0 {
+		s = seq.RevCom()
+	}
+
+	aa, err := codonTable.Translate(s.Seq, frame, trim, clean)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := NewSeqWithoutValidation(Protein, aa)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
