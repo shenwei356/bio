@@ -25,22 +25,11 @@ import (
 	"testing"
 )
 
-func TestDNAToProteinInvalidInputs(t *testing.T) {
-	dna := []byte("ATGGGCAAAGGCAAAGGC")
-	seq, err := NewSeq(DNA, dna)
-	if err != nil {
-		t.Error("creating DNA sequence failed.")
-		return
-	}
-	transl_table := 99
-	_, err = DNAToProtein(seq, transl_table)
-	if err == nil {
-		t.Error("invalid transl table number should have been detected")
-		return
-	}
+func testDNAToProteinHelper(t *testing.T, dna []byte, protein []byte, transl_table int) {
+	testDNAToProteinWithFrame(t, dna, protein, "F1", transl_table)
 }
 
-func testDNAToProteinHelper(t *testing.T, dna []byte, protein []byte, transl_table int) {
+func testDNAToProteinWithFrame(t *testing.T, dna []byte, protein []byte, frameOptions string, transl_table int) {
 	dnaValid := DNA.IsValid(dna) == nil
 	if !dnaValid {
 		t.Error("validating DNA sequence failed.")
@@ -56,7 +45,7 @@ func testDNAToProteinHelper(t *testing.T, dna []byte, protein []byte, transl_tab
 		t.Error("creating DNA sequence failed.")
 		return
 	}
-	translatedProtein, err := DNAToProtein(seq, transl_table)
+	translatedProtein, err := DNAToProtein(seq, frameOptions, transl_table)
 	if err != nil {
 		t.Error("error converting DNA to protein")
 		return
@@ -68,6 +57,21 @@ func testDNAToProteinHelper(t *testing.T, dna []byte, protein []byte, transl_tab
 	}
 	if !bytes.Equal(protein, translatedProtein) {
 		t.Error("converting DNA to protein doesnt match")
+		return
+	}
+}
+
+func TestDNAToProteinInvalidInputs(t *testing.T) {
+	dna := []byte("ATGGGCAAAGGCAAAGGC")
+	seq, err := NewSeq(DNA, dna)
+	if err != nil {
+		t.Error("creating DNA sequence failed.")
+		return
+	}
+	transl_table := 99
+	_, err = DNAToProtein(seq, "F1", transl_table)
+	if err == nil {
+		t.Error("invalid transl table number should have been detected")
 		return
 	}
 }
@@ -261,4 +265,43 @@ func TestDNAToProteinTransl31(t *testing.T) {
 	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
 		`YGG`, ""))
 	testDNAToProteinHelper(t, dna, protein, 31)
+}
+
+func TestDNAToProteinTranslWithFrameShiftingF2(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
+	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`LLQ`, ""))
+	testDNAToProteinWithFrame(t, dna, protein, "F2", 1)
+}
+
+func TestDNAToProteinTranslWithFrameShiftingF3(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
+	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`CFN`, ""))
+	testDNAToProteinWithFrame(t, dna, protein, "F3", 1)
+}
+
+func TestDNAToProteinTranslWithFrameShiftingR1(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
+	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`PTSF`, ""))
+	testDNAToProteinWithFrame(t, dna, protein, "R1", 1)
+}
+func TestDNAToProteinTranslWithFrameShiftingR2(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
+	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`QLR`, ""))
+	testDNAToProteinWithFrame(t, dna, protein, "R2", 1)
+}
+
+func TestDNAToProteinTranslWithFrameShiftingR3(t *testing.T) {
+	dna := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`TTTGCTTCAACC`, ""))
+	protein := []byte(regexp.MustCompile(`\r?\n|\s`).ReplaceAllString(
+		`NFV`, ""))
+	testDNAToProteinWithFrame(t, dna, protein, "R3", 1)
 }

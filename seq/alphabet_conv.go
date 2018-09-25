@@ -27,8 +27,18 @@ import (
 
 //https://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=tgencodes
 var condonTables = map[int]map[string]byte{}
+var frameShiftingOpts = map[string]bool{}
 
 func init() {
+
+	frameShiftingOpts = map[string]bool{
+		"F1": true,
+		"F2": true,
+		"F3": true,
+		"R1": true,
+		"R2": true,
+		"R3": true,
+	}
 
 	//https://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=tgencodes#SG1
 	condonTables[1] = map[string]byte{
@@ -512,26 +522,42 @@ func init() {
 
 }
 
-// DNAToProtein accepts a DNA Sequence, translation table from NIBH standard and returns a protein sequence
-func DNAToProtein(dna *Seq, transl_table int) ([]byte, error) {
+// DNAToProtein accepts a DNA Sequence, frameShiftingOptions, translation table from NIBH standard and returns a protein sequence
+func DNAToProtein(dna *Seq, frameShiftingOptions string, transl_table int) ([]byte, error) {
 
 	if dna.Seq == nil {
 		return nil, errors.New("seq.DNAToProtein: input sequence is nil")
+	}
+
+	if frameShiftingOptions == "" || !frameShiftingOpts[frameShiftingOptions] {
+		return nil, errors.New("seq.DNAToProtein: frameShiftingOptions is missing or invalid")
 	}
 
 	if _, found := condonTables[transl_table]; !found {
 		return nil, errors.New("seq.DNAToProtein: unavailable condon table")
 	}
 
-	var protein bytes.Buffer
+	var i int = 0
+	if frameShiftingOptions == "F2" || frameShiftingOptions == "R2" {
+		i = 1
+	}
+	if frameShiftingOptions == "F3" || frameShiftingOptions == "R3" {
+		i = 2
+	}
 	var ok bool
-	for i := 0; i < len(dna.Seq)-2; i += 3 {
-		if _, ok = condonTables[transl_table][string(dna.Seq[i:i+3])]; ok {
-			err := protein.WriteByte(condonTables[transl_table][string(dna.Seq[i:i+3])])
+	var seq []byte = dna.Seq
+	var protein bytes.Buffer
+	if frameShiftingOptions == "R1" || frameShiftingOptions == "R2" || frameShiftingOptions == "R3" {
+		seq = dna.Reverse().Seq
+	}
+	for i < len(seq)-2 {
+		if _, ok = condonTables[transl_table][string(seq[i:i+3])]; ok {
+			err := protein.WriteByte(condonTables[transl_table][string(seq[i:i+3])])
 			if err != nil {
 				return nil, err
 			}
 		}
+		i += 3
 	}
 	return protein.Bytes(), nil
 }
