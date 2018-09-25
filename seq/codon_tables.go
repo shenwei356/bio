@@ -165,7 +165,7 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 		return nil, fmt.Errorf("seq: sequence too short to translate: %d", len(sequence))
 	}
 	if frame < 1 || frame > 3 {
-		fmt.Errorf("seq: invalid frame %d. available: 1, 2, 3", frame)
+		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3", frame)
 	}
 	aas := make([]byte, 0, int((len(sequence)+2)/3))
 	var aa byte
@@ -188,7 +188,33 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 	return aas, nil
 }
 
-// CodonTables contains all the codon tables from NCBI
+// CodonTables contains all the codon tables from NCBI:
+//
+//     1: The Standard Code
+//     2: The Vertebrate Mitochondrial Code
+//     3: The Yeast Mitochondrial Code
+//     4: The Mold, Protozoan, and Coelenterate Mitochondrial Code and the Mycoplasma/Spiroplasma Code
+//     5: The Invertebrate Mitochondrial Code
+//     6: The Ciliate, Dasycladacean and Hexamita Nuclear Code
+//     9: The Echinoderm and Flatworm Mitochondrial Code
+//     10: The Euplotid Nuclear Code
+//     11: The Bacterial, Archaeal and Plant Plastid Code
+//     12: The Alternative Yeast Nuclear Code
+//     13: The Ascidian Mitochondrial Code
+//     14: The Alternative Flatworm Mitochondrial Code
+//     16: Chlorophycean Mitochondrial Code
+//     21: Trematode Mitochondrial Code
+//     22: Scenedesmus obliquus Mitochondrial Code
+//     23: Thraustochytrium Mitochondrial Code
+//     24: Pterobranchia Mitochondrial Code
+//     25: Candidate Division SR1 and Gracilibacteria Code
+//     26: Pachysolen tannophilus Nuclear Code
+//     27: Karyorelict Nuclear
+//     28: Condylostoma Nuclear
+//     29: Mesodinium Nuclear
+//     30: Peritrich Nuclear
+//     31: Blastocrithidia Nuclear
+//
 var CodonTables map[int]*CodonTable
 
 // https://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=cgencodes#SG1
@@ -419,7 +445,8 @@ TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG`)
 	// }
 	// sort.Ints(ks)
 	// for _, i = range ks {
-	// 	fmt.Println(CodonTables[i])
+	// 	// fmt.Println(CodonTables[i])
+	// 	fmt.Printf("%d: %s\n", CodonTables[i].ID, CodonTables[i].Name)
 	// }
 
 }

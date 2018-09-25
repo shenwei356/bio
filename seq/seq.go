@@ -76,7 +76,7 @@ func (seq *Seq) Length() int {
 }
 
 func (seq *Seq) String() string {
-	return fmt.Sprintf("%s, len:%d, seq:%s, qual:%s", seq.Alphabet, len(seq.Seq), seq.Seq, seq.Qual)
+	return fmt.Sprintf("%s, len:%d, seq:%s, qual:%s", seq.Alphabet.String(), len(seq.Seq), seq.Seq, seq.Qual)
 }
 
 // Clone of a Seq
@@ -481,13 +481,13 @@ func (seq *Seq) Degenerate2Regexp() string {
 	return strings.Join(s, "")
 }
 
-// Translate translate the RNA/DNA to amino acid sequence.
+// Translate translates the RNA/DNA to amino acid sequence.
 // Available frame: 1, 2, 3, -1, -2 ,-3.
 // If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
 // If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
 func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*Seq, error) {
 	if !(seq.Alphabet == DNA || seq.Alphabet == DNAredundant || seq.Alphabet == RNA || seq.Alphabet == RNAredundant) {
-		return nil, fmt.Errorf("seq: only DNA/RNA sequence can all method Translate, the alphabet is %s", seq.Alphabet)
+		return nil, fmt.Errorf("seq: only DNA/RNA sequence can all method Translate, the alphabet is %s", seq.Alphabet.String())
 	}
 	var codonTable *CodonTable
 	var ok bool
@@ -495,7 +495,7 @@ func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*
 		return nil, fmt.Errorf("seq: invalid codon table: %d", transl_table)
 	}
 	if !(frame == 1 || frame == 2 || frame == 3 || frame == -1 || frame == -2 || frame == -3) {
-		fmt.Errorf("seq: invalid frame %d. available: 1, 2, 3, -1, -2, -3", frame)
+		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3, -1, -2, -3", frame)
 	}
 
 	s := seq
