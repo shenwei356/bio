@@ -71,6 +71,48 @@ EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF`, ""),
 			trim:  true,
 			clean: false,
 		})
+
+	codonTableTests = append(codonTableTests,
+		codonTableTest{
+			table: 11,
+			nt: re.ReplaceAllString(`tcagaatctaattttagtgaataaataaccaataacagttacggcaagagtaagcataaa
+gccccaagcccacttattattagcttccattttttctataagtttcgcatttgattgagc
+tattaggagcgctcgttctgctttatctcgaactgtttcatagttatctaactttgtttc
+aattcgagctaaacgttcgaggacttctcgccatgcttgttcctccat`, ""),
+			aa: re.ReplaceAllString(`MEEQAWREVLERLARIETKLDNYETVRDKAERALLIAQSNAKLI
+EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF`, ""),
+			frame: -1,
+			trim:  true,
+			clean: false,
+		})
+
+	codonTableTests = append(codonTableTests,
+		codonTableTest{
+			table: 11,
+			nt: re.ReplaceAllString(`tcagaatctaattttagtgaataaataaccaataacagttacggcaagagtaagcataaa
+gccccaagcccacttattattagcttccattttttctataagtttcgcatttgattgagc
+tattaggagcgctcgttctgctttatctcgaactgtttcatagttatctaactttgtttc
+aattcgagctaaacgttcgaggacttctcgccatgcttgttcctccatc`, ""),
+			aa: re.ReplaceAllString(`MEEQAWREVLERLARIETKLDNYETVRDKAERALLIAQSNAKLI
+EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF`, ""),
+			frame: -2,
+			trim:  true,
+			clean: false,
+		})
+
+	codonTableTests = append(codonTableTests,
+		codonTableTest{
+			table: 11,
+			nt: re.ReplaceAllString(`tcagaatctaattttagtgaataaataaccaataacagttacggcaagagtaagcataaa
+gccccaagcccacttattattagcttccattttttctataagtttcgcatttgattgagc
+tattaggagcgctcgttctgctttatctcgaactgtttcatagttatctaactttgtttc
+aattcgagctaaacgttcgaggacttctcgccatgcttgttcctccatcc`, ""),
+			aa: re.ReplaceAllString(`MEEQAWREVLERLARIETKLDNYETVRDKAERALLIAQSNAKLI
+EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF`, ""),
+			frame: -3,
+			trim:  true,
+			clean: false,
+		})
 }
 
 func TestCodonTableStranslation(t *testing.T) {

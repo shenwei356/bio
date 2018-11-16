@@ -498,12 +498,7 @@ func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*
 		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3, -1, -2, -3", frame)
 	}
 
-	s := seq
-	if frame < 0 {
-		s = seq.RevCom()
-	}
-
-	aa, err := codonTable.Translate(s.Seq, frame, trim, clean)
+	aa, err := codonTable.Translate(seq.Seq, frame, trim, clean)
 	if err != nil {
 		return nil, err
 	}

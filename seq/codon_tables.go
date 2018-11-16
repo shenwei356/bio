@@ -157,33 +157,59 @@ func (t *CodonTable) Clone() CodonTable {
 }
 
 // Translate translates a DNA/RNA sequence to amino acid sequences.
-// Available frame: 1, 2, 3; for -1, -2 ,-3, please call the Seq.Translate().
+// Available frame: 1, 2, 3, -1, -2 ,-3.
 // If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
 // If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
 func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool) ([]byte, error) {
 	if len(sequence) < 3 {
 		return nil, fmt.Errorf("seq: sequence too short to translate: %d", len(sequence))
 	}
-	if frame < 1 || frame > 3 {
-		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3", frame)
+	if frame < -3 || frame > 3 || frame == 0 {
+		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3, -1, -2, -3", frame)
 	}
 	aas := make([]byte, 0, int((len(sequence)+2)/3))
 	var aa byte
 	var err error
-	for i := frame - 1; i < len(sequence)-2; i += 3 {
-		aa, err = t.Get(sequence[i : i+3])
-		if err != nil {
-			return nil, err
-		}
 
-		if trim && (aa == 'X' || aa == '*') {
-			break
-		}
-		if clean && aa == '*' {
-			aa = 'X'
-		}
+	if frame < 0 {
+		l := len(sequence)
+		codon := make([]byte, 3)
+		rc := DNA.PairLetter
+		for i := l + frame; i >= 2; i -= 3 {
+			codon[0], _ = rc(sequence[i])
+			codon[1], _ = rc(sequence[i-1])
+			codon[2], _ = rc(sequence[i-2])
 
-		aas = append(aas, aa)
+			aa, err = t.Get(codon)
+			if err != nil {
+				return nil, err
+			}
+
+			if trim && (aa == 'X' || aa == '*') {
+				break
+			}
+			if clean && aa == '*' {
+				aa = 'X'
+			}
+
+			aas = append(aas, aa)
+		}
+	} else {
+		for i := frame - 1; i < len(sequence)-2; i += 3 {
+			aa, err = t.Get(sequence[i : i+3])
+			if err != nil {
+				return nil, err
+			}
+
+			if trim && (aa == 'X' || aa == '*') {
+				break
+			}
+			if clean && aa == '*' {
+				aa = 'X'
+			}
+
+			aas = append(aas, aa)
+		}
 	}
 	return aas, nil
 }
