@@ -217,7 +217,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 	return start, end, true
 }
 
-// RemoveGaps remove gaps in place
+// RemoveGaps return a new seq without gaps
 func (seq *Seq) RemoveGaps(letters string) *Seq {
 	if len(letters) == 0 {
 		return seq.Clone()
@@ -252,6 +252,41 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 		newSeq, _ = NewSeqWithoutValidation(seq.Alphabet, s[0:j])
 	}
 	return newSeq
+}
+
+// RemoveGapsInplace removes gaps in place
+func (seq *Seq) RemoveGapsInplace(letters string) *Seq {
+	if len(letters) == 0 {
+		return seq
+	}
+
+	// do not use map
+	querySlice := make([]byte, 256)
+	for i := 0; i < len(letters); i++ {
+		querySlice[int(letters[i])] = letters[i]
+	}
+
+	s := make([]byte, len(seq.Seq))
+	q := make([]byte, len(seq.Qual))
+	var b, g byte
+	var j int
+	for i := 0; i < len(seq.Seq); i++ {
+		b = seq.Seq[i]
+
+		g = querySlice[int(b)]
+		if g == 0 { // not gap
+			s[j] = b
+			if len(seq.Qual) > 0 {
+				q[j] = seq.Qual[i]
+			}
+			j++
+		}
+	}
+	seq.Seq = s[0:j]
+	if len(seq.Qual) > 0 {
+		seq.Qual = q[0:j]
+	}
+	return seq
 }
 
 // RevCom returns reverse complement sequence
