@@ -12,6 +12,8 @@ type codonTableTest struct {
 	frame int
 	trim  bool
 	clean bool
+
+	allowUnknownCodon bool
 }
 
 var codonTableTests []codonTableTest
@@ -113,13 +115,29 @@ EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF`, ""),
 			trim:  true,
 			clean: false,
 		})
+
+	codonTableTests = append(codonTableTests,
+		codonTableTest{
+			table: 11,
+			nt: re.ReplaceAllString(`atNgaggaacaagcatggcgagaagtcctcgaacgtttagctcga
+attgaaacaaagttagataactatgaaacagttcgagataaagcagaacgagcgctccta
+atagctcaatcaaatgcgaaacttatagaaaaaatggaagctaataataagtgggcttgg
+ggctttatgcttactcttgccgtaactgttattggttatttattcactaaaattagattc
+tga`, ""),
+			aa: re.ReplaceAllString(`XEEQAWREVLERLARIETKLDNYETVRDKAERALLIAQSNAKLI
+EKMEANNKWAWGFMLTLAVTVIGYLFTKIRF*`, ""),
+			frame:             1,
+			trim:              false,
+			clean:             false,
+			allowUnknownCodon: true,
+		})
 }
 
 func TestCodonTableStranslation(t *testing.T) {
 	var aa []byte
 	var err error
 	for i, test := range codonTableTests {
-		aa, err = CodonTables[test.table].Translate([]byte(test.nt), test.frame, test.trim, test.clean)
+		aa, err = CodonTables[test.table].Translate([]byte(test.nt), test.frame, test.trim, test.clean, test.allowUnknownCodon)
 		if err != nil {
 			t.Errorf("test %d err: %s", i, err)
 		}

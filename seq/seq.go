@@ -520,7 +520,8 @@ func (seq *Seq) Degenerate2Regexp() string {
 // Available frame: 1, 2, 3, -1, -2 ,-3.
 // If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
 // If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
-func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*Seq, error) {
+// If option allowUnknownCodon is true, codons not in the codon table will be translated to 'X'.
+func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool, allowUnknownCodon bool) (*Seq, error) {
 	if !(seq.Alphabet == DNA || seq.Alphabet == DNAredundant || seq.Alphabet == RNA || seq.Alphabet == RNAredundant) {
 		return nil, fmt.Errorf("seq: only DNA/RNA sequence can all method Translate, the alphabet is %s", seq.Alphabet.String())
 	}
@@ -533,7 +534,7 @@ func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool) (*
 		return nil, fmt.Errorf("seq: invalid frame: %d. available: 1, 2, 3, -1, -2, -3", frame)
 	}
 
-	aa, err := codonTable.Translate(seq.Seq, frame, trim, clean)
+	aa, err := codonTable.Translate(seq.Seq, frame, trim, clean, allowUnknownCodon)
 	if err != nil {
 		return nil, err
 	}

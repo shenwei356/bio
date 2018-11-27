@@ -9,8 +9,11 @@ import (
 	"strings"
 )
 
-// ErrInvalidCodon means the codon contains bases expcet for A C T G U.
+// ErrInvalidCodon means the length of codon is not 3.
 var ErrInvalidCodon = errors.New("seq: invalid codon")
+
+// ErrUnknownCodon means the codon is not in the codon table, or the codon contains bases expcet for A C T G U.
+var ErrUnknownCodon = errors.New("seq: unknown codon")
 
 // CodonTable represents a codon table
 type CodonTable struct {
@@ -74,7 +77,7 @@ func base2idx(base byte) (int, error) {
 	case 'T', 't', 'U', 'u':
 		v = 3
 	default:
-		return 0, ErrInvalidCodon
+		return 0, ErrUnknownCodon
 	}
 	return v, nil
 }
@@ -117,9 +120,14 @@ func (t *CodonTable) Set2(codon string, aminoAcid byte) error {
 }
 
 // Get returns the amino acid of the codon ([]byte), codon can be DNA or RNA.
-func (t *CodonTable) Get(codon []byte) (byte, error) {
+// When allowUnknownCodon is true, codons that not int the codon table will
+// still be translated to 'X'.
+func (t *CodonTable) Get(codon []byte, allowUnknownCodon bool) (byte, error) {
 	i, j, k, err := codon2idx(codon)
 	if err != nil {
+		if allowUnknownCodon && err == ErrUnknownCodon {
+			return 'X', nil
+		}
 		return 0, err
 	}
 	aa := t.table[i][j][k]
@@ -130,8 +138,8 @@ func (t *CodonTable) Get(codon []byte) (byte, error) {
 }
 
 // Get2 returns the amino acid of the codon (string), codon can be DNA or RNA.
-func (t *CodonTable) Get2(codon string) (byte, error) {
-	return t.Get([]byte(codon))
+func (t *CodonTable) Get2(codon string, allowUnknownCodon bool) (byte, error) {
+	return t.Get([]byte(codon), allowUnknownCodon)
 }
 
 // Clone returns a deep copy of the CodonTable.
@@ -160,7 +168,8 @@ func (t *CodonTable) Clone() CodonTable {
 // Available frame: 1, 2, 3, -1, -2 ,-3.
 // If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
 // If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
-func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool) ([]byte, error) {
+// If option allowUnknownCodon is true, codons not in the codon table will be translated to 'X'.
+func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool, allowUnknownCodon bool) ([]byte, error) {
 	if len(sequence) < 3 {
 		return nil, fmt.Errorf("seq: sequence too short to translate: %d", len(sequence))
 	}
@@ -180,7 +189,7 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 			codon[1], _ = rc(sequence[i-1])
 			codon[2], _ = rc(sequence[i-2])
 
-			aa, err = t.Get(codon)
+			aa, err = t.Get(codon, allowUnknownCodon)
 			if err != nil {
 				return nil, err
 			}
@@ -196,7 +205,7 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 		}
 	} else {
 		for i := frame - 1; i < len(sequence)-2; i += 3 {
-			aa, err = t.Get(sequence[i : i+3])
+			aa, err = t.Get(sequence[i:i+3], allowUnknownCodon)
 			if err != nil {
 				return nil, err
 			}
