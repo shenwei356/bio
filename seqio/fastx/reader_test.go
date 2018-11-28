@@ -172,6 +172,18 @@ func TestBlankFile(t *testing.T) {
 	}
 }
 
+func TestBlankFile2(t *testing.T) {
+	file := "blank1.fx"
+	reader, err := NewDefaultReader(file)
+	if err != nil {
+		t.Error(err)
+	}
+	for chunk := range reader.ChunkChan(0, 1) {
+		// should not reach here
+		t.Errorf("should not reach here. error: %s", chunk.Err)
+		return
+	}
+}
 func TestEmptyFile(t *testing.T) {
 	file := "empty.fx"
 	reader, err := NewDefaultReader(file)

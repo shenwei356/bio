@@ -391,6 +391,9 @@ func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 
 // Alphabet returns Alphabet of the file
 func (fastxReader *Reader) Alphabet() *seq.Alphabet {
+	if fastxReader.t == nil {
+		return seq.Unlimit
+	}
 	return fastxReader.t
 }
 
