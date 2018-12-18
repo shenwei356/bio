@@ -191,7 +191,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 			}
 
 			if -start > length {
-				start = 1
+				return start, end, false
 			} else {
 				start = length + start + 1
 			}
