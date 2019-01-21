@@ -545,3 +545,15 @@ func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool, al
 	}
 	return t, nil
 }
+
+// ParseQual parses sequence quality, asciiBase = 33 for Phred+33.
+func (seq *Seq) ParseQual(asciiBase int) {
+	if len(seq.Qual) == 0 {
+		return
+	}
+	qv := make([]int, len(seq.Qual))
+	for i, q := range seq.Qual {
+		qv[i] = int(q) - asciiBase
+	}
+	seq.QualValue = qv
+}
