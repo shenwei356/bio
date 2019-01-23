@@ -56,10 +56,11 @@ func TestSubSeq(t *testing.T) {
 		string(s.SubSeq(2, -2).Seq) == "CGTNacgt" &&
 		string(s.SubSeq(1, -1).Seq) == "ACGTNacgtn" &&
 		string(s.SubSeq(12, 14).Seq) == "" &&
-		string(s.SubSeq(-12, -1).Seq) == "ACGTNacgtn" &&
-		string(s.SubSeq(-12, -3).Seq) == "ACGTNacg" &&
-		string(s.SubSeq(1, 12).Seq) == "ACGTNacgtn" &&
-		string(s.SubSeq(3, 12).Seq) == "GTNacgtn"
+		string(s.SubSeq(-10, -1).Seq) == "ACGTNacgtn" &&
+		string(s.SubSeq(-10, -3).Seq) == "ACGTNacg" &&
+		string(s.SubSeq(1, 10).Seq) == "ACGTNacgtn" &&
+		string(s.SubSeq(3, 12).Seq) == "GTNacgtn" &&
+		string(s.SubSeq(3, 100).Seq) == "GTNacgtn"
 
 	if !ok {
 		t.Error(fmt.Printf("subseq error"))
@@ -83,17 +84,18 @@ func TestSubSeq(t *testing.T) {
 
 func TestSubSeqInplace(t *testing.T) {
 	s, _ := NewSeqWithoutValidation(DNA, []byte("ACGTNacgtn"))
-	ok := string(s.Clone().Clone().SubSeqInplace(1, 1).Seq) == "A" &&
+	ok := string(s.Clone().SubSeqInplace(1, 1).Seq) == "A" &&
 		string(s.Clone().SubSeqInplace(2, 4).Seq) == "CGT" &&
 		string(s.Clone().SubSeqInplace(-4, -2).Seq) == "cgt" &&
 		string(s.Clone().SubSeqInplace(-4, -1).Seq) == "cgtn" &&
 		string(s.Clone().SubSeqInplace(-1, -1).Seq) == "n" &&
 		string(s.Clone().SubSeqInplace(2, -2).Seq) == "CGTNacgt" &&
 		string(s.Clone().SubSeqInplace(1, -1).Seq) == "ACGTNacgtn" &&
-		string(s.Clone().SubSeq(-12, -1).Seq) == "ACGTNacgtn" &&
-		string(s.Clone().SubSeq(-12, -3).Seq) == "ACGTNacg" &&
-		string(s.Clone().SubSeq(1, 12).Seq) == "ACGTNacgtn" &&
-		string(s.Clone().SubSeq(3, 12).Seq) == "GTNacgtn"
+		string(s.Clone().SubSeqInplace(-10, -1).Seq) == "ACGTNacgtn" &&
+		string(s.Clone().SubSeqInplace(-10, -3).Seq) == "ACGTNacg" &&
+		string(s.Clone().SubSeqInplace(1, 10).Seq) == "ACGTNacgtn" &&
+		string(s.Clone().SubSeqInplace(3, 10).Seq) == "GTNacgtn" &&
+		string(s.Clone().SubSeqInplace(3, 100).Seq) == "GTNacgtn"
 
 	if !ok {
 		t.Error(fmt.Printf("SubSeqInplace error"))
@@ -106,10 +108,10 @@ func TestSubSeqInplace(t *testing.T) {
 	}
 
 	s, _ = NewSeqWithoutValidation(DNA, []byte(""))
-	ok = string(s.Clone().SubSeq(1, 4).Seq) == "" &&
-		string(s.Clone().SubSeq(2, 4).Seq) == "" &&
-		string(s.Clone().SubSeq(1, -1).Seq) == "" &&
-		string(s.Clone().SubSeq(-4, -1).Seq) == ""
+	ok = string(s.Clone().SubSeqInplace(1, 4).Seq) == "" &&
+		string(s.Clone().SubSeqInplace(2, 4).Seq) == "" &&
+		string(s.Clone().SubSeqInplace(1, -1).Seq) == "" &&
+		string(s.Clone().SubSeqInplace(-4, -1).Seq) == ""
 	if !ok {
 		t.Error(fmt.Printf("subseq error"))
 	}

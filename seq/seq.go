@@ -192,9 +192,8 @@ func SubLocation(length, start, end int) (int, int, bool) {
 
 			if -start > length {
 				return start, end, false
-			} else {
-				start = length + start + 1
 			}
+			start = length + start + 1
 		}
 	}
 	if start > length {
@@ -469,6 +468,7 @@ var DegenerateBaseMapProt = map[byte]string{
 	'T': "T",
 	'V': "V",
 	'W': "W",
+	'X': "[A-Z]",
 	'Y': "Y",
 	'Z': "[QE]",
 	'a': "a",
@@ -492,6 +492,7 @@ var DegenerateBaseMapProt = map[byte]string{
 	't': "t",
 	'v': "v",
 	'w': "w",
+	'x': "[a-z]",
 	'y': "y",
 	'z': "[qe]",
 }
