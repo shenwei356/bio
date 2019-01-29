@@ -121,11 +121,14 @@ func (t *CodonTable) Set2(codon string, aminoAcid byte) error {
 
 // Get returns the amino acid of the codon ([]byte), codon can be DNA or RNA.
 // When allowUnknownCodon is true, codons that not int the codon table will
-// still be translated to 'X'.
+// still be translated to 'X', and "---" is translated to "-".
 func (t *CodonTable) Get(codon []byte, allowUnknownCodon bool) (byte, error) {
 	i, j, k, err := codon2idx(codon)
 	if err != nil {
 		if allowUnknownCodon && err == ErrUnknownCodon {
+			if codon[0] == '-' && codon[1] == '-' && codon[2] == '-' {
+				return '-', nil
+			}
 			return 'X', nil
 		}
 		return 0, err
