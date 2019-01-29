@@ -19,9 +19,9 @@ var ErrUnknownCodon = errors.New("seq: unknown codon")
 type CodonTable struct {
 	ID         int
 	Name       string
-	InitCodons map[string]struct{} // codon as string, map for fast quering
-	StopCodons map[string]struct{}
-	table      [4][4][4]byte // matrix is much faster than map for quering
+	InitCodons map[string]struct{} // upper-case of codon as string, map for fast quering
+	StopCodons map[string]struct{} // upper-case of codon as string, map for fast quering
+	table      [4][4][4]byte       // matrix is much faster than map for quering
 }
 
 // NewCodonTable contructs a CodonTable with ID and Name,
@@ -183,6 +183,9 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 	var aa byte
 	var err error
 
+	first := true
+	var ok bool
+
 	if frame < 0 {
 		l := len(sequence)
 		codon := make([]byte, 3)
@@ -195,6 +198,16 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 			aa, err = t.Get(codon, allowUnknownCodon)
 			if err != nil {
 				return nil, err
+			}
+
+			if first {
+				// convert amino acid of start codon to 'M'
+				if _, ok = t.InitCodons[strings.ToUpper(string(codon))]; ok {
+					aa = 'M'
+				}
+				first = false
+			} else if aa == '*' {
+				first = true
 			}
 
 			if trim && (aa == 'X' || aa == '*') {
@@ -211,6 +224,17 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 			aa, err = t.Get(sequence[i:i+3], allowUnknownCodon)
 			if err != nil {
 				return nil, err
+			}
+
+			if first {
+				// convert amino acid of start codon to 'M'
+				_, ok = t.InitCodons[strings.ToUpper(string(sequence[i:i+3]))]
+				if ok {
+					aa = 'M'
+				}
+				first = false
+			} else if aa == '*' {
+				first = true
 			}
 
 			if trim && (aa == 'X' || aa == '*') {
@@ -272,9 +296,9 @@ func codonTableFromText(id int, name string, text string) *CodonTable {
 
 		t.Set(codon, aa)
 		if start == 'M' {
-			t.InitCodons[string(codon)] = struct{}{}
+			t.InitCodons[strings.ToUpper(string(codon))] = struct{}{}
 		} else if start == '*' {
-			t.StopCodons[string(codon)] = struct{}{}
+			t.StopCodons[strings.ToUpper(string(codon))] = struct{}{}
 		}
 	}
 	return t
