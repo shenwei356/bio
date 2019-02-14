@@ -21,7 +21,7 @@ type CodonTable struct {
 	Name       string
 	InitCodons map[string]struct{} // upper-case of codon as string, map for fast quering
 	StopCodons map[string]struct{} // upper-case of codon as string, map for fast quering
-	table      [4][4][4]byte       // matrix is much faster than map for quering
+	table      [5][5][5]byte       // matrix is much faster than map for quering
 }
 
 // NewCodonTable contructs a CodonTable with ID and Name,
@@ -30,7 +30,7 @@ func NewCodonTable(id int, name string) *CodonTable {
 	t := &CodonTable{ID: id, Name: name}
 	t.InitCodons = make(map[string]struct{}, 1)
 	t.StopCodons = make(map[string]struct{}, 1)
-	t.table = [4][4][4]byte{}
+	t.table = [5][5][5]byte{}
 	return t
 }
 
@@ -76,6 +76,8 @@ func base2idx(base byte) (int, error) {
 		v = 2
 	case 'T', 't', 'U', 'u':
 		v = 3
+	case 'N', 'n':
+		v = 4
 	default:
 		return 0, ErrUnknownCodon
 	}
@@ -156,10 +158,10 @@ func (t *CodonTable) Clone() CodonTable {
 		stopCodons[k] = v
 	}
 
-	table := [4][4][4]byte{}
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			for k := 0; k < 4; k++ {
+	table := [5][5][5]byte{}
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
+			for k := 0; k < 5; k++ {
 				table[i][j][k] = t.table[i][j][k]
 			}
 		}
@@ -304,6 +306,76 @@ func codonTableFromText(id int, name string, text string) *CodonTable {
 			t.InitCodons[strings.ToUpper(string(codon))] = struct{}{}
 		} else if start == '*' {
 			t.StopCodons[strings.ToUpper(string(codon))] = struct{}{}
+		}
+	}
+
+	// supporting codon containing ambiguous base N
+	var aa2 byte
+	var flag bool
+
+	// base3
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			aa = 'X'
+			flag = true
+			for k := 0; k < 4; k++ {
+				aa2 = t.table[i][j][k]
+				if aa == 'X' {
+					aa = aa2
+				} else if aa2 != aa {
+					flag = false
+					break
+				}
+			}
+			if flag {
+				t.table[i][j][4] = aa
+			} else {
+				t.table[i][j][4] = 'X'
+			}
+		}
+	}
+
+	// base2
+	for i := 0; i < 4; i++ {
+		for k := 0; k < 4; k++ {
+			aa = 'X'
+			flag = true
+			for j := 0; j < 4; j++ {
+				aa2 = t.table[i][j][k]
+				if aa == 'X' {
+					aa = aa2
+				} else if aa2 != aa {
+					flag = false
+					break
+				}
+			}
+			if flag {
+				t.table[i][4][k] = aa
+			} else {
+				t.table[i][4][k] = 'X'
+			}
+		}
+	}
+
+	// base1
+	for j := 0; j < 4; j++ {
+		for k := 0; k < 4; k++ {
+			aa = 'X'
+			flag = true
+			for i := 0; i < 4; i++ {
+				aa2 = t.table[i][j][k]
+				if aa == 'X' {
+					aa = aa2
+				} else if aa2 != aa {
+					flag = false
+					break
+				}
+			}
+			if flag {
+				t.table[4][j][k] = aa
+			} else {
+				t.table[4][j][k] = 'X'
+			}
 		}
 	}
 	return t
