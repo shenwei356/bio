@@ -172,7 +172,8 @@ func (t *CodonTable) Clone() CodonTable {
 // If option trim is true, it removes all 'X' and '*' characters from the right end of the translation.
 // If option clean is true, it changes all STOP codon positions from the '*' character to 'X' (an unknown residue).
 // If option allowUnknownCodon is true, codons not in the codon table will be translated to 'X'.
-func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool, allowUnknownCodon bool) ([]byte, error) {
+// If option markInitCodonAsM is true, initial codon at beginning will be represented as 'M'.
+func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool, allowUnknownCodon bool, markInitCodonAsM bool) ([]byte, error) {
 	if len(sequence) < 3 {
 		return nil, fmt.Errorf("seq: sequence too short to translate: %d", len(sequence))
 	}
@@ -200,14 +201,16 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 				return nil, err
 			}
 
-			if first {
-				// convert amino acid of start codon to 'M'
-				if _, ok = t.InitCodons[strings.ToUpper(string(codon))]; ok {
-					aa = 'M'
+			if markInitCodonAsM {
+				if first {
+					// convert amino acid of start codon to 'M'
+					if _, ok = t.InitCodons[strings.ToUpper(string(codon))]; ok {
+						aa = 'M'
+					}
+					first = false
+				} else if aa == '*' {
+					first = true
 				}
-				first = false
-			} else if aa == '*' {
-				first = true
 			}
 
 			if trim && (aa == 'X' || aa == '*') {
@@ -226,15 +229,17 @@ func (t *CodonTable) Translate(sequence []byte, frame int, trim bool, clean bool
 				return nil, err
 			}
 
-			if first {
-				// convert amino acid of start codon to 'M'
-				_, ok = t.InitCodons[strings.ToUpper(string(sequence[i:i+3]))]
-				if ok {
-					aa = 'M'
+			if markInitCodonAsM {
+				if first {
+					// convert amino acid of start codon to 'M'
+					_, ok = t.InitCodons[strings.ToUpper(string(sequence[i:i+3]))]
+					if ok {
+						aa = 'M'
+					}
+					first = false
+				} else if aa == '*' {
+					first = true
 				}
-				first = false
-			} else if aa == '*' {
-				first = true
 			}
 
 			if trim && (aa == 'X' || aa == '*') {

@@ -14,6 +14,7 @@ type codonTableTest struct {
 	clean bool
 
 	allowUnknownCodon bool
+	markInitCodonAsM  bool
 }
 
 var codonTableTests []codonTableTest
@@ -137,7 +138,7 @@ func TestCodonTableStranslation(t *testing.T) {
 	var aa []byte
 	var err error
 	for i, test := range codonTableTests {
-		aa, err = CodonTables[test.table].Translate([]byte(test.nt), test.frame, test.trim, test.clean, test.allowUnknownCodon)
+		aa, err = CodonTables[test.table].Translate([]byte(test.nt), test.frame, test.trim, test.clean, test.allowUnknownCodon, test.markInitCodonAsM)
 		if err != nil {
 			t.Errorf("test %d err: %s", i, err)
 		}
