@@ -1,0 +1,16 @@
+base	bases	complement
+A	A	T
+C	C	G
+G	G	C
+T/U	T	A
+M	A/C	K
+R	A/G	Y
+W	A/T	W
+S	C/G	S
+Y	C/T	R
+K	G/T	M
+V	A/C/G	B
+H	A/C/T	D
+D	A/G/T	H
+B	C/G/T	V
+N	A/C/G/T	N

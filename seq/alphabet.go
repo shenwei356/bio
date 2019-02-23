@@ -17,17 +17,17 @@ http://droog.gs.washington.edu/parc/images/iupac.html
 	G	G	C
 	T/U	T	A
 
-	R	A/G	Y
-	Y	C/T	R
-	S	C/G	S
-	W	A/T	W
-	K	G/T	M
 	M	A/C	K
+	R	A/G	Y
+	W	A/T	W
+	S	C/G	S
+	Y	C/T	R
+	K	G/T	M
 
-	B	C/G/T	V
-	D	A/G/T	H
-	H	A/C/T	D
 	V	A/C/G	B
+	H	A/C/T	D
+	D	A/G/T	H
+	B	C/G/T	V
 
 	X/N	A/C/G/T	X
 	.	not A/C/G/T
