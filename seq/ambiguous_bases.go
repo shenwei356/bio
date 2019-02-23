@@ -58,6 +58,8 @@ func base2code(b byte) (int, error) {
 		c = 13
 	case 'B', 'b':
 		c = 14
+	case ' ', '*', '-':
+		c = 0
 	default:
 		return 0, ErrInvalidDNABase
 	}
@@ -76,6 +78,15 @@ func Bases2AmbBase(bs []byte) (byte, error) {
 		code |= c
 	}
 	return code2base[code], nil
+}
+
+// Codes2AmbCode converts list of codes of bases to code of ambiguous base
+func Codes2AmbCode(codes []int) (int, error) {
+	var code int
+	for _, c := range codes {
+		code |= c
+	}
+	return code, nil
 }
 
 // AmbBase2Bases0 converts ambiguous base to bases it represents, slower than AmbBase2Bases
@@ -139,4 +150,26 @@ var AmbBase2Bases = map[byte][]byte{
 
 	'N': []byte{'A', 'C', 'M', 'G', 'R', 'S', 'V', 'T', 'W', 'Y', 'H', 'K', 'D', 'B', 'N'},
 	'n': []byte{'A', 'C', 'M', 'G', 'R', 'S', 'V', 'T', 'W', 'Y', 'H', 'K', 'D', 'B', 'N'},
+}
+
+// AmbCodes2Codes is code version of AmbBase2Bases
+var AmbCodes2Codes = map[int][]int{
+	1: []int{1},
+	2: []int{2},
+	4: []int{4},
+	8: []int{8},
+
+	3:  []int{1, 2, 3},
+	5:  []int{1, 4, 5},
+	9:  []int{1, 8, 9},
+	6:  []int{2, 4, 6},
+	10: []int{2, 8, 10},
+	12: []int{4, 8, 12},
+
+	7:  []int{1, 2, 4, 3, 5, 6, 7},
+	11: []int{1, 2, 8, 3, 9, 10, 11},
+	13: []int{1, 4, 8, 5, 9, 12, 13},
+	14: []int{2, 4, 8, 6, 10, 12, 14},
+
+	15: []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
 }

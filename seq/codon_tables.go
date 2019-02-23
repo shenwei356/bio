@@ -21,7 +21,7 @@ type CodonTable struct {
 	Name       string
 	InitCodons map[string]struct{} // upper-case of codon as string, map for fast quering
 	StopCodons map[string]struct{} // upper-case of codon as string, map for fast quering
-	table      [5][5][5]byte       // matrix is much faster than map for quering
+	table      [16][16][16]byte    // matrix is much faster than map for quering
 }
 
 // NewCodonTable contructs a CodonTable with ID and Name,
@@ -30,7 +30,7 @@ func NewCodonTable(id int, name string) *CodonTable {
 	t := &CodonTable{ID: id, Name: name}
 	t.InitCodons = make(map[string]struct{}, 1)
 	t.StopCodons = make(map[string]struct{}, 1)
-	t.table = [5][5][5]byte{}
+	t.table = [16][16][16]byte{}
 	return t
 }
 
@@ -61,27 +61,16 @@ func (t CodonTable) String() string {
 
 	b.WriteString(".")
 
-	return b.String()
-}
-
-// base2idx converts the base to integer using for indexing the condon table (matrix).
-func base2idx(base byte) (int, error) {
-	var v int
-	switch base {
-	case 'A', 'a':
-		v = 0
-	case 'C', 'c':
-		v = 1
-	case 'G', 'g':
-		v = 2
-	case 'T', 't', 'U', 'u':
-		v = 3
-	case 'N', 'n':
-		v = 4
-	default:
-		return 0, ErrUnknownCodon
+	b.WriteString("\nTable:\n")
+	for i := 0; i < 16; i++ {
+		for j := 0; j < 16; j++ {
+			for k := 0; k < 16; k++ {
+				b.WriteString(fmt.Sprintf("%c%c%c: %c\n", code2base[i], code2base[j], code2base[k], t.table[i][j][k]))
+			}
+		}
 	}
-	return v, nil
+
+	return b.String()
 }
 
 // codon2idx returns the location of a codon in the matrix.
@@ -91,15 +80,15 @@ func codon2idx(codon []byte) (int, int, int, error) {
 	}
 	var err error
 	var i, j, k int
-	i, err = base2idx(codon[0])
+	i, err = base2code(codon[0])
 	if err != nil {
 		return 0, 0, 0, err
 	}
-	j, err = base2idx(codon[1])
+	j, err = base2code(codon[1])
 	if err != nil {
 		return 0, 0, 0, err
 	}
-	k, err = base2idx(codon[2])
+	k, err = base2code(codon[2])
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -127,14 +116,16 @@ func (t *CodonTable) Set2(codon string, aminoAcid byte) error {
 func (t *CodonTable) Get(codon []byte, allowUnknownCodon bool) (byte, error) {
 	i, j, k, err := codon2idx(codon)
 	if err != nil {
-		if allowUnknownCodon && err == ErrUnknownCodon {
-			if codon[0] == '-' && codon[1] == '-' && codon[2] == '-' {
-				return '-', nil
-			}
+		if allowUnknownCodon && err == ErrInvalidDNABase {
 			return 'X', nil
 		}
 		return 0, err
 	}
+
+	if codon[0] == '-' && codon[1] == '-' && codon[2] == '-' {
+		return '-', nil
+	}
+
 	aa := t.table[i][j][k]
 	if aa == 0 {
 		aa = 'X'
@@ -158,10 +149,10 @@ func (t *CodonTable) Clone() CodonTable {
 		stopCodons[k] = v
 	}
 
-	table := [5][5][5]byte{}
-	for i := 0; i < 5; i++ {
-		for j := 0; j < 5; j++ {
-			for k := 0; k < 5; k++ {
+	table := [16][16][16]byte{}
+	for i := 0; i < 16; i++ {
+		for j := 0; j < 16; j++ {
+			for k := 0; k < 16; k++ {
 				table[i][j][k] = t.table[i][j][k]
 			}
 		}
@@ -309,72 +300,92 @@ func codonTableFromText(id int, name string, text string) *CodonTable {
 		}
 	}
 
-	// supporting codon containing ambiguous base N
-	var aa2 byte
-	var flag bool
+	// supporting codon containing ambiguous base
+	var m map[byte][]int // aa - > bases
+	var ok bool
+	var codes, ambcodes []int
+	var code, ambcode int
 
 	// base3
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			aa = 'X'
-			flag = true
-			for k := 0; k < 4; k++ {
-				aa2 = t.table[i][j][k]
-				if aa == 'X' {
-					aa = aa2
-				} else if aa2 != aa {
-					flag = false
-					break
+	for i := 1; i < 16; i++ {
+		for j := 1; j < 16; j++ {
+			m = make(map[byte][]int, 16)
+			for k := 1; k < 16; k++ {
+				aa = t.table[i][j][k]
+				if aa == 0 {
+					continue
 				}
+				if _, ok = m[aa]; !ok {
+					m[aa] = make([]int, 0, 4)
+				}
+				m[aa] = append(m[aa], k)
 			}
-			if flag {
-				t.table[i][j][4] = aa
-			} else {
-				t.table[i][j][4] = 'X'
+			if len(m) == 0 {
+				continue
+			}
+			for aa, codes = range m {
+				ambcode, _ = Codes2AmbCode(codes)
+				if ambcodes, ok = AmbCodes2Codes[ambcode]; ok {
+					for _, code = range ambcodes {
+						t.table[i][j][code] = aa
+					}
+				}
 			}
 		}
 	}
 
 	// base2
-	for i := 0; i < 4; i++ {
-		for k := 0; k < 4; k++ {
-			aa = 'X'
-			flag = true
-			for j := 0; j < 4; j++ {
-				aa2 = t.table[i][j][k]
-				if aa == 'X' {
-					aa = aa2
-				} else if aa2 != aa {
-					flag = false
-					break
+	for i := 1; i < 16; i++ {
+		for k := 1; k < 16; k++ {
+			m = make(map[byte][]int, 16)
+			for j := 1; j < 16; j++ {
+				aa = t.table[i][j][k]
+				if aa == 0 {
+					continue
 				}
+				if _, ok = m[aa]; !ok {
+					m[aa] = make([]int, 0, 4)
+				}
+				m[aa] = append(m[aa], j)
 			}
-			if flag {
-				t.table[i][4][k] = aa
-			} else {
-				t.table[i][4][k] = 'X'
+			if len(m) == 0 {
+				continue
+			}
+			for aa, codes = range m {
+				ambcode, _ = Codes2AmbCode(codes)
+				if ambcodes, ok = AmbCodes2Codes[ambcode]; ok {
+					for _, code = range ambcodes {
+						t.table[i][code][k] = aa
+					}
+				}
 			}
 		}
 	}
 
 	// base1
-	for j := 0; j < 4; j++ {
-		for k := 0; k < 4; k++ {
-			aa = 'X'
-			flag = true
-			for i := 0; i < 4; i++ {
-				aa2 = t.table[i][j][k]
-				if aa == 'X' {
-					aa = aa2
-				} else if aa2 != aa {
-					flag = false
-					break
+	for j := 1; j < 16; j++ {
+		for k := 1; k < 16; k++ {
+			m = make(map[byte][]int, 16)
+			for i := 1; i < 16; i++ {
+				aa = t.table[i][j][k]
+				if aa == 0 {
+					continue
 				}
+				if _, ok = m[aa]; !ok {
+					m[aa] = make([]int, 0, 4)
+				}
+				m[aa] = append(m[aa], i)
 			}
-			if flag {
-				t.table[4][j][k] = aa
-			} else {
-				t.table[4][j][k] = 'X'
+			if len(m) == 0 {
+				continue
+			}
+			for aa, codes = range m {
+				ambcode, _ = Codes2AmbCode(codes)
+				if ambcodes, ok = AmbCodes2Codes[ambcode]; ok {
+					for _, code = range ambcodes {
+						t.table[code][j][k] = aa
+					}
+				}
 			}
 		}
 	}
@@ -584,8 +595,8 @@ TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG`)
 	// }
 	// sort.Ints(ks)
 	// for _, i = range ks {
-	// 	// fmt.Println(CodonTables[i])
-	// 	fmt.Printf("%d: %s\n", CodonTables[i].ID, CodonTables[i].Name)
+	// 	fmt.Println(CodonTables[i])
+	// 	// fmt.Printf("%d: %s\n", CodonTables[i].ID, CodonTables[i].Name)
 	// }
 
 }
