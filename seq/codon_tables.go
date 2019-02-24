@@ -34,10 +34,19 @@ func NewCodonTable(id int, name string) *CodonTable {
 	return t
 }
 
-// String returns a short description of the CodonTable.
+// String returns details of the CodonTable.
 func (t CodonTable) String() string {
+	return t.string(false)
+}
+
+// StringWithAmbiguousCodons returns details of the CodonTable， including ambiguous codons.
+func (t CodonTable) StringWithAmbiguousCodons() string {
+	return t.string(true)
+}
+
+func (t CodonTable) string(showAmbiguousCodon bool) string {
 	var b bytes.Buffer
-	b.WriteString(fmt.Sprintf("%s (transl_table=%d). Initiation Codon: ", t.Name, t.ID))
+	b.WriteString(fmt.Sprintf("%s (transl_table=%d)\n\nInitiation Codons:\n  ", t.Name, t.ID))
 
 	codons := make([]string, len(t.InitCodons))
 	i := 0
@@ -48,7 +57,7 @@ func (t CodonTable) String() string {
 	sort.Strings(codons)
 	b.WriteString(strings.Join(codons, ", "))
 
-	b.WriteString(". Stop Codon: ")
+	b.WriteString("\n\nStop Codons:\n  ")
 
 	codons = make([]string, len(t.StopCodons))
 	i = 0
@@ -59,14 +68,38 @@ func (t CodonTable) String() string {
 	sort.Strings(codons)
 	b.WriteString(strings.Join(codons, ", "))
 
-	b.WriteString(".")
-
-	b.WriteString("\nTable:\n")
-	for i := 0; i < 16; i++ {
-		for j := 0; j < 16; j++ {
-			for k := 0; k < 16; k++ {
-				b.WriteString(fmt.Sprintf("%c%c%c: %c\n", code2base[i], code2base[j], code2base[k], t.table[i][j][k]))
+	b.WriteString("\n\nStranslate Table:\n")
+	var aa byte
+	var flag, flag2 bool
+	var buf []string
+	for i := 1; i < 16; i++ {
+		if !showAmbiguousCodon && i != 1 && i != 2 && i != 4 && i != 8 {
+			continue
+		}
+		flag2 = false
+		for j := 1; j < 16; j++ {
+			if !showAmbiguousCodon && (j != 1 && j != 2 && j != 4 && j != 8) {
+				continue
 			}
+			buf = make([]string, 0, 16)
+			flag = false
+			for k := 1; k < 16; k++ {
+				if !showAmbiguousCodon && k != 1 && k != 2 && k != 4 && k != 8 {
+					continue
+				}
+				aa = t.table[i][j][k]
+				if aa != 0 {
+					buf = append(buf, fmt.Sprintf("%c%c%c: %c", code2base[i], code2base[j], code2base[k], aa))
+					flag = true
+					flag2 = true
+				}
+			}
+			if flag {
+				b.WriteString("  " + strings.Join(buf, ", ") + "\n")
+			}
+		}
+		if flag2 {
+			b.WriteString("\n")
 		}
 	}
 
@@ -597,6 +630,7 @@ TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG`)
 	// for _, i = range ks {
 	// 	fmt.Println(CodonTables[i])
 	// 	// fmt.Printf("%d: %s\n", CodonTables[i].ID, CodonTables[i].Name)
+	// 	break
 	// }
 
 }
