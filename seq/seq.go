@@ -3,6 +3,7 @@ package seq
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"runtime"
 	"strings"
 	"sync"
@@ -14,8 +15,17 @@ var defaultBytesBufferSize = 10 << 20
 
 var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
 
+var QUAL_MAP [93]float64
+
+func initQualMap() {
+	for i, _ := range QUAL_MAP {
+		QUAL_MAP[i] = math.Pow(10, float64(i)/-10)
+	}
+}
+
 func init() {
 	bufferedByteSliceWrapper = byteutil.NewBufferedByteSliceWrapper(1, defaultBytesBufferSize)
+	initQualMap()
 }
 
 // Seq struct has two attributes, alphabet, seq,
@@ -558,4 +568,17 @@ func (seq *Seq) ParseQual(asciiBase int) {
 		qv[i] = int(q) - asciiBase
 	}
 	seq.QualValue = qv
+}
+
+// Calculate average quality value.
+func (seq *Seq) AvgQual(asciiBase int) float64 {
+	seq.ParseQual(asciiBase)
+	if len(seq.QualValue) == 0 {
+		return 0.0
+	}
+	var sum float64
+	for _, q := range seq.QualValue {
+		sum += QUAL_MAP[q]
+	}
+	return -10 * math.Log10(sum/float64(len(seq.QualValue)))
 }
