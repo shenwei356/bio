@@ -572,7 +572,9 @@ func (seq *Seq) ParseQual(asciiBase int) {
 
 // Calculate average quality value.
 func (seq *Seq) AvgQual(asciiBase int) float64 {
-	seq.ParseQual(asciiBase)
+	if len(seq.Qual) > 0 && len(seq.QualValue) == 0 {
+		seq.ParseQual(asciiBase)
+	}
 	if len(seq.QualValue) == 0 {
 		return 0.0
 	}
