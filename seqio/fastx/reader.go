@@ -59,7 +59,7 @@ type Reader struct {
 var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // DefaultIDRegexp is the default ID parsing regular expression
-var DefaultIDRegexp = `^([^\s]+)\s?`
+var DefaultIDRegexp = `^(\S+)\s?`
 var isUsingDefaultIDRegexp bool
 
 // NewDefaultReader automaticlly recognizes sequence type and parses id with default manner
@@ -377,6 +377,9 @@ func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
+			return head[0:i]
+		}
+		if i := bytes.IndexByte(head, '\t'); i > 0 {
 			return head[0:i]
 		}
 		return head

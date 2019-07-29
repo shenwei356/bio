@@ -46,7 +46,10 @@ func (t CodonTable) StringWithAmbiguousCodons() string {
 
 func (t CodonTable) string(showAmbiguousCodon bool) string {
 	var b bytes.Buffer
-	b.WriteString(fmt.Sprintf("%s (transl_table=%d)\n\nInitiation Codons:\n  ", t.Name, t.ID))
+	b.WriteString(fmt.Sprintf("%s (transl_table=%d)\n", t.Name, t.ID))
+	b.WriteString(fmt.Sprintf("Source: https://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=tgencodes#SG%d\n", t.ID))
+
+	b.WriteString("\nInitiation Codons:\n  ")
 
 	codons := make([]string, len(t.InitCodons))
 	i := 0
