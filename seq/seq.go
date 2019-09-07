@@ -369,10 +369,8 @@ func (seq *Seq) ComplementInplace() *Seq {
 		go func(alphabet *Alphabet, start, end int) {
 			var p byte
 			for i := start; i < end; i++ {
-				p = alphabet.pairLetters[seq.Seq[i]-'\x00']
-				if p != 0 {
-					seq.Seq[i] = p
-				}
+				p, _ = seq.Alphabet.PairLetter(seq.Seq[i])
+				seq.Seq[i] = p
 			}
 			<-tokens
 			wg.Done()

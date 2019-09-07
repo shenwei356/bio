@@ -323,6 +323,9 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	if a.isUnlimit {
 		return b, nil
 	}
+	if int(b) >= len(a.pairLetters) {
+		return b, fmt.Errorf("seq: invalid letter: %c", b)
+	}
 	p := a.pairLetters[b-'\x00']
 	if p == 0 {
 		return b, fmt.Errorf("seq: invalid letter: %c", b)
