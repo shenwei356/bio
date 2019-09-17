@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
-	"syscall"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/xopen"
@@ -24,7 +24,7 @@ var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 // ErrNoContent means nothing in the file or stream
 var ErrNoContent = errors.New("fastx: no content found")
 
-var pageSize = syscall.Getpagesize()
+var pageSize = os.Getpagesize() * 2
 
 // Reader seamlessly parse both FASTA and FASTQ formats
 type Reader struct {
@@ -166,6 +166,10 @@ func (fastxReader *Reader) read() {
 					fastxReader.Close()
 					return
 				}
+			} else if n == 0 {
+				fastxReader.Err = io.ErrUnexpectedEOF
+				fastxReader.Close()
+				return
 			}
 
 			// last part of file OR just because reader not fulfill the buf,
