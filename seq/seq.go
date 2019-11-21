@@ -15,12 +15,14 @@ var defaultBytesBufferSize = 10 << 20
 
 var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
 
-var QUAL_MAP [93]float64
+var QUAL_MAP [256]float64
 
 func initQualMap() {
 	for i, _ := range QUAL_MAP {
 		QUAL_MAP[i] = math.Pow(10, float64(i)/-10)
 	}
+	QUAL_MAP[255] = 1.0
+
 }
 
 func init() {
