@@ -350,10 +350,12 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	if fastxReader.IsFastq {
 		fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
 			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+			fastxReader.parseHeadDesc(fastxReader.head),
 			fastxReader.seq, fastxReader.qual)
 	} else {
 		fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
 			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+			fastxReader.parseHeadDesc(fastxReader.head),
 			fastxReader.seq)
 	}
 
@@ -368,6 +370,10 @@ func (fastxReader *Reader) parseHeadID(head []byte) []byte {
 	return parseHeadID(fastxReader.IDRegexp, head)
 }
 
+func (fastxReader *Reader) parseHeadDesc(head []byte) []byte {
+	return parseHeadDesc(fastxReader.IDRegexp, head)
+}
+
 // ParseHeadID parse ID from head by IDRegexp
 func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	found := idRegexp.FindSubmatch(head)
@@ -377,7 +383,7 @@ func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	return found[1]
 }
 
-// ParseHeadID parse ID from head by IDRegexp
+// parseHeadID parse ID from head by IDRegexp
 func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
@@ -394,6 +400,20 @@ func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 		return head
 	}
 	return found[1]
+}
+
+// parseHeadDesc returns description of header
+func parseHeadDesc(idRegexp *regexp.Regexp, head []byte) []byte {
+	if isUsingDefaultIDRegexp {
+		if i := bytes.IndexByte(head, ' '); i > 0 {
+			return bytes.TrimLeft(head[i:], " \t")
+		}
+		if i := bytes.IndexByte(head, '\t'); i > 0 {
+			return bytes.TrimLeft(head[i:], " \t")
+		}
+		return []byte{}
+	}
+	return []byte{}
 }
 
 // Alphabet returns Alphabet of the file
