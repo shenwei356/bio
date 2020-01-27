@@ -2,6 +2,7 @@ package fai
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/edsrzf/mmap-go"
@@ -108,12 +109,18 @@ func (f *Faidx) SubSeqNotCleaned(chr string, start int, end int) ([]byte, error)
 	pstart := position(index, start-1)
 	pend := position(index, end)
 	if MapWholeFile {
+		if pend > int64(len(f.mmap)) { // for truncated file
+			pend = int64(len(f.mmap))
+		}
 		return f.mmap[pstart:pend], nil
 	}
 
 	data := make([]byte, pend-pstart)
-	_, err := f.reader.ReadAt(data, pstart)
+	n, err := f.reader.ReadAt(data, pstart)
 	if err != nil {
+		if err == io.EOF { // for truncated file
+			return data[0:n], nil
+		}
 		return nil, err
 	}
 	return data, nil
@@ -185,10 +192,9 @@ func SubLocation(length, start, end int) (int, int, bool) {
 			}
 
 			if -start > length {
-				start = 1
-			} else {
-				start = length + start + 1
+				return start, end, false
 			}
+			start = length + start + 1
 		}
 	}
 	if start > length {
@@ -212,7 +218,7 @@ func SubLocation(length, start, end int) (int, int, bool) {
 }
 
 func cleanSeq(slice []byte) []byte {
-	newSlice := []byte{}
+	newSlice := make([]byte, 0, len(slice))
 	for _, b := range slice {
 		switch b {
 		case '\r', '\n':

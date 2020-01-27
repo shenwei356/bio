@@ -72,6 +72,13 @@ func TestFastaReader(t *testing.T) {
 		t.Errorf("unmatched sequences %s from %d to %d: %s", chr, start, end, seq)
 	}
 
+	chr = "seq"
+	seq, err = idx.Seq(chr)
+	checkErr(t, err)
+	if string(seq) != "ACTGACTG" {
+		t.Errorf("unmatched sequences %s: %s", chr, seq)
+	}
+
 	err = idx.Close()
 	if err != nil {
 		t.Errorf("fail to close faidx: %v", err)

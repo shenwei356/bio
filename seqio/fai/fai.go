@@ -161,6 +161,12 @@ func Create(fileSeq, fileFai string) (Index, error) {
 				seqWidth = seqWidths[0]
 			}
 
+			if len(line) > 0 && line[len(line)-1] != '\n' {
+				fmt.Fprintln(os.Stderr, `[WARNING]: newline character ('\n') not detected at end of file, truncated file?`)
+			}
+
+			seqLen += len(line)
+
 			if _, ok := index[id]; ok {
 				// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
 				os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
@@ -255,7 +261,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
-var defaultIDRegexp = `^([^\s]+)\s?`
+var defaultIDRegexp = `^(\S+)\s?`
 
 // IDRegexp is regexp for parsing record id
 var IDRegexp = regexp.MustCompile(defaultIDRegexp)
@@ -264,6 +270,9 @@ var isUsingDefaultIDRegexp = true
 func parseHeadID(head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
+			return head[0:i]
+		}
+		if i := bytes.IndexByte(head, '\t'); i > 0 {
 			return head[0:i]
 		}
 		return head
