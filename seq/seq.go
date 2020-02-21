@@ -412,6 +412,20 @@ func (seq *Seq) BaseContent(list string) float64 {
 	return float64(sum) / float64(len(seq.Seq))
 }
 
+// BaseContentCaseSensitive returns base content for given case sensitive bases.
+func (seq *Seq) BaseContentCaseSensitive(list string) float64 {
+	if len(seq.Seq) == 0 {
+		return float64(0)
+	}
+
+	sum := 0
+	for _, b := range []byte(list) {
+		sum += bytes.Count(seq.Seq, []byte{b})
+	}
+
+	return float64(sum) / float64(len(seq.Seq))
+}
+
 // GC returns the GC content
 func (seq *Seq) GC() float64 {
 	return seq.BaseContent("gcs")
