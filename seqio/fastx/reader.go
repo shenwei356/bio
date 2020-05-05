@@ -226,7 +226,11 @@ func (fastxReader *Reader) read() {
 					fastxReader.lastByte = fastxReader.buf[fastxReader.r+i-1]
 				} else {
 					p = fastxReader.buffer.Bytes()
-					fastxReader.lastByte = p[len(p)-1]
+					if len(p) == 0 {
+						fastxReader.lastByte = '\x00'
+					} else {
+						fastxReader.lastByte = p[len(p)-1]
+					}
 				}
 				if fastxReader.lastByte == '\n' { // yes!
 					if i > 0 {
