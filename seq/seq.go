@@ -468,6 +468,42 @@ var DegenerateBaseMapNucl = map[byte]string{
 	'n': "[acgt]",
 }
 
+// DegenerateBaseMapNucl2 mappings nucleic acid degenerate base to all bases.
+var DegenerateBaseMapNucl2 = map[byte]string{
+	'A': "A",
+	'T': "T",
+	'U': "U",
+	'C': "C",
+	'G': "G",
+	'R': "AG",
+	'Y': "CT",
+	'M': "AC",
+	'K': "GT",
+	'S': "CG",
+	'W': "AT",
+	'H': "ACT",
+	'B': "CGT",
+	'V': "ACG",
+	'D': "AGT",
+	'N': "ACGT",
+	'a': "a",
+	't': "t",
+	'u': "u",
+	'c': "c",
+	'g': "g",
+	'r': "ag",
+	'y': "ct",
+	'm': "ac",
+	'k': "gt",
+	's': "cg",
+	'w': "at",
+	'h': "act",
+	'b': "cgt",
+	'v': "acg",
+	'd': "agt",
+	'n': "acgt",
+}
+
 // DegenerateBaseMapProt mappings protein degenerate base to
 // regular expression
 var DegenerateBaseMapProt = map[byte]string{
@@ -521,7 +557,7 @@ var DegenerateBaseMapProt = map[byte]string{
 	'z': "[qe]",
 }
 
-// Degenerate2Regexp transform seqs containing degenrate base to regular expression
+// Degenerate2Regexp transforms seqs containing degenrate base to regular expression
 func (seq *Seq) Degenerate2Regexp() string {
 	var m map[byte]string
 	if seq.Alphabet == Protein {
@@ -539,6 +575,46 @@ func (seq *Seq) Degenerate2Regexp() string {
 		}
 	}
 	return strings.Join(s, "")
+}
+
+// Degenerate2Seqs transforms seqs containing degenrate bases to all possible sequences.
+func Degenerate2Seqs(s []byte) (dseqs [][]byte, err error) {
+	dseqs = [][]byte{[]byte{}}
+	var i, j, k int
+	var ok bool
+	var dbases string
+	var dbase byte
+	for _, base := range s {
+		if dbases, ok = DegenerateBaseMapNucl2[base]; ok {
+			if len(dbases) == 1 {
+				dbase = dbases[0]
+				for i = 0; i < len(dseqs); i++ {
+					dseqs[i] = append(dseqs[i], dbase)
+				}
+			} else {
+				// 2nd
+				more := make([][]byte, len(dseqs)*(len(dbases)-1))
+				k = 0
+				for i = 1; i < len(dbases); i++ {
+					for j = 0; j < len(dseqs); j++ {
+						more[k] = []byte(string(append(dseqs[j], dbases[i])))
+						k++
+					}
+				}
+
+				// 1th
+				for i = 0; i < len(dseqs); i++ {
+					dseqs[i] = append(dseqs[i], dbases[0])
+				}
+
+				dseqs = append(dseqs, more...)
+			}
+
+		} else {
+			return dseqs, fmt.Errorf("seq: invalid letter: %c", base)
+		}
+	}
+	return dseqs, nil
 }
 
 // Translate translates the RNA/DNA to amino acid sequence.
