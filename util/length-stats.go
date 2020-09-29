@@ -115,7 +115,7 @@ func (stats *LengthStats) Median() float64 {
 		return float64(stats.counts[0][0])
 	}
 
-	even := stats.count%2 == 0
+	even := stats.count&1 == 0    // %2 == 0
 	var iMedianL, iMedianR uint64 // 0-based
 	if even {
 		iMedianL = uint64(stats.count/2) - 1 // 3
@@ -140,7 +140,7 @@ func (stats *LengthStats) Q1() float64 {
 		return float64(stats.counts[0][0]) / 2
 	}
 
-	even := stats.count%2 == 0
+	even := stats.count&1 == 0    // %2 == 0
 	var iMedianL, iMedianR uint64 // 0-based
 	var n uint64
 	if even {
@@ -173,7 +173,7 @@ func (stats *LengthStats) Q3() float64 {
 		return float64(stats.counts[0][0]) / 2
 	}
 
-	even := stats.count%2 == 0
+	even := stats.count&1 == 0    // %2 == 0
 	var iMedianL, iMedianR uint64 // 0-based
 	var mean, n uint64
 	if even {
