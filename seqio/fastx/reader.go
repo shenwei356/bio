@@ -219,9 +219,10 @@ func (fastxReader *Reader) read() {
 		}
 
 		var shorterQual bool
+		var i int
 	FORSEARCH:
 		for {
-			if i := bytes.IndexByte(fastxReader.buf[fastxReader.r:], fastxReader.delim); i >= 0 {
+			if i = bytes.IndexByte(fastxReader.buf[fastxReader.r:], fastxReader.delim); i >= 0 {
 				if i > 0 {
 					fastxReader.lastByte = fastxReader.buf[fastxReader.r+i-1]
 				} else {
@@ -286,7 +287,9 @@ func (fastxReader *Reader) read() {
 // parseRecord parse a FASTA/Q record from the fastxReader.buffer
 func (fastxReader *Reader) parseRecord() (bool, error) {
 	fastxReader.seqBuffer.Reset()
-	fastxReader.qualBuffer.Reset()
+	if fastxReader.IsFastq {
+		fastxReader.qualBuffer.Reset()
+	}
 
 	var p = fastxReader.buffer.Bytes()
 	if j := bytes.IndexByte(p, '\n'); j > 0 {
