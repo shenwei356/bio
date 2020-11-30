@@ -110,6 +110,25 @@ func (seq *Seq) Clone() *Seq {
 	}
 }
 
+// Clone2 clones the sequence except the alphabet
+func (seq *Seq) Clone2() *Seq {
+	s := make([]byte, len(seq.Seq))
+	copy(s, seq.Seq)
+
+	q := make([]byte, len(seq.Qual))
+	copy(q, seq.Qual)
+
+	qv := make([]int, len(seq.QualValue))
+	copy(qv, seq.QualValue)
+
+	return &Seq{
+		Alphabet:  seq.Alphabet,
+		Seq:       s,
+		Qual:      q,
+		QualValue: qv,
+	}
+}
+
 /*SubSeq returns a sub seq. start and end is 1-based.
 
 Examples:
