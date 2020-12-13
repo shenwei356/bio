@@ -16,32 +16,32 @@ func TestBases2AmbBase(t *testing.T) {
 	}
 
 	tests := []Test{
-		Test{[]byte{'A'}, 'A', nil},
-		Test{[]byte{'c'}, 'C', nil},
-		Test{[]byte{'t'}, 'T', nil},
-		Test{[]byte{'u'}, 'T', nil},
-		Test{[]byte{'g'}, 'G', nil},
+		{[]byte{'A'}, 'A', nil},
+		{[]byte{'c'}, 'C', nil},
+		{[]byte{'t'}, 'T', nil},
+		{[]byte{'u'}, 'T', nil},
+		{[]byte{'g'}, 'G', nil},
 
-		Test{[]byte{'a', 'c'}, 'M', nil},
-		Test{[]byte{'c', 'a'}, 'M', nil},
-		Test{[]byte{'a', 'g'}, 'R', nil},
-		Test{[]byte{'g', 'a'}, 'R', nil},
-		Test{[]byte{'a', 't'}, 'W', nil},
-		Test{[]byte{'t', 'a'}, 'W', nil},
-		Test{[]byte{'c', 'g'}, 'S', nil},
-		Test{[]byte{'g', 'c'}, 'S', nil},
-		Test{[]byte{'c', 't'}, 'Y', nil},
-		Test{[]byte{'t', 'c'}, 'Y', nil},
-		Test{[]byte{'g', 't'}, 'K', nil},
-		Test{[]byte{'t', 'g'}, 'K', nil},
+		{[]byte{'a', 'c'}, 'M', nil},
+		{[]byte{'c', 'a'}, 'M', nil},
+		{[]byte{'a', 'g'}, 'R', nil},
+		{[]byte{'g', 'a'}, 'R', nil},
+		{[]byte{'a', 't'}, 'W', nil},
+		{[]byte{'t', 'a'}, 'W', nil},
+		{[]byte{'c', 'g'}, 'S', nil},
+		{[]byte{'g', 'c'}, 'S', nil},
+		{[]byte{'c', 't'}, 'Y', nil},
+		{[]byte{'t', 'c'}, 'Y', nil},
+		{[]byte{'g', 't'}, 'K', nil},
+		{[]byte{'t', 'g'}, 'K', nil},
 
-		Test{[]byte{'a', 'c', 'g'}, 'V', nil},
-		Test{[]byte{'a', 'c', 't'}, 'H', nil},
-		Test{[]byte{'a', 'G', 't'}, 'D', nil},
-		Test{[]byte{'C', 'g', 't'}, 'B', nil},
-		Test{[]byte{'C', 'g', 't', 'a'}, 'N', nil},
+		{[]byte{'a', 'c', 'g'}, 'V', nil},
+		{[]byte{'a', 'c', 't'}, 'H', nil},
+		{[]byte{'a', 'G', 't'}, 'D', nil},
+		{[]byte{'C', 'g', 't'}, 'B', nil},
+		{[]byte{'C', 'g', 't', 'a'}, 'N', nil},
 
-		Test{[]byte{'j'}, 'N', ErrInvalidDNABase},
+		{[]byte{'j'}, 'N', ErrInvalidDNABase},
 	}
 	var amb byte
 	var err error
@@ -67,24 +67,24 @@ type _AmbBase2BasesTest struct {
 }
 
 var tests4AmbBase2Bases = []_AmbBase2BasesTest{
-	_AmbBase2BasesTest{'A', []byte{'A'}, nil},
-	_AmbBase2BasesTest{'C', []byte{'C'}, nil},
-	_AmbBase2BasesTest{'G', []byte{'G'}, nil},
-	_AmbBase2BasesTest{'T', []byte{'T'}, nil},
+	{'A', []byte{'A'}, nil},
+	{'C', []byte{'C'}, nil},
+	{'G', []byte{'G'}, nil},
+	{'T', []byte{'T'}, nil},
 
-	_AmbBase2BasesTest{'M', []byte{'A', 'C', 'M'}, nil},
-	_AmbBase2BasesTest{'R', []byte{'A', 'G', 'R'}, nil},
-	_AmbBase2BasesTest{'W', []byte{'A', 'T', 'W'}, nil},
-	_AmbBase2BasesTest{'S', []byte{'C', 'G', 'S'}, nil},
-	_AmbBase2BasesTest{'Y', []byte{'C', 'T', 'Y'}, nil},
-	_AmbBase2BasesTest{'K', []byte{'G', 'T', 'K'}, nil},
+	{'M', []byte{'A', 'C', 'M'}, nil},
+	{'R', []byte{'A', 'G', 'R'}, nil},
+	{'W', []byte{'A', 'T', 'W'}, nil},
+	{'S', []byte{'C', 'G', 'S'}, nil},
+	{'Y', []byte{'C', 'T', 'Y'}, nil},
+	{'K', []byte{'G', 'T', 'K'}, nil},
 
-	_AmbBase2BasesTest{'V', []byte{'A', 'C', 'G', 'M', 'R', 'S', 'V'}, nil},
-	_AmbBase2BasesTest{'H', []byte{'A', 'C', 'T', 'M', 'W', 'Y', 'H'}, nil},
-	_AmbBase2BasesTest{'D', []byte{'A', 'G', 'T', 'R', 'W', 'K', 'D'}, nil},
-	_AmbBase2BasesTest{'B', []byte{'C', 'G', 'T', 'S', 'Y', 'K', 'B'}, nil},
+	{'V', []byte{'A', 'C', 'G', 'M', 'R', 'S', 'V'}, nil},
+	{'H', []byte{'A', 'C', 'T', 'M', 'W', 'Y', 'H'}, nil},
+	{'D', []byte{'A', 'G', 'T', 'R', 'W', 'K', 'D'}, nil},
+	{'B', []byte{'C', 'G', 'T', 'S', 'Y', 'K', 'B'}, nil},
 
-	_AmbBase2BasesTest{'N', []byte{'A', 'C', 'M', 'G', 'R', 'S', 'V', 'T', 'W', 'Y', 'H', 'K', 'D', 'B', 'N'}, nil},
+	{'N', []byte{'A', 'C', 'M', 'G', 'R', 'S', 'V', 'T', 'W', 'Y', 'H', 'K', 'D', 'B', 'N'}, nil},
 }
 
 func TestAmbBase2Bases(t *testing.T) {

@@ -18,7 +18,7 @@ var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
 var QUAL_MAP [256]float64
 
 func initQualMap() {
-	for i, _ := range QUAL_MAP {
+	for i := range QUAL_MAP {
 		QUAL_MAP[i] = math.Pow(10, float64(i)/-10)
 	}
 	QUAL_MAP[255] = 1.0
@@ -598,7 +598,7 @@ func (seq *Seq) Degenerate2Regexp() string {
 
 // Degenerate2Seqs transforms seqs containing degenrate bases to all possible sequences.
 func Degenerate2Seqs(s []byte) (dseqs [][]byte, err error) {
-	dseqs = [][]byte{[]byte{}}
+	dseqs = [][]byte{}
 	var i, j, k int
 	var ok bool
 	var dbases string
@@ -679,7 +679,7 @@ func (seq *Seq) ParseQual(asciiBase int) {
 	seq.QualValue = qv
 }
 
-// Calculate average quality value.
+// AvgQual calculates average quality value.
 func (seq *Seq) AvgQual(asciiBase int) float64 {
 	if len(seq.Qual) > 0 && len(seq.QualValue) == 0 {
 		seq.ParseQual(asciiBase)
@@ -692,4 +692,65 @@ func (seq *Seq) AvgQual(asciiBase int) float64 {
 		sum += QUAL_MAP[q]
 	}
 	return -10 * math.Log10(sum/float64(len(seq.QualValue)))
+}
+
+// Slider returns a function for sliding the sequence.
+// Circular is for circular genome, and it overides greedy.
+// If not circular and greedy is true, last fragment shorter than window will be returned.
+func (seq *Seq) Slider(window int, step int, circular bool, greedy bool) func() (*Seq, bool) {
+	alphabet := seq.Alphabet
+	originalLen := len(seq.Seq)
+	sequence := seq.Seq
+	qual := seq.Qual
+	fastq := len(qual) > 0
+	l := len(sequence)
+	end := l - 1
+	if end < 0 {
+		end = 0
+	}
+
+	var i, e int
+	var s, q []byte
+
+	i = 0
+	return func() (*Seq, bool) {
+		if i > end {
+			return nil, false
+		}
+		e = i + window
+		if e > originalLen {
+			if circular {
+				e = e - originalLen
+				s = sequence[i:]
+				s = append(s, sequence[0:e]...)
+				if fastq {
+					q = qual[i:]
+					q = append(q, qual[0:e]...)
+				}
+			} else if greedy {
+				s = sequence[i:]
+				if fastq {
+					q = qual[i:]
+				}
+				e = l
+			} else { // end
+				return nil, false
+			}
+		} else {
+			s = sequence[i : i+window]
+			if fastq {
+				q = qual[i : i+window]
+			}
+		}
+
+		i += step
+
+		var newseq *Seq
+		if fastq {
+			newseq, _ = NewSeqWithQualWithoutValidation(alphabet, s, q)
+			return newseq, true
+		}
+		newseq, _ = NewSeqWithoutValidation(alphabet, s)
+		return newseq, true
+	}
 }
