@@ -417,6 +417,15 @@ func (seq *Seq) BaseContent(list string) float64 {
 		return float64(0)
 	}
 
+	return float64(seq.BaseCount(list)) / float64(len(seq.Seq))
+}
+
+// BaseCount counts bases
+func (seq *Seq) BaseCount(list string) int {
+	if len(seq.Seq) == 0 {
+		return 0
+	}
+
 	sum := 0
 	for _, b := range []byte(list) {
 		up := bytes.ToUpper([]byte{b})
@@ -428,7 +437,7 @@ func (seq *Seq) BaseContent(list string) float64 {
 		}
 	}
 
-	return float64(sum) / float64(len(seq.Seq))
+	return sum
 }
 
 // BaseContentCaseSensitive returns base content for given case sensitive bases.
@@ -437,12 +446,21 @@ func (seq *Seq) BaseContentCaseSensitive(list string) float64 {
 		return float64(0)
 	}
 
+	return float64(seq.BaseCountCaseSensitive(list)) / float64(len(seq.Seq))
+}
+
+// BaseCountCaseSensitive counts bases, case is not ignored.
+func (seq *Seq) BaseCountCaseSensitive(list string) int {
+	if len(seq.Seq) == 0 {
+		return 0
+	}
+
 	sum := 0
 	for _, b := range []byte(list) {
 		sum += bytes.Count(seq.Seq, []byte{b})
 	}
 
-	return float64(sum) / float64(len(seq.Seq))
+	return sum
 }
 
 // GC returns the GC content
