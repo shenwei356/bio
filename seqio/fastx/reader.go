@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/shenwei356/bio/seq"
+	"github.com/michieldhadamus/bio/seq"
 	"github.com/shenwei356/xopen"
 )
 
