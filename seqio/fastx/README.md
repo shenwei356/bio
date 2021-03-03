@@ -17,7 +17,7 @@ This package seamlessly parses both FASTA and FASTQ formats.
     	"os"
 
     	// "github.com/shenwei356/bio/seq"
-    	"github.com/shenwei356/bio/seqio/fastx"
+    	"github.com/michieldhadamus/bio/seqio/fastx"
     	"github.com/shenwei356/xopen"
     )
 
@@ -85,8 +85,8 @@ of records in a chunk.
 ### Custom alphabet and identifier regular expression
 
     import (
-        "github.com/shenwei356/bio/seq"
-        "github.com/shenwei356/bio/seqio/fastx"
+        "github.com/michieldhadamus/bio/seq"
+        "github.com/michieldhadamus/bio/seqio/fastx"
     )
 
     reader, err := fastx.NewReader(seq.DNA, file, "^([^\s]+)\s?")
