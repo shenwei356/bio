@@ -126,6 +126,45 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	return fastxReader, nil
 }
 
+func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Reader, error) {
+	var r *regexp.Regexp
+	if idRegexp == "" {
+		r = regexp.MustCompile(DefaultIDRegexp)
+		isUsingDefaultIDRegexp = true
+	} else {
+		if !reCheckIDregexpStr.MatchString(idRegexp) {
+			return nil, fmt.Errorf(`fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
+		}
+		var err error
+		r, err = regexp.Compile(idRegexp)
+		if err != nil {
+			return nil, fmt.Errorf("fastx: fail to compile regexp: %s", idRegexp)
+		}
+		if idRegexp == DefaultIDRegexp {
+			isUsingDefaultIDRegexp = true
+		}
+	}
+
+	fh, err := xopen.Buf(ioReader)
+	if err!=nil{
+		panic(err)
+	}
+
+	fastxReader := &Reader{
+		fh:           fh,
+		buf:          make([]byte, pageSize),
+		t:            t,
+		IDRegexp:     r,
+		firstseq:     true,
+		checkSeqType: true,
+	}
+	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
+	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
+	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
+
+	return fastxReader, nil
+}
+
 // Close closes the reader
 func (fastxReader *Reader) Close() {
 	if fastxReader.fh != nil {
