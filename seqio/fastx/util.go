@@ -3,7 +3,7 @@ package fastx
 import (
 	"io"
 
-	"github.com/shenwei356/bio/seq"
+	"github.com/michieldhadamus/bio/seq"
 )
 
 // GetSeqNames returns the names of a fasta/q file
