@@ -661,7 +661,7 @@ func Degenerate2Seqs(s []byte) (dseqs [][]byte, err error) {
 // If option allowUnknownCodon is true, codons not in the codon table will be translated to 'X'.
 // If option markInitCodonAsM is true, initial codon at beginning will be represented as 'M'.
 func (seq *Seq) Translate(transl_table int, frame int, trim bool, clean bool, allowUnknownCodon bool, markInitCodonAsM bool) (*Seq, error) {
-	if !(seq.Alphabet.t == "DNA" || seq.Alphabet.t == "DNAredundant" || seq.Alphabet.t == "RNA" || seq.Alphabet.t == "RNAredundant") {
+	if !(seq.Alphabet.String() == "DNA" || seq.Alphabet.String() == "DNAredundant" || seq.Alphabet.String() == "RNA" || seq.Alphabet.String() == "RNAredundant") {
 		return nil, fmt.Errorf("seq: only DNA/RNA sequence can all method Translate, the alphabet is %s", seq.Alphabet.String())
 	}
 	var codonTable *CodonTable

@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/michieldhadamus/bio/seq"
+	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/xopen"
 )
 
@@ -126,6 +126,18 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	return fastxReader, nil
 }
 
+
+// NewReaderFromIO is constructor of FASTX Reader.
+//
+// Parameters:
+//
+//        t            sequence alphabet
+//                     if nil is given, it will guess alphabet by the first record
+//        file         an io.Reader
+//        idRegexp     id parsing regular expression string, must contains "(" and ")" to capture matched ID
+//                     "" for default value: `^([^\s]+)\s?`
+//                     if record head does not match the idRegxp, whole name will be the id
+//
 func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
 	if idRegexp == "" {

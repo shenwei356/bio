@@ -3,7 +3,7 @@ package fastx
 import (
 	"fmt"
 
-	"github.com/michieldhadamus/bio/seq"
+	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/util/byteutil"
 	"github.com/shenwei356/xopen"
 )
