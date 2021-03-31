@@ -126,7 +126,6 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	return fastxReader, nil
 }
 
-
 // NewReaderFromIO is constructor of FASTX Reader.
 //
 // Parameters:
@@ -158,7 +157,7 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 	}
 
 	fh, err := xopen.Buf(ioReader)
-	if err!=nil{
+	if err != nil {
 		panic(err)
 	}
 
@@ -170,9 +169,9 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 		firstseq:     true,
 		checkSeqType: true,
 	}
-	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
-	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
-	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1 << 20))
+	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
 
 	return fastxReader, nil
 }
