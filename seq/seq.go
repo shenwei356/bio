@@ -319,6 +319,27 @@ func (seq *Seq) RemoveGapsInplace(letters string) *Seq {
 	return seq
 }
 
+// Bases counts non-gap bases
+func (seq *Seq) Bases(gapLetters string) int {
+	if len(gapLetters) == 0 {
+		return seq.Length()
+	}
+
+	// do not use map
+	querySlice := make([]byte, 256)
+	for i := 0; i < len(gapLetters); i++ {
+		querySlice[int(gapLetters[i])] = gapLetters[i]
+	}
+
+	var n int
+	for i := 0; i < len(seq.Seq); i++ {
+		if querySlice[int(seq.Seq[i])] == 0 { // not gap
+			n++
+		}
+	}
+	return n
+}
+
 // RevCom returns reverse complement sequence
 func (seq *Seq) RevCom() *Seq {
 	return seq.Reverse().Complement()
