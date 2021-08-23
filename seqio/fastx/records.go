@@ -87,7 +87,7 @@ func (record *Record) Format(width int) []byte {
 		byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n")...)
 }
 
-var defaultBytesBufferSize = 1 << 20
+var defaultBytesBufferSize = 10 << 20
 
 // bufferedByteSliceWrapper is for function FormatToWriter
 var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper

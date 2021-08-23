@@ -123,6 +123,13 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
 
+	fastxReader.record = &Record{
+		ID:   nil,
+		Name: nil,
+		Desc: nil,
+		Seq:  &seq.Seq{},
+	}
+
 	return fastxReader, nil
 }
 
@@ -172,6 +179,13 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
 	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
 	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+
+	fastxReader.record = &Record{
+		ID:   nil,
+		Name: nil,
+		Desc: nil,
+		Seq:  &seq.Seq{},
+	}
 
 	return fastxReader, nil
 }
@@ -405,15 +419,40 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	}
 	// new record
 	if fastxReader.IsFastq {
-		fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
-			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
-			fastxReader.parseHeadDesc(fastxReader.head),
-			fastxReader.seq, fastxReader.qual)
+		// fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
+		// 	fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+		// 	fastxReader.parseHeadDesc(fastxReader.head),
+		// 	fastxReader.seq, fastxReader.qual)
+
+		fastxReader.record.Seq.Alphabet = fastxReader.t
+		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
+		fastxReader.record.Name = fastxReader.head
+		fastxReader.record.Seq.Seq = fastxReader.seq
+		fastxReader.record.Seq.Qual = fastxReader.qual
+
+		if seq.ValidateSeq {
+			fastxReader.Err = fastxReader.t.IsValid(fastxReader.seq)
+		}
+
+		if len(fastxReader.seq) != len(fastxReader.qual) {
+			fastxReader.Err = fmt.Errorf("seq: unmatched length of sequence (%d) and quality (%d)",
+				len(fastxReader.seq), len(fastxReader.qual))
+		}
+
 	} else {
-		fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
-			fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
-			fastxReader.parseHeadDesc(fastxReader.head),
-			fastxReader.seq)
+		// fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
+		// 	fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
+		// 	fastxReader.parseHeadDesc(fastxReader.head),
+		// 	fastxReader.seq)
+
+		fastxReader.record.Seq.Alphabet = fastxReader.t
+		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
+		fastxReader.record.Name = fastxReader.head
+		fastxReader.record.Seq.Seq = fastxReader.seq
+
+		if seq.ValidateSeq {
+			fastxReader.Err = fastxReader.t.IsValid(fastxReader.seq)
+		}
 	}
 
 	if fastxReader.Err != nil {
@@ -431,13 +470,47 @@ func (fastxReader *Reader) parseHeadDesc(head []byte) []byte {
 	return parseHeadDesc(fastxReader.IDRegexp, head)
 }
 
-// ParseHeadID parse ID from head by IDRegexp
+// ParseHeadID parse ID from head by IDRegexp. not used.
 func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	found := idRegexp.FindSubmatch(head)
 	if found == nil { // not match
 		return head
 	}
 	return found[1]
+}
+
+var emptyByteSlice = []byte{}
+
+func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
+	if isUsingDefaultIDRegexp {
+		if i := bytes.IndexByte(head, ' '); i > 0 {
+			e := len(head)
+			j := i + 1
+			for ; j < e; j++ {
+				if head[j] == ' ' || head[j] == '\t' {
+					j++
+				}
+			}
+			return head[0:i], head[j:]
+		}
+		if i := bytes.IndexByte(head, '\t'); i > 0 {
+			e := len(head)
+			j := i + 1
+			for ; j < e; j++ {
+				if head[j] == ' ' || head[j] == '\t' {
+					j++
+				}
+			}
+			return head[0:i], head[j:]
+		}
+		return head, emptyByteSlice
+	}
+
+	found := idRegexp.FindSubmatch(head)
+	if found == nil { // not match
+		return head, emptyByteSlice
+	}
+	return found[1], emptyByteSlice
 }
 
 // parseHeadID parse ID from head by IDRegexp
@@ -463,10 +536,24 @@ func parseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 func parseHeadDesc(idRegexp *regexp.Regexp, head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
-			return bytes.TrimLeft(head[i:], " \t")
+			// return bytes.TrimLeft(head[i:], " \t")
+			e := len(head)
+			for i++; i < e; i++ {
+				if head[i] == ' ' || head[i] == '\t' {
+					i++
+				}
+			}
+			return head[i:]
 		}
 		if i := bytes.IndexByte(head, '\t'); i > 0 {
-			return bytes.TrimLeft(head[i:], " \t")
+			// return bytes.TrimLeft(head[i:], " \t")
+			e := len(head)
+			for i++; i < e; i++ {
+				if head[i] == ' ' || head[i] == '\t' {
+					i++
+				}
+			}
+			return head[i:]
 		}
 		return []byte{}
 	}
@@ -551,7 +638,6 @@ func (fastxReader *Reader) ChunkChan(bufferSize int, chunkSize int) chan RecordC
 
 		ch <- RecordChunk{id, chunkData[0:i], nil}
 		close(ch)
-		return
 	}()
 
 	return ch

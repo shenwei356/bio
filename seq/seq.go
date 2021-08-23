@@ -30,7 +30,7 @@ func init() {
 	initQualMap()
 }
 
-// Seq struct has two attributes, alphabet, seq,
+// Seq represents a FASTA/Q record
 type Seq struct {
 	Alphabet  *Alphabet
 	Seq       []byte
