@@ -145,6 +145,7 @@ p <- p +
     legend.key = element_blank(),
     legend.text.align = 0,
     legend.box.just = "left",
+    legend.spacing.y = unit(0.1, "cm"), # space between key and text
     # strip.text.x = element_text(angle = 0, hjust = 0),
     
     text = element_text(

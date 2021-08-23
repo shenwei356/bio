@@ -27,10 +27,10 @@ Summary by [`seqkit`](https://github.com/shenwei356/seqkit):
     dataset_C.fq   FASTQ        DNA       9,186,045       100            100           100
 
 [`seqtk`](https://github.com/lh3/seqtk/)
-(Version [1.1-r92-dirty](https://github.com/lh3/seqtk/tree/fb85aad4ce1fc7b3d4543623418a1ae88fe1cea6),
+(Version [1.3-r117-dirty](https://github.com/lh3/seqtk/tree/7c04ce7898ad5909bd309c6ba3cd9c3bd0651f0e),
 using `kseq.h`)
 and [`seqkit`](https://github.com/shenwei356/seqkit)
-(Version [v0.3.1.1](https://github.com/shenwei356/seqkit/releases/tag/v0.3.1.1),
+(Version [v2.0.0](https://github.com/shenwei356/seqkit/releases/tag/v2.0.0),
 using this package) were used to test.
 **Note** that `seqtk` does not support wrapped (fixed line width) ouputing, so `seqkit` uses
 `-w 0` to disable outputing wrapping.
@@ -43,7 +43,7 @@ Tests were repeated 5 times and average time and memory usage were computed.
 
 Results:
 
-![benchmark.tsv.png](benchmark/benchmark.tsv.png)
+<img src="benchmark/benchmark.tsv.png" alt="taxonkit" width="500" align="center" />
 
 Install
 -------
@@ -60,6 +60,6 @@ Documentation
 -------------
 [See documentation on godoc for more detail](https://godoc.org/github.com/shenwei356/bio/).
 
-Copyright (c) 2013-2016, Wei Shen (shenwei356@gmail.com)
+Copyright (c) 2013-2021, Wei Shen (shenwei356@gmail.com)
 
 [MIT License](https://github.com/shenwei356/bio/blob/master/LICENSE)

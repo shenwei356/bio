@@ -1,3 +1,8 @@
+
+Versions
+
+- seqkit 2.0
+- seqtk 1.3-r117-dirty
  
 ## RUN
 
