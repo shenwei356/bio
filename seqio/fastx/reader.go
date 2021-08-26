@@ -489,6 +489,8 @@ func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 			for ; j < e; j++ {
 				if head[j] == ' ' || head[j] == '\t' {
 					j++
+				} else {
+					break
 				}
 			}
 			return head[0:i], head[j:]
@@ -499,6 +501,8 @@ func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 			for ; j < e; j++ {
 				if head[j] == ' ' || head[j] == '\t' {
 					j++
+				} else {
+					break
 				}
 			}
 			return head[0:i], head[j:]
@@ -541,6 +545,8 @@ func parseHeadDesc(idRegexp *regexp.Regexp, head []byte) []byte {
 			for i++; i < e; i++ {
 				if head[i] == ' ' || head[i] == '\t' {
 					i++
+				} else {
+					break
 				}
 			}
 			return head[i:]
@@ -551,6 +557,8 @@ func parseHeadDesc(idRegexp *regexp.Regexp, head []byte) []byte {
 			for i++; i < e; i++ {
 				if head[i] == ' ' || head[i] == '\t' {
 					i++
+				} else {
+					break
 				}
 			}
 			return head[i:]
