@@ -50,7 +50,7 @@ for f in dataset_*.f{a,q}.gz; do
     echo == seqtk+pigz
     echo data: $f;
 
-    memusg -t -H seqtk seq $f | pigz -p 2 -c > $f.seqtk.gz;
+    memusg -t -H seqtk seq $f | pigz -p 4 -c > $f.seqtk.gz;
     
     pigz -cd $f.seqtk.gz | md5sum
     /bin/rm $f.seqtk.gz;  

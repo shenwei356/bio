@@ -1,0 +1,115 @@
+Test: Gzip compressed
+Output sequences of all apps are not wrapped to fixed length.
+
+============================================
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_A.fa.gz
+
+elapsed time: 14.269
+peak rss: 57764
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  -
+
+------------------------------------
+== seqkit_t1
+data: dataset_A.fa.gz
+
+elapsed time: 41.863
+peak rss: 42856
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  -
+
+------------------------------------
+== seqtk+gzip
+data: dataset_A.fa.gz
+
+elapsed time: 461.541
+peak rss: 7700
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  -
+
+------------------------------------
+== seqtk+pigz
+data: dataset_A.fa.gz
+
+elapsed time: 118.433
+peak rss: 7748
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  -
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_B.fa.gz
+
+elapsed time: 25.374
+peak rss: 1045592
+
+af9e765363ffe03aaaaa0a23509f7b32  -
+
+------------------------------------
+== seqkit_t1
+data: dataset_B.fa.gz
+
+elapsed time: 46.531
+peak rss: 1043316
+
+af9e765363ffe03aaaaa0a23509f7b32  -
+
+------------------------------------
+== seqtk+gzip
+data: dataset_B.fa.gz
+
+elapsed time: 457.706
+peak rss: 245104
+
+af9e765363ffe03aaaaa0a23509f7b32  -
+
+------------------------------------
+== seqtk+pigz
+data: dataset_B.fa.gz
+
+elapsed time: 128.742
+peak rss: 245028
+
+af9e765363ffe03aaaaa0a23509f7b32  -
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_C.fq.gz
+
+elapsed time: 9.047
+peak rss: 40948
+
+f01c87fd0f852d6ec378fab0d58952ad  -
+
+------------------------------------
+== seqkit_t1
+data: dataset_C.fq.gz
+
+elapsed time: 31.182
+peak rss: 30100
+
+f01c87fd0f852d6ec378fab0d58952ad  -
+
+------------------------------------
+== seqtk+gzip
+data: dataset_C.fq.gz
+
+elapsed time: 188.893
+peak rss: 1024
+
+f01c87fd0f852d6ec378fab0d58952ad  -
+
+------------------------------------
+== seqtk+pigz
+data: dataset_C.fq.gz
+
+elapsed time: 49.132
+peak rss: 1080
+
+f01c87fd0f852d6ec378fab0d58952ad  -
