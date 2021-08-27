@@ -137,12 +137,8 @@ func NewAlphabet(
 		a.allLetters = append(a.allLetters, letters[i])
 	}
 	// add gap and ambiguous code
-	for _, v := range gap {
-		a.allLetters = append(a.allLetters, v)
-	}
-	for _, v := range ambiguous {
-		a.allLetters = append(a.allLetters, v)
-	}
+	a.allLetters = append(a.allLetters, gap...)
+	a.allLetters = append(a.allLetters, ambiguous...)
 
 	// construct special slice.
 	// index are the integer of a byte, and value is the original byte.

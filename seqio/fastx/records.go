@@ -1,6 +1,7 @@
 package fastx
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/shenwei356/bio/seq"
@@ -87,55 +88,79 @@ func (record *Record) Format(width int) []byte {
 		byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n")...)
 }
 
-var defaultBytesBufferSize = 10 << 20
-
-// bufferedByteSliceWrapper is for function FormatToWriter
-var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
-
-func init() {
-	bufferedByteSliceWrapper = byteutil.NewBufferedByteSliceWrapper(1, defaultBytesBufferSize)
-}
-
 // FormatToWriter formats and directly writes to writer
 func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 	if len(record.Seq.Qual) > 0 || ForcelyOutputFastq {
-		outfh.Write([]byte(fmt.Sprintf("@%s\n", record.Name)))
+		outfh.Write(_mark_fastq)
+		outfh.Write(record.Name)
+		outfh.Write(_mark_newline)
 
-		if len(record.Seq.Seq) <= pageSize {
-			outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
-		} else {
-			text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
-			outfh.Write(text)
-			outfh.Flush()
-			bufferedByteSliceWrapper.Recycle(b)
-		}
+		outfh.Write(record.Seq.Seq)
+		outfh.Write(_mark_newline_plus_newline)
 
-		outfh.Write([]byte("\n+\n"))
-
-		if len(record.Seq.Qual) <= pageSize {
-			outfh.Write(byteutil.WrapByteSlice(record.Seq.Qual, width))
-		} else {
-			text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Qual, width)
-			outfh.Write(text)
-			outfh.Flush()
-			bufferedByteSliceWrapper.Recycle(b)
-		}
-
-		outfh.Write([]byte("\n"))
+		outfh.Write(record.Seq.Qual)
+		outfh.Write(_mark_newline)
 
 		return
 	}
 
-	outfh.Write([]byte(fmt.Sprintf(">%s\n", record.Name)))
+	outfh.Write(_mark_fasta)
+	outfh.Write(record.Name)
+	outfh.Write(_mark_newline)
 
-	if len(record.Seq.Seq) <= pageSize {
-		outfh.Write(byteutil.WrapByteSlice(record.Seq.Seq, width))
+	if width < 1 {
+		outfh.Write(record.Seq.Seq)
 	} else {
-		text, b := bufferedByteSliceWrapper.Wrap(record.Seq.Seq, width)
+		var text []byte
+		text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
 		outfh.Write(text)
 		outfh.Flush()
-		bufferedByteSliceWrapper.Recycle(b)
 	}
 
-	outfh.Write([]byte("\n"))
+	outfh.Write(_mark_newline)
+}
+
+var buffer *bytes.Buffer
+
+var _mark_fasta = []byte{'>'}
+var _mark_fastq = []byte{'@'}
+var _mark_newline_plus_newline = []byte{'\n', '+', '\n'}
+var _mark_newline = []byte{'\n'}
+
+func wrapByteSlice(s []byte, width int, buffer *bytes.Buffer) ([]byte, *bytes.Buffer) {
+	if width < 1 {
+		return s, buffer
+	}
+	l := len(s)
+	if l == 0 {
+		return s, buffer
+	}
+
+	var lines int
+	if l%width == 0 {
+		lines = l/width - 1
+	} else {
+		lines = int(l / width)
+	}
+
+	if buffer == nil {
+		buffer = bytes.NewBuffer(make([]byte, 0, l+lines))
+	} else {
+		buffer.Reset()
+	}
+
+	var start, end int
+	for i := 0; i <= lines; i++ {
+		start = i * width
+		end = (i + 1) * width
+		if end > l {
+			end = l
+		}
+
+		buffer.Write(s[start:end])
+		if i < lines {
+			buffer.Write(_mark_newline)
+		}
+	}
+	return buffer.Bytes(), buffer
 }

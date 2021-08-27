@@ -91,8 +91,8 @@ p <-
     )
   ) +
   
-  geom_hline(aes(yintercept = time_mean, color = app), size = 0.1, alpha = 0.4) +
-  geom_vline(aes(xintercept = mem_mean, color = app), size = 0.1, alpha = 0.4) +
+  geom_hline(aes(yintercept = time_mean, color = app), size = 0.15, alpha = 0.4) +
+  geom_vline(aes(xintercept = mem_mean, color = app), size = 0.15, alpha = 0.4) +
   
   geom_point(size = 3) +
   
@@ -111,7 +111,7 @@ p <-
 #                           ymin=NULL, ymax=NULL),
 #              size = 1.5, alpha = 0.6) +
   
-  geom_text_repel(size = 6, max.iter = 200000) +
+  geom_text_repel(size = 6, max.iter = 200000, min.segment.length = 0) +
   scale_color_wsj() +
   facet_wrap( ~ test) +
   ylim(0, max(df$time)) +

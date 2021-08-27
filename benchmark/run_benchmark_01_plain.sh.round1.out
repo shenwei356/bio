@@ -1,0 +1,88 @@
+Test: Plain text
+Output sequences of all apps are not wrapped to fixed length.
+
+============================================
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_A.fa
+
+elapsed time: 2.535
+peak rss: 28332
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqkit.fx
+
+------------------------------------
+== seqkit_t1
+data: dataset_A.fa
+
+elapsed time: 3.775
+peak rss: 31888
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqkit.fx
+
+------------------------------------
+== seqtk
+data: dataset_A.fa
+
+elapsed time: 2.767
+peak rss: 7684
+
+3eac76c3c6a1e6591f04ff7bd44bbb32  dataset_A.fa.seqtk.fx
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_B.fa
+
+elapsed time: 3.108
+peak rss: 1039000
+
+af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fx
+
+------------------------------------
+== seqkit_t1
+data: dataset_B.fa
+
+elapsed time: 3.225
+peak rss: 1037696
+
+af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqkit.fx
+
+------------------------------------
+== seqtk
+data: dataset_B.fa
+
+elapsed time: 3.106
+peak rss: 244940
+
+af9e765363ffe03aaaaa0a23509f7b32  dataset_B.fa.seqtk.fx
+read file once with cat
+
+------------------------------------
+== seqkit
+data: dataset_C.fq
+
+elapsed time: 3.216
+peak rss: 24560
+
+f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fx
+
+------------------------------------
+== seqkit_t1
+data: dataset_C.fq
+
+elapsed time: 3.795
+peak rss: 14192
+
+f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqkit.fx
+
+------------------------------------
+== seqtk
+data: dataset_C.fq
+
+elapsed time: 4.152
+peak rss: 1028
+
+f01c87fd0f852d6ec378fab0d58952ad  dataset_C.fq.seqtk.fx

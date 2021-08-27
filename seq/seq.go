@@ -11,10 +11,6 @@ import (
 	"github.com/shenwei356/util/byteutil"
 )
 
-var defaultBytesBufferSize = 10 << 20
-
-var bufferedByteSliceWrapper *byteutil.BufferedByteSliceWrapper
-
 var QUAL_MAP [256]float64
 
 func initQualMap() {
@@ -26,7 +22,6 @@ func initQualMap() {
 }
 
 func init() {
-	bufferedByteSliceWrapper = byteutil.NewBufferedByteSliceWrapper(1, defaultBytesBufferSize)
 	initQualMap()
 }
 

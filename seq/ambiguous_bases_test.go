@@ -104,11 +104,13 @@ func TestAmbBase2Bases(t *testing.T) {
 		b2 = sortutil.ByteSlice(test.bases)
 		sort.Sort(b1)
 		sort.Sort(b2)
-		if bytes.Compare(b1, b2) != 0 {
+		if !bytes.Equal(b1, b2) {
 			t.Errorf("Test AmbBase2Bases0 Err: %c, need: %s, got: %s\n", test.ambase, b2, b1)
 		}
 	}
 }
+
+var RESULT [][]byte
 
 func BenchmarkAmbBase2Bases0(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -123,6 +125,7 @@ func BenchmarkAmbBase2Bases0(b *testing.B) {
 			}
 			result = append(result, bases)
 		}
+		RESULT = result
 	}
 }
 
@@ -137,5 +140,7 @@ func BenchmarkAmbBase2Bases(b *testing.B) {
 				result = append(result, bases)
 			}
 		}
+
+		RESULT = result
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 
 	"github.com/shenwei356/bio/seq"
@@ -24,7 +23,7 @@ var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 // ErrNoContent means nothing in the file or stream
 var ErrNoContent = errors.New("fastx: no content found")
 
-var pageSize = os.Getpagesize() * 2
+var bufSize = 65536
 
 // Reader seamlessly parse both FASTA and FASTQ formats
 type Reader struct {
@@ -66,6 +65,8 @@ var isUsingDefaultIDRegexp bool
 func NewDefaultReader(file string) (*Reader, error) {
 	return NewReader(nil, file, "")
 }
+
+var defaultBytesBufferSize = 10 << 20
 
 // NewReader is constructor of FASTX Reader.
 //
@@ -113,7 +114,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 
 	fastxReader := &Reader{
 		fh:           fh,
-		buf:          make([]byte, pageSize),
+		buf:          make([]byte, bufSize),
 		t:            t,
 		IDRegexp:     r,
 		firstseq:     true,
@@ -170,7 +171,7 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 
 	fastxReader := &Reader{
 		fh:           fh,
-		buf:          make([]byte, pageSize),
+		buf:          make([]byte, bufSize),
 		t:            t,
 		IDRegexp:     r,
 		firstseq:     true,
