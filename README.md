@@ -7,7 +7,7 @@ A lightweight and high-performance
 (see [seqkit](https://github.com/shenwei356/seqkit#benchmark) benchmark)
 bioinformatics package.
 
-FASTA/Q parsing
+FASTA/Q reading and writing
 -----------------------
 
 ***This package has high performance close to the famous C lib
