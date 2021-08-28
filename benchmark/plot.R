@@ -104,7 +104,7 @@ p <-
   # ylim(0, max(df$time)) +
   xlim(0, max(df$mem2)) +
   
-  ggtitle(paste("FASTA/Q reading + writting performance")) +
+  ggtitle(paste("FASTA/Q reading + writing performance")) +
   ylab("Time (s)") +
   xlab(paste("Peak Memory (", unit, ")", sep = "")) +
   labs(color = args$labcolor, shape = args$labshape)

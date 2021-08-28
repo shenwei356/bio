@@ -13,7 +13,7 @@ FASTA/Q parsing
 ***This package has high performance close to the famous C lib
 [`kseq.h`](https://github.com/attractivechaos/klib/blob/master/kseq.h).***
 
-To test the performance, three datasets are used:
+To test the performance, three datasets and their gzip-compressed file are used:
 
 - dataset_A, bacteria genomes, 2.7G
 - dataset_B, human genome,     2.9G
@@ -37,13 +37,13 @@ using this package) were used to test.
 Script [`memusg`](https://github.com/shenwei356/memusg) is used to assess running time
 and peak memory usage.
 
-[Commands](https://github.com/shenwei356/bio/blob/master/benchmark/run_benchmark_01_parse.sh)
+[Commands](https://github.com/shenwei356/bio/blob/master/benchmark/)
 
-Tests were repeated 5 times and average time and memory usage were computed.
+Tests were repeated 4 times and average time and memory usage were computed.
 
 Results:
 
-<img src="benchmark/benchmark.tsv.png" alt="taxonkit" width="500" align="center" />
+<img src="benchmark/benchmark.tsv.png" alt="taxonkit" width="700" align="center" />
 
 Install
 -------
