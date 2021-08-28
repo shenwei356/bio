@@ -45,6 +45,14 @@ Results:
 
 <img src="benchmark/benchmark.tsv.png" alt="taxonkit" width="700" align="center" />
 
+Notes:
+
+- `seqkit` uses 4 threads by default.
+- `seqkit_t1` uses 1 thread.
+- `seqtk` is single-threaded.
+- `seqtk+gzip`: `seqtk` pipes data to the single-threaded `gzip`.
+- `seqtk+pigz`: `seqtk` pipes data to the multithreaded `pigz` which uses 4 threads here.
+
 Install
 -------
 This package is "go-gettable", just:
