@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/shenwei356/bio/seq"
-	"github.com/shenwei356/util/byteutil"
 	"github.com/shenwei356/xopen"
 )
 
@@ -79,13 +78,37 @@ var ForcelyOutputFastq bool
 
 // Format returns formated (wrapped with fixed length of) sequence record
 func (record *Record) Format(width int) []byte {
+	var buf bytes.Buffer
+
 	if len(record.Seq.Qual) > 0 || ForcelyOutputFastq {
-		return append(append(append(append([]byte(fmt.Sprintf("@%s\n", record.Name)),
-			byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n+\n")...),
-			byteutil.WrapByteSlice(record.Seq.Qual, width)...), []byte("\n")...)
+		buf.Write(_mark_fastq)
+		buf.Write(record.Name)
+		buf.Write(_mark_newline)
+
+		buf.Write(record.Seq.Seq)
+		buf.Write(_mark_newline_plus_newline)
+
+		buf.Write(record.Seq.Qual)
+		buf.Write(_mark_newline)
+
+		return buf.Bytes()
 	}
-	return append(append([]byte(fmt.Sprintf(">%s\n", record.Name)),
-		byteutil.WrapByteSlice(record.Seq.Seq, width)...), []byte("\n")...)
+
+	buf.Write(_mark_fasta)
+	buf.Write(record.Name)
+	buf.Write(_mark_newline)
+
+	if width < 1 {
+		buf.Write(record.Seq.Seq)
+	} else {
+		var text []byte
+		text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
+		buf.Write(text)
+	}
+
+	buf.Write(_mark_newline)
+
+	return buf.Bytes()
 }
 
 // FormatToWriter formats and directly writes to writer
@@ -114,7 +137,6 @@ func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 		var text []byte
 		text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
 		outfh.Write(text)
-		outfh.Flush()
 	}
 
 	outfh.Write(_mark_newline)

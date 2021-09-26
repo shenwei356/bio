@@ -8,6 +8,6 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shenwei356/breader v0.3.1
-	github.com/shenwei356/util v0.3.2
+	github.com/shenwei356/util v0.4.0
 	github.com/shenwei356/xopen v0.1.0
 )
