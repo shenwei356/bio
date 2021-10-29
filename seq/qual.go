@@ -93,15 +93,15 @@ func (qe QualityEncoding) String() string {
 func (qe QualityEncoding) QualityRange() []int {
 	switch qe {
 	case Sanger:
-		return []int{33, 73}
+		return []int{33, 126}
 	case Solexa:
-		return []int{59, 104}
+		return []int{59, 126}
 	case Illumina1p3:
-		return []int{64, 104}
+		return []int{64, 126}
 	case Illumina1p5:
-		return []int{66, 105}
+		return []int{66, 126}
 	case Illumina1p8:
-		return []int{33, 74}
+		return []int{33, 126}
 	}
 	return []int{127, 256}
 }
