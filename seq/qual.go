@@ -197,7 +197,7 @@ func QualityConvert(from, to QualityEncoding, quality []byte, force bool) ([]byt
 
 // NMostCommonThreshold is the threshold of 'B' in
 // top N most common quality for guessing Illumina 1.5.
-var NMostCommonThreshold = 4
+var NMostCommonThreshold = 2
 
 // GuessQualityEncoding returns potential quality encodings.
 func GuessQualityEncoding(quality []byte) []QualityEncoding {
