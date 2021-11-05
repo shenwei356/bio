@@ -706,6 +706,16 @@ func (seq *Seq) ParseQual(asciiBase int) {
 	if len(seq.Qual) == 0 {
 		return
 	}
+
+	if seq.QualValue != nil {
+		seq.QualValue = seq.QualValue[:0]
+		for _, q := range seq.Qual {
+			seq.QualValue = append(seq.QualValue, int(q)-asciiBase)
+		}
+
+		return
+	}
+
 	qv := make([]int, len(seq.Qual))
 	for i, q := range seq.Qual {
 		qv[i] = int(q) - asciiBase
@@ -715,7 +725,7 @@ func (seq *Seq) ParseQual(asciiBase int) {
 
 // AvgQual calculates average quality value.
 func (seq *Seq) AvgQual(asciiBase int) float64 {
-	if len(seq.Qual) > 0 && len(seq.QualValue) == 0 {
+	if len(seq.Qual) > 0 {
 		seq.ParseQual(asciiBase)
 	}
 	if len(seq.QualValue) == 0 {
