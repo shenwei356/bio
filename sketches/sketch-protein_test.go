@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package kmers
+package sketches
 
 import (
 	"testing"
@@ -26,17 +26,18 @@ import (
 	"github.com/shenwei356/bio/seq"
 )
 
-func TestProteinIterator(t *testing.T) {
+func TestProteinMinimizer(t *testing.T) {
 	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
 		t.Errorf("fail to create sequence: %s", _s)
 	}
 	k := 10
+	w := 3
 
-	iter, err := NewProteinIterator(sequence, k, 1, 1)
+	sketch, err := NewProteinMinimizerSketch(sequence, k, 1, 1, w)
 	if err != nil {
-		t.Errorf("fail to create aa iter rator")
+		t.Errorf("fail to create minizimer sketch")
 	}
 
 	var code uint64
@@ -44,19 +45,14 @@ func TestProteinIterator(t *testing.T) {
 	// var idx int
 	codes := make([]uint64, 0, 1024)
 	for {
-		code, ok = iter.Next()
+		code, ok = sketch.Next()
 		if !ok {
 			break
 		}
 
-		// idx = iter.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
+		// idx = sketch.Index()
+		// fmt.Printf("aa: %d-%s, %d\n", idx, sketch.s.Seq[idx:idx+k], code)
 
 		codes = append(codes, code)
 	}
-
-	if len(codes) != len(_s)/3-k+1 {
-		t.Errorf("k-mer hashes number error")
-	}
-
 }

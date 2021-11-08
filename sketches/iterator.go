@@ -18,24 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package kmers
+package sketches
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/shenwei356/bio/seq"
+	"github.com/shenwei356/kmers"
 	"github.com/will-rowe/nthash"
 )
 
 // ErrInvalidK means k < 1.
-var ErrInvalidK = fmt.Errorf("kmers: invalid k-mer size")
+var ErrInvalidK = fmt.Errorf("sketches: invalid k-mer size")
 
 // ErrEmptySeq sequence is empty.
-var ErrEmptySeq = fmt.Errorf("kmers: empty sequence")
+var ErrEmptySeq = fmt.Errorf("sketches: empty sequence")
 
 // ErrShortSeq means the sequence is shorter than k
-var ErrShortSeq = fmt.Errorf("kmers: sequence too short")
+var ErrShortSeq = fmt.Errorf("sketches: sequence too short")
+
+// ErrIllegalBase means that base beyond IUPAC symbols are  detected.
+var ErrIllegalBase = errors.New("sketches: illegal base")
 
 var poolIterator = &sync.Pool{New: func() interface{} {
 	return &Iterator{}
@@ -193,8 +198,8 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		// compute code of revcomp kmer from previous one
 		iter.codeRC = (iter.codeBase^3)<<(iter.kP1Uint<<1) | (iter.preCodeRC >> 2)
 	} else {
-		code, err = Encode(iter.kmer)
-		iter.codeRC = MustRevComp(code, iter.k)
+		code, err = kmers.Encode(iter.kmer)
+		iter.codeRC = kmers.MustRevComp(code, iter.k)
 		iter.first = false
 	}
 	if err != nil {

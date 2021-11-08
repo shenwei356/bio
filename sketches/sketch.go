@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package kmers
+package sketches
 
 import (
 	"fmt"
@@ -27,7 +27,6 @@ import (
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/will-rowe/nthash"
-	// hasher "github.com/zeebo/wyhash"
 )
 
 // ErrInvalidS means s >= k.

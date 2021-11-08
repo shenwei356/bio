@@ -18,41 +18,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package kmers
+package sketches
 
-import (
-	"testing"
-
-	"github.com/shenwei356/bio/seq"
-)
-
-func TestProteinMinimizer(t *testing.T) {
-	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
-	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
-	if err != nil {
-		t.Errorf("fail to create sequence: %s", _s)
-	}
-	k := 10
-	w := 3
-
-	sketch, err := NewProteinMinimizerSketch(sequence, k, 1, 1, w)
-	if err != nil {
-		t.Errorf("fail to create minizimer sketch")
-	}
-
-	var code uint64
-	var ok bool
-	// var idx int
-	codes := make([]uint64, 0, 1024)
-	for {
-		code, ok = sketch.Next()
-		if !ok {
-			break
-		}
-
-		// idx = sketch.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, sketch.s.Seq[idx:idx+k], code)
-
-		codes = append(codes, code)
-	}
+var base2bit = [256]uint64{
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 0, 1, 1, 0, 4, 4, 2, 0, 4, 4, 2, 4, 0, 0, 4,
+	4, 4, 0, 1, 3, 3, 0, 0, 4, 1, 4, 4, 4, 4, 4, 4,
+	4, 0, 1, 1, 0, 4, 4, 2, 0, 4, 4, 2, 4, 0, 0, 4,
+	4, 4, 0, 1, 3, 3, 0, 0, 4, 1, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 }
+
+var bit2base = [4]byte{'A', 'C', 'G', 'T'}

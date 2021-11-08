@@ -1,13 +1,18 @@
-# kmers
+# sketches
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/bio/kmers.svg)](https://pkg.go.dev/github.com/shenwei356/bio/kmers)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/bio/sketches.svg)](https://pkg.go.dev/github.com/shenwei356/bio/sketches)
 
 
-This package provides manipulations of bit-packed k-mers and iterators for k-mer sketches 
+This package provides iterators for k-mer and k-mer sketches 
 ([Minimizer](https://academic.oup.com/bioinformatics/article/20/18/3363/202143),
  [Scaled MinHash](https://f1000research.com/articles/8-1006),
  [Closed Syncmers](https://peerj.com/articles/10805/)).
 K-mers are either encoded (k<=32) or hashed (arbitrary k, using [ntHash](https://github.com/will-rowe/nthash)) into `uint64`.
+
+Related projects:
+
+- [kmers](https://github.com/shenwei356/kmers) provides manipulations for bit-packed k-mers (k<=32, encoded in `uint64`).
+- [kmcp](https://github.com/shenwei356/kmcp) use this package.
 
 ## Benchmark
 
@@ -22,16 +27,6 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
  
                                           test           time     memory        allocs
     ------------------------------------------   ------------   --------   -----------
-                         BenchmarkEncodeK32-16    19.67 ns/op     0 B/op   0 allocs/op
-           BenchmarkEncodeFromFormerKmerK32-16    7.692 ns/op     0 B/op   0 allocs/op
-       BenchmarkMustEncodeFromFormerKmerK32-16    2.008 ns/op     0 B/op   0 allocs/op
-                         BenchmarkDecodeK32-16    80.73 ns/op    32 B/op   1 allocs/op
-                     BenchmarkMustDecodeK32-16    76.93 ns/op    32 B/op   1 allocs/op
-                            BenchmarkRevK32-16    3.617 ns/op     0 B/op   0 allocs/op
-                           BenchmarkCompK32-16   0.7999 ns/op     0 B/op   0 allocs/op
-                        BenchmarkRevCompK32-16    3.814 ns/op     0 B/op   0 allocs/op
-                       BenchmarkCannonalK32-16    4.147 ns/op     0 B/op   0 allocs/op
-
               BenchmarkKmerIterator/1.00_KB-16    11292 ns/op     0 B/op   0 allocs/op
               BenchmarkHashIterator/1.00_KB-16     7146 ns/op    24 B/op   1 allocs/op
            BenchmarkProteinIterator/1.00_KB-16    13985 ns/op   432 B/op   2 allocs/op

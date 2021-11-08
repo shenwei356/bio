@@ -18,45 +18,45 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package kmers
+package sketches
 
-// KmerCodeSlice is a slice of KmerCode, for sorting
-type KmerCodeSlice []KmerCode
+import (
+	"testing"
 
-// Len return length of the slice
-func (codes KmerCodeSlice) Len() int {
-	return len(codes)
-}
+	"github.com/shenwei356/bio/seq"
+)
 
-// Swap swaps two elements
-func (codes KmerCodeSlice) Swap(i, j int) {
-	codes[i], codes[j] = codes[j], codes[i]
-}
+func TestProteinIterator(t *testing.T) {
+	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
+	if err != nil {
+		t.Errorf("fail to create sequence: %s", _s)
+	}
+	k := 10
 
-// Less simply compare two KmerCode
-func (codes KmerCodeSlice) Less(i, j int) bool {
-	return codes[i].Code < codes[j].Code
-}
+	iter, err := NewProteinIterator(sequence, k, 1, 1)
+	if err != nil {
+		t.Errorf("fail to create aa iter rator")
+	}
 
-// func splitKmer(code uint64, k int) (uint64, uint64, uint64, uint64) {
-// 	// -====, k = 4:  ---, -, =, ===
-// 	return code >> 2, code & 3, code >> (uint(k-1) << 1) & 3, code & ((1 << (uint(k-1) << 1)) - 1)
-// }
+	var code uint64
+	var ok bool
+	// var idx int
+	codes := make([]uint64, 0, 1024)
+	for {
+		code, ok = iter.Next()
+		if !ok {
+			break
+		}
 
-// CodeSlice is a slice of Kmer code (uint64), for sorting
-type CodeSlice []uint64
+		// idx = iter.Index()
+		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
 
-// Len return length of the slice
-func (codes CodeSlice) Len() int {
-	return len(codes)
-}
+		codes = append(codes, code)
+	}
 
-// Swap swaps two elements
-func (codes CodeSlice) Swap(i, j int) {
-	codes[i], codes[j] = codes[j], codes[i]
-}
+	if len(codes) != len(_s)/3-k+1 {
+		t.Errorf("k-mer hashes number error")
+	}
 
-// Less simply compare two KmerCode
-func (codes CodeSlice) Less(i, j int) bool {
-	return codes[i] < codes[j]
 }

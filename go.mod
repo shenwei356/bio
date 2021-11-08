@@ -6,6 +6,7 @@ require (
 	github.com/cznic/sortutil v0.0.0-20181122101858-f5f958428db8
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/shenwei356/breader v0.3.1
+	github.com/shenwei356/kmers v0.1.0
 	github.com/shenwei356/util v0.5.0
 	github.com/shenwei356/xopen v0.1.0
 	github.com/will-rowe/nthash v0.4.0
