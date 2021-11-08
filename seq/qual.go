@@ -133,7 +133,7 @@ func (qe QualityEncoding) IsSolexa() bool {
 }
 
 // ErrUnknownQualityEncoding is error for Unknown quality encoding type
-var ErrUnknownQualityEncoding = errors.New("unkown quality encoding")
+var ErrUnknownQualityEncoding = errors.New("unknown quality encoding")
 
 // QualityValue returns quality value for given encoding and quality string
 func QualityValue(encoding QualityEncoding, quality []byte) ([]int, error) {
