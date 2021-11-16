@@ -57,19 +57,19 @@ type Taxonomy struct {
 }
 
 // ErrIllegalColumnIndex means column index is 0 or negative.
-var ErrIllegalColumnIndex = errors.New("unikmer: illegal column index, positive integer needed")
+var ErrIllegalColumnIndex = errors.New("taxdump: illegal column index, positive integer needed")
 
 // ErrRankNotLoaded means you should reate load Taxonomy with NewTaxonomyWithRank before calling some methods.
-var ErrRankNotLoaded = errors.New("unikmer: taxonomic ranks not loaded, please call: NewTaxonomyWithRank")
+var ErrRankNotLoaded = errors.New("taxdump: taxonomic ranks not loaded, please call: NewTaxonomyWithRank")
 
 // ErrNamesNotLoaded means you should call LoadNames before using taxonomy names.
-var ErrNamesNotLoaded = errors.New("unikmer: taxonomy names not loaded, please call: LoadNames")
+var ErrNamesNotLoaded = errors.New("taxdump: taxonomy names not loaded, please call: LoadNames")
 
 // ErrTooManyRanks means number of ranks exceed limit of 255
-var ErrTooManyRanks = errors.New("unikmer: number of ranks exceed limit of 255")
+var ErrTooManyRanks = errors.New("taxdump: number of ranks exceed limit of 255")
 
 // ErrUnkownRank indicate an unknown rank
-var ErrUnkownRank = errors.New("unikmer: unknown rank")
+var ErrUnkownRank = errors.New("taxdump: unknown rank")
 
 // NewTaxonomyFromNCBI parses nodes relationship from nodes.dmp
 // from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
@@ -87,7 +87,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return nil, fmt.Errorf("unikmer: %s", err)
+		return nil, fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
 		fh.Close()
@@ -137,7 +137,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("unikmer: %s", err)
+		return nil, fmt.Errorf("taxdump: %s", err)
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
@@ -164,7 +164,7 @@ func NewTaxonomyWithRank(file string, childColumn int, parentColumn int, rankCol
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return nil, fmt.Errorf("unikmer: %s", err)
+		return nil, fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
 		fh.Close()
@@ -230,7 +230,7 @@ func NewTaxonomyWithRank(file string, childColumn int, parentColumn int, rankCol
 
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("unikmer: %s", err)
+		return nil, fmt.Errorf("taxdump: %s", err)
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid,
@@ -373,7 +373,7 @@ func (t *Taxonomy) LoadNames(file string, taxidColumn int, nameColumn int, typeC
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
 		fh.Close()
@@ -410,7 +410,7 @@ func (t *Taxonomy) LoadNames(file string, taxidColumn int, nameColumn int, typeC
 		m[uint32(taxid)] = items[nameColumn]
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 
 	t.Names = m
@@ -433,7 +433,7 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
 		fh.Close()
@@ -466,7 +466,7 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 		m[uint32(from)] = uint32(to)
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 
 	t.MergeNodes = m
@@ -487,7 +487,7 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
 		fh.Close()
@@ -513,7 +513,7 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 		m[uint32(id)] = struct{}{}
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("unikmer: %s", err)
+		return fmt.Errorf("taxdump: %s", err)
 	}
 
 	t.DelNodes = m

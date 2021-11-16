@@ -12,7 +12,7 @@ K-mers are either encoded (k<=32) or hashed (arbitrary k, using [ntHash](https:/
 Related projects:
 
 - [kmers](https://github.com/shenwei356/kmers) provides manipulations for bit-packed k-mers (k<=32, encoded in `uint64`).
-- [kmcp](https://github.com/shenwei356/kmcp) use this package.
+- [kmcp](https://github.com/shenwei356/kmcp) uses this package.
 
 ## Benchmark
 
