@@ -108,7 +108,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	var root uint32
 	for scanner.Scan() {
 		stringSplitN(scanner.Text(), "\t", n, &items)
-		if len(items) < n {
+		if len(items) < maxColumns {
 			continue
 		}
 
@@ -189,7 +189,7 @@ func NewTaxonomyWithRank(file string, childColumn int, parentColumn int, rankCol
 	var root uint32
 	for scanner.Scan() {
 		stringSplitN(scanner.Text(), "\t", n, &items)
-		if len(items) < n {
+		if len(items) < maxColumns {
 			continue
 		}
 
@@ -394,7 +394,7 @@ func (t *Taxonomy) LoadNames(file string, taxidColumn int, nameColumn int, typeC
 	var taxid uint64
 	for scanner.Scan() {
 		stringSplitN(scanner.Text(), "\t", n, &items)
-		if len(items) < n {
+		if len(items) < maxColumns {
 			continue
 		}
 
@@ -451,7 +451,7 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 	var from, to int
 	for scanner.Scan() {
 		stringSplitN(scanner.Text(), "\t", n, &items)
-		if len(items) < n {
+		if len(items) < maxColumns {
 			continue
 		}
 		from, err = strconv.Atoi(items[oldColumn])
@@ -495,14 +495,16 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 
 	m := make(map[uint32]struct{}, 1024)
 
-	n := column + 1
+	maxColumns := column
+	n := maxColumns + 1
+
 	column--
 	items := make([]string, n)
 	scanner := bufio.NewScanner(fh)
 	var id int
 	for scanner.Scan() {
 		stringSplitN(scanner.Text(), "\t", n, &items)
-		if len(items) < n {
+		if len(items) < maxColumns {
 			continue
 		}
 		id, err = strconv.Atoi(items[column])
