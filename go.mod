@@ -8,7 +8,7 @@ require (
 	github.com/shenwei356/breader v0.3.1
 	github.com/shenwei356/kmers v0.1.0
 	github.com/shenwei356/util v0.5.0
-	github.com/shenwei356/xopen v0.2.0
+	github.com/shenwei356/xopen v0.2.1
 	github.com/will-rowe/nthash v0.4.0
 	github.com/zeebo/wyhash v0.0.1
 )
