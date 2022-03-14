@@ -494,6 +494,9 @@ func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 					break
 				}
 			}
+			if j >= e {
+				return head[0:i], emptyByteSlice
+			}
 			return head[0:i], head[j:]
 		}
 		if i := bytes.IndexByte(head, '\t'); i > 0 {
@@ -505,6 +508,9 @@ func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 				} else {
 					break
 				}
+			}
+			if j >= e {
+				return head[0:i], emptyByteSlice
 			}
 			return head[0:i], head[j:]
 		}
