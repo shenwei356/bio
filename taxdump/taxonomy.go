@@ -433,6 +433,9 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
+		if err == xopen.ErrNoContent {
+			return nil
+		}
 		return fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
@@ -487,6 +490,9 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {
+		if err == xopen.ErrNoContent {
+			return nil
+		}
 		return fmt.Errorf("taxdump: %s", err)
 	}
 	defer func() {
