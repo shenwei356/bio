@@ -56,6 +56,9 @@ type Iterator struct {
 	canonical bool
 	circular  bool
 
+	mask1 uint64 // (1<<(kP1Uint*2))-1
+	mask2 uint   // iter.kP1Uint*2
+
 	hash bool
 
 	finished     bool
@@ -99,6 +102,8 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
 	iter.kP1Uint = uint(k - 1)
+	iter.mask1 = (1 << (iter.kP1Uint << 1)) - 1
+	iter.mask2 = iter.kP1Uint << 1
 
 	var err error
 	var seq2 []byte
@@ -159,6 +164,8 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
 	iter.kP1Uint = uint(k - 1)
+	iter.mask1 = (1 << (iter.kP1Uint << 1)) - 1
+	iter.mask2 = iter.kP1Uint << 1
 
 	iter.first = true
 
@@ -193,10 +200,12 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		}
 
 		// compute code from previous one
-		code = iter.preCode&((1<<(iter.kP1Uint<<1))-1)<<2 | iter.codeBase
+		//  code = iter.preCode&((1<<(iter.kP1Uint<<1))-1)<<2 | iter.codeBase
+		code = (iter.preCode&iter.mask1)<<2 | iter.codeBase
 
 		// compute code of revcomp kmer from previous one
-		iter.codeRC = (iter.codeBase^3)<<(iter.kP1Uint<<1) | (iter.preCodeRC >> 2)
+		// iter.codeRC = (iter.codeBase^3)<<(iter.kP1Uint<<1) | (iter.preCodeRC >> 2)
+		iter.codeRC = (iter.codeBase^3)<<(iter.mask2) | (iter.preCodeRC >> 2)
 	} else {
 		code, err = kmers.Encode(iter.kmer)
 		iter.codeRC = kmers.MustRevComp(code, iter.k)
