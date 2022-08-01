@@ -102,6 +102,40 @@ func TestHashIterator(t *testing.T) {
 	}
 }
 
+func TestSimHashIterator(t *testing.T) {
+	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
+	if err != nil {
+		t.Errorf("fail to create sequence: %s", _s)
+	}
+	k := 10
+
+	iter, err := NewSimHashIterator(sequence, k, 4, true, false)
+	if err != nil {
+		t.Errorf("fail to create aa iter rator")
+	}
+
+	var code uint64
+	var ok bool
+	// var idx int
+	codes := make([]uint64, 0, 1024)
+	for {
+		code, ok = iter.NextSimHash()
+		if !ok {
+			break
+		}
+
+		// idx = iter.Index()
+		// fmt.Printf("kmer: %03d-%s, %064b, %d\n", idx, iter.s.Seq[idx:idx+k], code, code)
+
+		codes = append(codes, code)
+	}
+
+	if len(codes) != len(_s)-k+1 {
+		t.Errorf("k-mer hashes number error")
+	}
+}
+
 var benchSeqs []*seq.Seq
 var _code uint64
 
@@ -172,6 +206,32 @@ func BenchmarkHashIterator(b *testing.B) {
 
 				for {
 					code, ok = iter.NextHash()
+					if !ok {
+						break
+					}
+
+					_code = code
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkSimHashIterator(b *testing.B) {
+	for i := range benchSeqs {
+		size := len(benchSeqs[i].Seq)
+		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
+			var code uint64
+			var ok bool
+
+			for j := 0; j < b.N; j++ {
+				iter, err := NewSimHashIterator(benchSeqs[i], 31, 7, true, false)
+				if err != nil {
+					b.Errorf("fail to create hash iterator. seq length: %d", size)
+				}
+
+				for {
+					code, ok = iter.NextSimHash()
 					if !ok {
 						break
 					}
