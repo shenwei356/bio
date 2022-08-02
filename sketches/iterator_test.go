@@ -103,36 +103,44 @@ func TestHashIterator(t *testing.T) {
 }
 
 func TestSimHashIterator(t *testing.T) {
-	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
-	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
-	if err != nil {
-		t.Errorf("fail to create sequence: %s", _s)
-	}
-	k := 10
-
-	iter, err := NewSimHashIterator(sequence, k, 4, true, false)
-	if err != nil {
-		t.Errorf("fail to create aa iter rator")
+	// _s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+	_ss := []string{
+		// "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG",
+		"GAACAATGTTCTCTAAAATTG",
+		"GcACAATGTTCTCTAAAATTG",
 	}
 
-	var code uint64
-	var ok bool
-	// var idx int
-	codes := make([]uint64, 0, 1024)
-	for {
-		code, ok = iter.NextSimHash()
-		if !ok {
-			break
+	for _, _s := range _ss {
+		sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
+		if err != nil {
+			t.Errorf("fail to create sequence: %s", _s)
+		}
+		k := 21
+
+		iter, err := NewSimHashIterator(sequence, k, 5, 5, true, false)
+		if err != nil {
+			t.Errorf("fail to create aa iter rator")
 		}
 
-		// idx = iter.Index()
-		// fmt.Printf("kmer: %03d-%s, %064b, %d\n", idx, iter.s.Seq[idx:idx+k], code, code)
+		var code uint64
+		var ok bool
+		// var idx int
+		codes := make([]uint64, 0, 1024)
+		for {
+			code, ok = iter.NextSimHash()
+			if !ok {
+				break
+			}
 
-		codes = append(codes, code)
-	}
+			// idx = iter.Index()
+			// fmt.Printf("kmer: %03d-%s, %064b, %d\n", idx, iter.s.Seq[idx:idx+k], code, code)
 
-	if len(codes) != len(_s)-k+1 {
-		t.Errorf("k-mer hashes number error")
+			codes = append(codes, code)
+		}
+
+		if len(codes) != len(_s)-k+1 {
+			t.Errorf("k-mer hashes number error")
+		}
 	}
 }
 
@@ -225,7 +233,7 @@ func BenchmarkSimHashIterator(b *testing.B) {
 			var ok bool
 
 			for j := 0; j < b.N; j++ {
-				iter, err := NewSimHashIterator(benchSeqs[i], 31, 7, true, false)
+				iter, err := NewSimHashIterator(benchSeqs[i], 31, 4, 5, true, false)
 				if err != nil {
 					b.Errorf("fail to create hash iterator. seq length: %d", size)
 				}

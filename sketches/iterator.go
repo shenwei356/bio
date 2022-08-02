@@ -23,6 +23,7 @@ package sketches
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/shenwei356/bio/seq"
@@ -45,8 +46,11 @@ var ErrIllegalBase = errors.New("sketches: illegal base")
 // ErrKTooLarge means that the k-mer size is too large.
 var ErrKTooLarge = fmt.Errorf("sketches: k-mer size is too large")
 
-// ErrInvalidM means that the m-mer size is too large or too small, should be in range of [1, k].
-var ErrInvalidM = fmt.Errorf("sketches: invalid m-mer size")
+// ErrInvalidM means that the m-mer size is too large or too small, should be in range of [4, k].
+var ErrInvalidM = fmt.Errorf("sketches: invalid m-mer size, should be in range of [4, k]")
+
+// ErrInvalidScale means
+var ErrInvalidScale = fmt.Errorf("sketches: invalid scale, should be in range of [1, k-m+1]")
 
 var poolIterator = &sync.Pool{New: func() interface{} {
 	return &Iterator{}
@@ -86,28 +90,39 @@ type Iterator struct {
 
 	// for SimHash
 	simhash  bool
-	m        int
-	em       int      // end of idxJ in current k-mer
-	hashes   []uint64 // cycle buffer of previous ntHash
-	sum      [64]int16
-	mNum     int16
-	idxJ     int
-	preHashI int
-	preHash  uint64
-	_hash    uint64
+	m        int       // size of m-mer
+	em       int       // end of idxJ in current k-mer
+	hashes   []uint64  // cycle buffer of previous hashes of m-mer
+	sum      [64]int16 // the vector
+	nPosHash int16     // number of vector value > 0
+	nThsld   int16     // the threshold to decide should a vector value be 1 (x >= nThsld) or not
+	idxJ     int       // tmp index
+	preHashI int       // index of the m-mer just getting out of the current k-mer
+	preHash  uint64    //
+	_hash    uint64    // ntHash
+
+	fracMinHash bool   // scale > 1
+	maxHash     uint64 // the max hash value for a scale, i.e. max uint64 / scale
 }
 
-func NewSimHashIterator(s *seq.Seq, k int, m int, canonical bool, circular bool) (*Iterator, error) {
+// NewSimHashIterator returns a SimHash Iterator. Main parameters:
+//
+//	k:     k-mer size.
+//	m:     size of m-mer in a k-mer. range: [4, k]
+//	scale: scale of FracMinHash of m-mers. range: [1, k-m+1]
+func NewSimHashIterator(s *seq.Seq, k int, m int, scale int, canonical bool, circular bool) (*Iterator, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
-
 	if k >= 65535 {
 		return nil, ErrKTooLarge
 	}
 
-	if m < 1 || m > k {
+	if m < 4 || m > k {
 		return nil, ErrInvalidM
+	}
+	if scale < 1 || scale > k-m+1 {
+		return nil, ErrInvalidScale
 	}
 
 	if len(s.Seq) < k {
@@ -149,14 +164,21 @@ func NewSimHashIterator(s *seq.Seq, k int, m int, canonical bool, circular bool)
 	for i := 0; i < 64; i++ {
 		iter.sum[i] = 0
 	}
+	iter.nPosHash = 0
 
 	iter.simhash = true
 	iter.m = m
 	iter.em = iter.k - iter.m
-	iter.mNum = int16((float64(iter.k-iter.m+1) + 1) / float64(2))
+	iter.nThsld = 0 // int16((float64(iter.k-iter.m+1) + 1) / float64(2))
 	iter.hashes = make([]uint64, iter.k-iter.m+1)
 	iter.preHashI = 0
 	iter.idxJ = 0
+	iter.fracMinHash = scale > 1
+	if iter.fracMinHash {
+		iter.maxHash = math.MaxUint64 / uint64(scale)
+	} else {
+		iter.maxHash = math.MaxUint64
+	}
 
 	return iter, nil
 }
@@ -173,15 +195,15 @@ func (iter *Iterator) NextSimHash() (code uint64, ok bool) {
 		return 0, false
 	}
 
-	iter.e = iter.idx + iter.k
-	iter.em = iter.idx + iter.k - iter.m
-
 	if !iter.first {
-		// subtract the previous hash, which is out of the window of current k-mer
+		// subtract the previous  hash, which is out of the window of current k-mer
+
 		iter.preHash = iter.hashes[iter.preHashI]
-		// fmt.Printf("prevHashI: %d\n", iter.preHashI)
+		// fmt.Printf("[%d] prevHashI: %d\n", iter.idx, iter.preHashI)
 
 		if iter.preHash > 0 {
+			iter.nPosHash--
+
 			iter.sum[0] -= int16(iter.preHash >> 63 & 1)
 			iter.sum[1] -= int16(iter.preHash >> 62 & 1)
 			iter.sum[2] -= int16(iter.preHash >> 61 & 1)
@@ -249,7 +271,15 @@ func (iter *Iterator) NextSimHash() (code uint64, ok bool) {
 		}
 
 		// add newly added m-mer
+
 		iter._hash, _ = iter.hasher.Next(iter.canonical)
+
+		if iter.fracMinHash && iter._hash > iter.maxHash { // discard it, see sourmash paper for FacMinHash
+			iter._hash = 0
+		} else if iter._hash > 0 {
+			iter.nPosHash++
+		}
+		// fmt.Printf("[%d] new: %064b\n", iter.idx, iter._hash)
 
 		iter.hashes[iter.preHashI] = iter._hash // update the hash value
 
@@ -320,90 +350,107 @@ func (iter *Iterator) NextSimHash() (code uint64, ok bool) {
 			iter.sum[63] += int16(iter._hash & 1)
 		}
 
-		// decoding
-		code = 0
-		// if n >= N/2 ? 1 : 0
-		code |= uint64((iter.sum[0]-iter.mNum)>>15&1^1) << 63
-		code |= uint64((iter.sum[1]-iter.mNum)>>15&1^1) << 62
-		code |= uint64((iter.sum[2]-iter.mNum)>>15&1^1) << 61
-		code |= uint64((iter.sum[3]-iter.mNum)>>15&1^1) << 60
-		code |= uint64((iter.sum[4]-iter.mNum)>>15&1^1) << 59
-		code |= uint64((iter.sum[5]-iter.mNum)>>15&1^1) << 58
-		code |= uint64((iter.sum[6]-iter.mNum)>>15&1^1) << 57
-		code |= uint64((iter.sum[7]-iter.mNum)>>15&1^1) << 56
-		code |= uint64((iter.sum[8]-iter.mNum)>>15&1^1) << 55
-		code |= uint64((iter.sum[9]-iter.mNum)>>15&1^1) << 54
-		code |= uint64((iter.sum[10]-iter.mNum)>>15&1^1) << 53
-		code |= uint64((iter.sum[11]-iter.mNum)>>15&1^1) << 52
-		code |= uint64((iter.sum[12]-iter.mNum)>>15&1^1) << 51
-		code |= uint64((iter.sum[13]-iter.mNum)>>15&1^1) << 50
-		code |= uint64((iter.sum[14]-iter.mNum)>>15&1^1) << 49
-		code |= uint64((iter.sum[15]-iter.mNum)>>15&1^1) << 48
-		code |= uint64((iter.sum[16]-iter.mNum)>>15&1^1) << 47
-		code |= uint64((iter.sum[17]-iter.mNum)>>15&1^1) << 46
-		code |= uint64((iter.sum[18]-iter.mNum)>>15&1^1) << 45
-		code |= uint64((iter.sum[19]-iter.mNum)>>15&1^1) << 44
-		code |= uint64((iter.sum[20]-iter.mNum)>>15&1^1) << 43
-		code |= uint64((iter.sum[21]-iter.mNum)>>15&1^1) << 42
-		code |= uint64((iter.sum[22]-iter.mNum)>>15&1^1) << 41
-		code |= uint64((iter.sum[23]-iter.mNum)>>15&1^1) << 40
-		code |= uint64((iter.sum[24]-iter.mNum)>>15&1^1) << 39
-		code |= uint64((iter.sum[25]-iter.mNum)>>15&1^1) << 38
-		code |= uint64((iter.sum[26]-iter.mNum)>>15&1^1) << 37
-		code |= uint64((iter.sum[27]-iter.mNum)>>15&1^1) << 36
-		code |= uint64((iter.sum[28]-iter.mNum)>>15&1^1) << 35
-		code |= uint64((iter.sum[29]-iter.mNum)>>15&1^1) << 34
-		code |= uint64((iter.sum[30]-iter.mNum)>>15&1^1) << 33
-		code |= uint64((iter.sum[31]-iter.mNum)>>15&1^1) << 32
-		code |= uint64((iter.sum[32]-iter.mNum)>>15&1^1) << 31
-		code |= uint64((iter.sum[33]-iter.mNum)>>15&1^1) << 30
-		code |= uint64((iter.sum[34]-iter.mNum)>>15&1^1) << 29
-		code |= uint64((iter.sum[35]-iter.mNum)>>15&1^1) << 28
-		code |= uint64((iter.sum[36]-iter.mNum)>>15&1^1) << 27
-		code |= uint64((iter.sum[37]-iter.mNum)>>15&1^1) << 26
-		code |= uint64((iter.sum[38]-iter.mNum)>>15&1^1) << 25
-		code |= uint64((iter.sum[39]-iter.mNum)>>15&1^1) << 24
-		code |= uint64((iter.sum[40]-iter.mNum)>>15&1^1) << 23
-		code |= uint64((iter.sum[41]-iter.mNum)>>15&1^1) << 22
-		code |= uint64((iter.sum[42]-iter.mNum)>>15&1^1) << 21
-		code |= uint64((iter.sum[43]-iter.mNum)>>15&1^1) << 20
-		code |= uint64((iter.sum[44]-iter.mNum)>>15&1^1) << 19
-		code |= uint64((iter.sum[45]-iter.mNum)>>15&1^1) << 18
-		code |= uint64((iter.sum[46]-iter.mNum)>>15&1^1) << 17
-		code |= uint64((iter.sum[47]-iter.mNum)>>15&1^1) << 16
-		code |= uint64((iter.sum[48]-iter.mNum)>>15&1^1) << 15
-		code |= uint64((iter.sum[49]-iter.mNum)>>15&1^1) << 14
-		code |= uint64((iter.sum[50]-iter.mNum)>>15&1^1) << 13
-		code |= uint64((iter.sum[51]-iter.mNum)>>15&1^1) << 12
-		code |= uint64((iter.sum[52]-iter.mNum)>>15&1^1) << 11
-		code |= uint64((iter.sum[53]-iter.mNum)>>15&1^1) << 10
-		code |= uint64((iter.sum[54]-iter.mNum)>>15&1^1) << 9
-		code |= uint64((iter.sum[55]-iter.mNum)>>15&1^1) << 8
-		code |= uint64((iter.sum[56]-iter.mNum)>>15&1^1) << 7
-		code |= uint64((iter.sum[57]-iter.mNum)>>15&1^1) << 6
-		code |= uint64((iter.sum[58]-iter.mNum)>>15&1^1) << 5
-		code |= uint64((iter.sum[59]-iter.mNum)>>15&1^1) << 4
-		code |= uint64((iter.sum[60]-iter.mNum)>>15&1^1) << 3
-		code |= uint64((iter.sum[61]-iter.mNum)>>15&1^1) << 2
-		code |= uint64((iter.sum[62]-iter.mNum)>>15&1^1) << 1
-		code |= uint64((iter.sum[63]-iter.mNum)>>15&1 ^ 1)
+		// decoding vector to hash
 
-		//
+		code = 0
+		iter.nThsld = (iter.nPosHash + 1) / 2 // the threshold
+		// fmt.Printf("nThsld: %d\n", iter.nThsld)
+
+		if iter.nPosHash > 0 {
+			// if n >= N/2 ? 1 : 0
+			code |= uint64((iter.sum[0]-iter.nThsld)>>15&1^1) << 63
+			code |= uint64((iter.sum[1]-iter.nThsld)>>15&1^1) << 62
+			code |= uint64((iter.sum[2]-iter.nThsld)>>15&1^1) << 61
+			code |= uint64((iter.sum[3]-iter.nThsld)>>15&1^1) << 60
+			code |= uint64((iter.sum[4]-iter.nThsld)>>15&1^1) << 59
+			code |= uint64((iter.sum[5]-iter.nThsld)>>15&1^1) << 58
+			code |= uint64((iter.sum[6]-iter.nThsld)>>15&1^1) << 57
+			code |= uint64((iter.sum[7]-iter.nThsld)>>15&1^1) << 56
+			code |= uint64((iter.sum[8]-iter.nThsld)>>15&1^1) << 55
+			code |= uint64((iter.sum[9]-iter.nThsld)>>15&1^1) << 54
+			code |= uint64((iter.sum[10]-iter.nThsld)>>15&1^1) << 53
+			code |= uint64((iter.sum[11]-iter.nThsld)>>15&1^1) << 52
+			code |= uint64((iter.sum[12]-iter.nThsld)>>15&1^1) << 51
+			code |= uint64((iter.sum[13]-iter.nThsld)>>15&1^1) << 50
+			code |= uint64((iter.sum[14]-iter.nThsld)>>15&1^1) << 49
+			code |= uint64((iter.sum[15]-iter.nThsld)>>15&1^1) << 48
+			code |= uint64((iter.sum[16]-iter.nThsld)>>15&1^1) << 47
+			code |= uint64((iter.sum[17]-iter.nThsld)>>15&1^1) << 46
+			code |= uint64((iter.sum[18]-iter.nThsld)>>15&1^1) << 45
+			code |= uint64((iter.sum[19]-iter.nThsld)>>15&1^1) << 44
+			code |= uint64((iter.sum[20]-iter.nThsld)>>15&1^1) << 43
+			code |= uint64((iter.sum[21]-iter.nThsld)>>15&1^1) << 42
+			code |= uint64((iter.sum[22]-iter.nThsld)>>15&1^1) << 41
+			code |= uint64((iter.sum[23]-iter.nThsld)>>15&1^1) << 40
+			code |= uint64((iter.sum[24]-iter.nThsld)>>15&1^1) << 39
+			code |= uint64((iter.sum[25]-iter.nThsld)>>15&1^1) << 38
+			code |= uint64((iter.sum[26]-iter.nThsld)>>15&1^1) << 37
+			code |= uint64((iter.sum[27]-iter.nThsld)>>15&1^1) << 36
+			code |= uint64((iter.sum[28]-iter.nThsld)>>15&1^1) << 35
+			code |= uint64((iter.sum[29]-iter.nThsld)>>15&1^1) << 34
+			code |= uint64((iter.sum[30]-iter.nThsld)>>15&1^1) << 33
+			code |= uint64((iter.sum[31]-iter.nThsld)>>15&1^1) << 32
+			code |= uint64((iter.sum[32]-iter.nThsld)>>15&1^1) << 31
+			code |= uint64((iter.sum[33]-iter.nThsld)>>15&1^1) << 30
+			code |= uint64((iter.sum[34]-iter.nThsld)>>15&1^1) << 29
+			code |= uint64((iter.sum[35]-iter.nThsld)>>15&1^1) << 28
+			code |= uint64((iter.sum[36]-iter.nThsld)>>15&1^1) << 27
+			code |= uint64((iter.sum[37]-iter.nThsld)>>15&1^1) << 26
+			code |= uint64((iter.sum[38]-iter.nThsld)>>15&1^1) << 25
+			code |= uint64((iter.sum[39]-iter.nThsld)>>15&1^1) << 24
+			code |= uint64((iter.sum[40]-iter.nThsld)>>15&1^1) << 23
+			code |= uint64((iter.sum[41]-iter.nThsld)>>15&1^1) << 22
+			code |= uint64((iter.sum[42]-iter.nThsld)>>15&1^1) << 21
+			code |= uint64((iter.sum[43]-iter.nThsld)>>15&1^1) << 20
+			code |= uint64((iter.sum[44]-iter.nThsld)>>15&1^1) << 19
+			code |= uint64((iter.sum[45]-iter.nThsld)>>15&1^1) << 18
+			code |= uint64((iter.sum[46]-iter.nThsld)>>15&1^1) << 17
+			code |= uint64((iter.sum[47]-iter.nThsld)>>15&1^1) << 16
+			code |= uint64((iter.sum[48]-iter.nThsld)>>15&1^1) << 15
+			code |= uint64((iter.sum[49]-iter.nThsld)>>15&1^1) << 14
+			code |= uint64((iter.sum[50]-iter.nThsld)>>15&1^1) << 13
+			code |= uint64((iter.sum[51]-iter.nThsld)>>15&1^1) << 12
+			code |= uint64((iter.sum[52]-iter.nThsld)>>15&1^1) << 11
+			code |= uint64((iter.sum[53]-iter.nThsld)>>15&1^1) << 10
+			code |= uint64((iter.sum[54]-iter.nThsld)>>15&1^1) << 9
+			code |= uint64((iter.sum[55]-iter.nThsld)>>15&1^1) << 8
+			code |= uint64((iter.sum[56]-iter.nThsld)>>15&1^1) << 7
+			code |= uint64((iter.sum[57]-iter.nThsld)>>15&1^1) << 6
+			code |= uint64((iter.sum[58]-iter.nThsld)>>15&1^1) << 5
+			code |= uint64((iter.sum[59]-iter.nThsld)>>15&1^1) << 4
+			code |= uint64((iter.sum[60]-iter.nThsld)>>15&1^1) << 3
+			code |= uint64((iter.sum[61]-iter.nThsld)>>15&1^1) << 2
+			code |= uint64((iter.sum[62]-iter.nThsld)>>15&1^1) << 1
+			code |= uint64((iter.sum[63]-iter.nThsld)>>15&1 ^ 1)
+		} else {
+			code = 0
+		}
+
+		// update the preHashI
 		if iter.preHashI == iter.k-iter.m {
 			iter.preHashI = 0
 		} else {
 			iter.preHashI++
 		}
 	} else {
+		iter.nPosHash = 0
 		for iter.idxJ = 0; iter.idxJ <= iter.em; iter.idxJ++ {
 			iter._hash, _ = iter.hasher.Next(iter.canonical)
 
+			// fmt.Println(iter.fracMinHash, iter._hash, iter.maxHash, iter._hash > iter.maxHash)
+			if iter.fracMinHash && iter._hash > iter.maxHash {
+				iter.hashes[iter.idxJ] = 0
+				continue
+			}
 			iter.hashes[iter.idxJ] = iter._hash
 
 			if iter._hash == 0 {
 				continue
 			}
-			// fmt.Printf("[%d] %d: %064b\n", iter.idx, iter.idxJ, iter._hash)
+
+			iter.nPosHash++
+
+			// fmt.Printf("[%02d] %02d: %064b %d\n", iter.idx, iter.idxJ, iter._hash, iter._hash)
 
 			iter.sum[0] += int16(iter._hash >> 63 & 1)
 			iter.sum[1] += int16(iter._hash >> 62 & 1)
@@ -470,79 +517,89 @@ func (iter *Iterator) NextSimHash() (code uint64, ok bool) {
 			iter.sum[62] += int16(iter._hash >> 1 & 1)
 			iter.sum[63] += int16(iter._hash & 1)
 		}
-		// fmt.Printf("sum: %v\n", iter.sum)
-		// fmt.Printf("nNum: %d\n", iter.mNum)
+
+		// fmt.Printf("   sum: %v\n", iter.sum)
 
 		code = 0
-		// if n >= N/2 ? 1 : 0
-		code |= uint64((iter.sum[0]-iter.mNum)>>15&1^1) << 63
-		code |= uint64((iter.sum[1]-iter.mNum)>>15&1^1) << 62
-		code |= uint64((iter.sum[2]-iter.mNum)>>15&1^1) << 61
-		code |= uint64((iter.sum[3]-iter.mNum)>>15&1^1) << 60
-		code |= uint64((iter.sum[4]-iter.mNum)>>15&1^1) << 59
-		code |= uint64((iter.sum[5]-iter.mNum)>>15&1^1) << 58
-		code |= uint64((iter.sum[6]-iter.mNum)>>15&1^1) << 57
-		code |= uint64((iter.sum[7]-iter.mNum)>>15&1^1) << 56
-		code |= uint64((iter.sum[8]-iter.mNum)>>15&1^1) << 55
-		code |= uint64((iter.sum[9]-iter.mNum)>>15&1^1) << 54
-		code |= uint64((iter.sum[10]-iter.mNum)>>15&1^1) << 53
-		code |= uint64((iter.sum[11]-iter.mNum)>>15&1^1) << 52
-		code |= uint64((iter.sum[12]-iter.mNum)>>15&1^1) << 51
-		code |= uint64((iter.sum[13]-iter.mNum)>>15&1^1) << 50
-		code |= uint64((iter.sum[14]-iter.mNum)>>15&1^1) << 49
-		code |= uint64((iter.sum[15]-iter.mNum)>>15&1^1) << 48
-		code |= uint64((iter.sum[16]-iter.mNum)>>15&1^1) << 47
-		code |= uint64((iter.sum[17]-iter.mNum)>>15&1^1) << 46
-		code |= uint64((iter.sum[18]-iter.mNum)>>15&1^1) << 45
-		code |= uint64((iter.sum[19]-iter.mNum)>>15&1^1) << 44
-		code |= uint64((iter.sum[20]-iter.mNum)>>15&1^1) << 43
-		code |= uint64((iter.sum[21]-iter.mNum)>>15&1^1) << 42
-		code |= uint64((iter.sum[22]-iter.mNum)>>15&1^1) << 41
-		code |= uint64((iter.sum[23]-iter.mNum)>>15&1^1) << 40
-		code |= uint64((iter.sum[24]-iter.mNum)>>15&1^1) << 39
-		code |= uint64((iter.sum[25]-iter.mNum)>>15&1^1) << 38
-		code |= uint64((iter.sum[26]-iter.mNum)>>15&1^1) << 37
-		code |= uint64((iter.sum[27]-iter.mNum)>>15&1^1) << 36
-		code |= uint64((iter.sum[28]-iter.mNum)>>15&1^1) << 35
-		code |= uint64((iter.sum[29]-iter.mNum)>>15&1^1) << 34
-		code |= uint64((iter.sum[30]-iter.mNum)>>15&1^1) << 33
-		code |= uint64((iter.sum[31]-iter.mNum)>>15&1^1) << 32
-		code |= uint64((iter.sum[32]-iter.mNum)>>15&1^1) << 31
-		code |= uint64((iter.sum[33]-iter.mNum)>>15&1^1) << 30
-		code |= uint64((iter.sum[34]-iter.mNum)>>15&1^1) << 29
-		code |= uint64((iter.sum[35]-iter.mNum)>>15&1^1) << 28
-		code |= uint64((iter.sum[36]-iter.mNum)>>15&1^1) << 27
-		code |= uint64((iter.sum[37]-iter.mNum)>>15&1^1) << 26
-		code |= uint64((iter.sum[38]-iter.mNum)>>15&1^1) << 25
-		code |= uint64((iter.sum[39]-iter.mNum)>>15&1^1) << 24
-		code |= uint64((iter.sum[40]-iter.mNum)>>15&1^1) << 23
-		code |= uint64((iter.sum[41]-iter.mNum)>>15&1^1) << 22
-		code |= uint64((iter.sum[42]-iter.mNum)>>15&1^1) << 21
-		code |= uint64((iter.sum[43]-iter.mNum)>>15&1^1) << 20
-		code |= uint64((iter.sum[44]-iter.mNum)>>15&1^1) << 19
-		code |= uint64((iter.sum[45]-iter.mNum)>>15&1^1) << 18
-		code |= uint64((iter.sum[46]-iter.mNum)>>15&1^1) << 17
-		code |= uint64((iter.sum[47]-iter.mNum)>>15&1^1) << 16
-		code |= uint64((iter.sum[48]-iter.mNum)>>15&1^1) << 15
-		code |= uint64((iter.sum[49]-iter.mNum)>>15&1^1) << 14
-		code |= uint64((iter.sum[50]-iter.mNum)>>15&1^1) << 13
-		code |= uint64((iter.sum[51]-iter.mNum)>>15&1^1) << 12
-		code |= uint64((iter.sum[52]-iter.mNum)>>15&1^1) << 11
-		code |= uint64((iter.sum[53]-iter.mNum)>>15&1^1) << 10
-		code |= uint64((iter.sum[54]-iter.mNum)>>15&1^1) << 9
-		code |= uint64((iter.sum[55]-iter.mNum)>>15&1^1) << 8
-		code |= uint64((iter.sum[56]-iter.mNum)>>15&1^1) << 7
-		code |= uint64((iter.sum[57]-iter.mNum)>>15&1^1) << 6
-		code |= uint64((iter.sum[58]-iter.mNum)>>15&1^1) << 5
-		code |= uint64((iter.sum[59]-iter.mNum)>>15&1^1) << 4
-		code |= uint64((iter.sum[60]-iter.mNum)>>15&1^1) << 3
-		code |= uint64((iter.sum[61]-iter.mNum)>>15&1^1) << 2
-		code |= uint64((iter.sum[62]-iter.mNum)>>15&1^1) << 1
-		code |= uint64((iter.sum[63]-iter.mNum)>>15&1 ^ 1)
+		iter.nThsld = (iter.nPosHash + 1) / 2
+		// fmt.Printf("nThsld: %d\n", iter.nThsld)
+		if iter.nPosHash > 0 {
+			// if n >= N/2 ? 1 : 0
+			code |= uint64((iter.sum[0]-iter.nThsld)>>15&1^1) << 63
+			code |= uint64((iter.sum[1]-iter.nThsld)>>15&1^1) << 62
+			code |= uint64((iter.sum[2]-iter.nThsld)>>15&1^1) << 61
+			code |= uint64((iter.sum[3]-iter.nThsld)>>15&1^1) << 60
+			code |= uint64((iter.sum[4]-iter.nThsld)>>15&1^1) << 59
+			code |= uint64((iter.sum[5]-iter.nThsld)>>15&1^1) << 58
+			code |= uint64((iter.sum[6]-iter.nThsld)>>15&1^1) << 57
+			code |= uint64((iter.sum[7]-iter.nThsld)>>15&1^1) << 56
+			code |= uint64((iter.sum[8]-iter.nThsld)>>15&1^1) << 55
+			code |= uint64((iter.sum[9]-iter.nThsld)>>15&1^1) << 54
+			code |= uint64((iter.sum[10]-iter.nThsld)>>15&1^1) << 53
+			code |= uint64((iter.sum[11]-iter.nThsld)>>15&1^1) << 52
+			code |= uint64((iter.sum[12]-iter.nThsld)>>15&1^1) << 51
+			code |= uint64((iter.sum[13]-iter.nThsld)>>15&1^1) << 50
+			code |= uint64((iter.sum[14]-iter.nThsld)>>15&1^1) << 49
+			code |= uint64((iter.sum[15]-iter.nThsld)>>15&1^1) << 48
+			code |= uint64((iter.sum[16]-iter.nThsld)>>15&1^1) << 47
+			code |= uint64((iter.sum[17]-iter.nThsld)>>15&1^1) << 46
+			code |= uint64((iter.sum[18]-iter.nThsld)>>15&1^1) << 45
+			code |= uint64((iter.sum[19]-iter.nThsld)>>15&1^1) << 44
+			code |= uint64((iter.sum[20]-iter.nThsld)>>15&1^1) << 43
+			code |= uint64((iter.sum[21]-iter.nThsld)>>15&1^1) << 42
+			code |= uint64((iter.sum[22]-iter.nThsld)>>15&1^1) << 41
+			code |= uint64((iter.sum[23]-iter.nThsld)>>15&1^1) << 40
+			code |= uint64((iter.sum[24]-iter.nThsld)>>15&1^1) << 39
+			code |= uint64((iter.sum[25]-iter.nThsld)>>15&1^1) << 38
+			code |= uint64((iter.sum[26]-iter.nThsld)>>15&1^1) << 37
+			code |= uint64((iter.sum[27]-iter.nThsld)>>15&1^1) << 36
+			code |= uint64((iter.sum[28]-iter.nThsld)>>15&1^1) << 35
+			code |= uint64((iter.sum[29]-iter.nThsld)>>15&1^1) << 34
+			code |= uint64((iter.sum[30]-iter.nThsld)>>15&1^1) << 33
+			code |= uint64((iter.sum[31]-iter.nThsld)>>15&1^1) << 32
+			code |= uint64((iter.sum[32]-iter.nThsld)>>15&1^1) << 31
+			code |= uint64((iter.sum[33]-iter.nThsld)>>15&1^1) << 30
+			code |= uint64((iter.sum[34]-iter.nThsld)>>15&1^1) << 29
+			code |= uint64((iter.sum[35]-iter.nThsld)>>15&1^1) << 28
+			code |= uint64((iter.sum[36]-iter.nThsld)>>15&1^1) << 27
+			code |= uint64((iter.sum[37]-iter.nThsld)>>15&1^1) << 26
+			code |= uint64((iter.sum[38]-iter.nThsld)>>15&1^1) << 25
+			code |= uint64((iter.sum[39]-iter.nThsld)>>15&1^1) << 24
+			code |= uint64((iter.sum[40]-iter.nThsld)>>15&1^1) << 23
+			code |= uint64((iter.sum[41]-iter.nThsld)>>15&1^1) << 22
+			code |= uint64((iter.sum[42]-iter.nThsld)>>15&1^1) << 21
+			code |= uint64((iter.sum[43]-iter.nThsld)>>15&1^1) << 20
+			code |= uint64((iter.sum[44]-iter.nThsld)>>15&1^1) << 19
+			code |= uint64((iter.sum[45]-iter.nThsld)>>15&1^1) << 18
+			code |= uint64((iter.sum[46]-iter.nThsld)>>15&1^1) << 17
+			code |= uint64((iter.sum[47]-iter.nThsld)>>15&1^1) << 16
+			code |= uint64((iter.sum[48]-iter.nThsld)>>15&1^1) << 15
+			code |= uint64((iter.sum[49]-iter.nThsld)>>15&1^1) << 14
+			code |= uint64((iter.sum[50]-iter.nThsld)>>15&1^1) << 13
+			code |= uint64((iter.sum[51]-iter.nThsld)>>15&1^1) << 12
+			code |= uint64((iter.sum[52]-iter.nThsld)>>15&1^1) << 11
+			code |= uint64((iter.sum[53]-iter.nThsld)>>15&1^1) << 10
+			code |= uint64((iter.sum[54]-iter.nThsld)>>15&1^1) << 9
+			code |= uint64((iter.sum[55]-iter.nThsld)>>15&1^1) << 8
+			code |= uint64((iter.sum[56]-iter.nThsld)>>15&1^1) << 7
+			code |= uint64((iter.sum[57]-iter.nThsld)>>15&1^1) << 6
+			code |= uint64((iter.sum[58]-iter.nThsld)>>15&1^1) << 5
+			code |= uint64((iter.sum[59]-iter.nThsld)>>15&1^1) << 4
+			code |= uint64((iter.sum[60]-iter.nThsld)>>15&1^1) << 3
+			code |= uint64((iter.sum[61]-iter.nThsld)>>15&1^1) << 2
+			code |= uint64((iter.sum[62]-iter.nThsld)>>15&1^1) << 1
+			code |= uint64((iter.sum[63]-iter.nThsld)>>15&1 ^ 1)
+		} else {
+			code = 0
+		}
 
 		iter.preHashI = 0
 		iter.first = false
 	}
+
+	// code &= 0xffffffff
+
+	// fmt.Printf("kmer: %03d-%s, %064b, %d\n\n", iter.idx, iter.s.Seq[iter.idx:iter.idx+iter.k], code, code)
 
 	iter.preCode = code
 	iter.idx++
