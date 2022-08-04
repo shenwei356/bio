@@ -27,13 +27,14 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
  
                                           test           time     memory        allocs
     ------------------------------------------   ------------   --------   -----------
-              BenchmarkKmerIterator/1.00_KB-16    11292 ns/op     0 B/op   0 allocs/op
-              BenchmarkHashIterator/1.00_KB-16     7146 ns/op    24 B/op   1 allocs/op
-           BenchmarkProteinIterator/1.00_KB-16    13985 ns/op   432 B/op   2 allocs/op
-
-           BenchmarkMinimizerSketch/1.00_KB-16    58062 ns/op    48 B/op   2 allocs/op
-             BenchmarkSyncmerSketch/1.00_KB-16   102475 ns/op   977 B/op   7 allocs/op
-    BenchmarkProteinMinimizerSketch/1.00_KB-16    21617 ns/op   733 B/op   5 allocs/op
+              BenchmarkKmerIterator/1.00_KB-16    11445 ns/op     0 B/op   0 allocs/op
+              BenchmarkHashIterator/1.00_KB-16     7974 ns/op    24 B/op   1 allocs/op
+           BenchmarkSimHashIterator/1.00_KB-16    79477 ns/op    48 B/op   1 allocs/op           
+           BenchmarkProteinIterator/1.00_KB-16    17852 ns/op   432 B/op   2 allocs/op
+    
+           BenchmarkMinimizerSketch/1.00_KB-16    56071 ns/op    48 B/op   2 allocs/op
+             BenchmarkSyncmerSketch/1.00_KB-16   101310 ns/op   977 B/op   7 allocs/op
+    BenchmarkProteinMinimizerSketch/1.00_KB-16    29914 ns/op   736 B/op   5 allocs/op
 
 
 ## History

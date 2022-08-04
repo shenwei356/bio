@@ -233,7 +233,7 @@ func BenchmarkSimHashIterator(b *testing.B) {
 			var ok bool
 
 			for j := 0; j < b.N; j++ {
-				iter, err := NewSimHashIterator(benchSeqs[i], 31, 4, 5, true, false)
+				iter, err := NewSimHashIterator(benchSeqs[i], 31, 5, 5, true, false)
 				if err != nil {
 					b.Errorf("fail to create hash iterator. seq length: %d", size)
 				}

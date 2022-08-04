@@ -169,8 +169,12 @@ func NewSimHashIterator(s *seq.Seq, k int, m int, scale int, canonical bool, cir
 	iter.simhash = true
 	iter.m = m
 	iter.em = iter.k - iter.m
-	iter.nThsld = 0 // int16((float64(iter.k-iter.m+1) + 1) / float64(2))
-	iter.hashes = make([]uint64, iter.k-iter.m+1)
+	iter.nThsld = 0                          // int16((float64(iter.k-iter.m+1) + 1) / float64(2))
+	if len(iter.hashes) >= iter.k-iter.m+1 { // resuse objects
+		iter.hashes = iter.hashes[0 : iter.k-iter.m+1]
+	} else {
+		iter.hashes = make([]uint64, iter.k-iter.m+1)
+	}
 	iter.preHashI = 0
 	iter.idxJ = 0
 	iter.fracMinHash = scale > 1
