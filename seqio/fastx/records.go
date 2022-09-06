@@ -3,6 +3,7 @@ package fastx
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/xopen"
@@ -102,8 +103,10 @@ func (record *Record) Format(width int) []byte {
 		buf.Write(record.Seq.Seq)
 	} else {
 		var text []byte
+		buffer := poolBuffer.Get().(*bytes.Buffer)
 		text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
 		buf.Write(text)
+		poolBuffer.Put(buffer)
 	}
 
 	buf.Write(_mark_newline)
@@ -135,14 +138,21 @@ func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 		outfh.Write(record.Seq.Seq)
 	} else {
 		var text []byte
+		buffer := poolBuffer.Get().(*bytes.Buffer)
 		text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
 		outfh.Write(text)
+		poolBuffer.Put(buffer)
 	}
 
 	outfh.Write(_mark_newline)
 }
 
-var buffer *bytes.Buffer
+// It's unsafe for concurrency
+// var buffer *bytes.Buffer
+
+var poolBuffer = &sync.Pool{New: func() interface{} {
+	return bytes.NewBuffer(make([]byte, 0, 1024))
+}}
 
 var _mark_fasta = []byte{'>'}
 var _mark_fastq = []byte{'@'}
