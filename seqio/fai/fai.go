@@ -32,17 +32,17 @@ func Read(fileFai string) (Index, error) {
 
 	index := make(map[string]Record)
 
-	reader := bufio.NewReader(fh)
-	var items []string
+	scanner := bufio.NewScanner(fh)
+	items := make([]string, 5)
 	var line, name string
 	var length int
 	var start int64
 	var BasesPerLine, bytesPerLine int
-	for {
-		line, err = reader.ReadString('\n')
+	for scanner.Scan() {
+		line = scanner.Text()
 		if line != "" {
-			line = string(dropCR([]byte(line[0 : len(line)-1])))
-			items = strings.Split(line, "\t")
+			line = dropCRStr(line)
+			stringSplitNByByte(line, '\t', 5, &items)
 			if len(items) != 5 {
 				return nil, fmt.Errorf("invalid fai records: %s", line)
 			}
@@ -77,8 +77,8 @@ func Read(fileFai string) (Index, error) {
 			}
 		}
 
-		if err != nil {
-			break
+		if err := scanner.Err(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -132,22 +132,30 @@ func Create(fileSeq, fileFai string) (Index, error) {
 	var lineWidths, seqWidths []int
 	var lastLineWidth, lineWidth, seqWidth int
 	var chances int
+	var line, lineDropCR []byte
+	var seenSeqs bool
 	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
+		line, err = reader.ReadBytes('\n')
+		if err != nil { // end of file
 			id = string(parseHeadID(lastName))
 
 			// check lineWidths
 			lastLineWidth, chances = -2, 2
+			seenSeqs = false
 			for i := len(lineWidths) - 1; i >= 0; i-- {
+				if !seenSeqs && seqWidths[i] == 0 { // skip empty lines in the end
+					continue
+				}
+				seenSeqs = true
+
 				if lastLineWidth == -2 {
 					lastLineWidth = lineWidths[i]
 					continue
 				}
 				if lineWidths[i] != lastLineWidth {
 					chances--
-					if chances == 0 {
-						return nil, fmt.Errorf("different line length in sequence: %s", id)
+					if chances == 0 || lineWidths[i] < lastLineWidth {
+						return nil, fmt.Errorf("different line length in sequence: %s. Please format the file with 'seqkit seq'", id)
 					}
 				}
 				lastLineWidth = lineWidths[i]
@@ -171,7 +179,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 				// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
 				os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
 			} else {
-				outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
+				fmt.Fprintf(outfh, "%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth)
 				index[id] = Record{
 					Name:         id,
 					Length:       seqLen,
@@ -193,24 +201,31 @@ func Create(fileSeq, fileFai string) (Index, error) {
 			}
 			checkSeqType = false
 		}
+
 		if line[0] == '>' {
 			hasSeq = true
 			thisName = dropCR(line[1 : len(line)-1])
 
-			if lastName != nil {
+			if lastName != nil { // not the first record
 				id = string(parseHeadID(lastName))
 
 				// check lineWidths
 				lastLineWidth, chances = -1, 2
+				seenSeqs = false
 				for i := len(lineWidths) - 1; i >= 0; i-- {
+					if !seenSeqs && seqWidths[i] == 0 { // skip empty lines in the end
+						continue
+					}
+					seenSeqs = true
+
 					if lastLineWidth == -1 {
 						lastLineWidth = lineWidths[i]
 						continue
 					}
 					if lineWidths[i] != lastLineWidth {
 						chances--
-						if chances == 0 {
-							return nil, fmt.Errorf("different line length in sequence: %s", id)
+						if chances == 0 || lineWidths[i] < lastLineWidth {
+							return nil, fmt.Errorf("different line length in sequence: %s. Please format the file with 'seqkit seq'", id)
 						}
 					}
 					lastLineWidth = lineWidths[i]
@@ -228,7 +243,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 					// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
 					os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
 				} else {
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth))
+					fmt.Fprintf(outfh, "%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth)
 					index[id] = Record{
 						Name:         id,
 						Length:       seqLen,
@@ -246,11 +261,12 @@ func Create(fileSeq, fileFai string) (Index, error) {
 			lastStart = thisStart
 			lastName = thisName
 		} else if hasSeq {
-			seqLen += len((dropCR(line[0 : len(line)-1])))
+			lineDropCR = dropCR(line[0 : len(line)-1])
+			seqLen += len(lineDropCR)
 			thisStart += int64(len(line))
 
 			lineWidths = append(lineWidths, len(line))
-			seqWidths = append(seqWidths, len(dropCR(line[0:len(line)-1])))
+			seqWidths = append(seqWidths, len(lineDropCR))
 		}
 	}
 
@@ -290,4 +306,33 @@ func dropCR(data []byte) []byte {
 		return data[0 : len(data)-1]
 	}
 	return data
+}
+
+func dropCRStr(data string) string {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
+}
+
+func stringSplitNByByte(s string, sep byte, n int, a *[]string) {
+	if a == nil {
+		tmp := make([]string, n)
+		a = &tmp
+	}
+
+	n--
+	i := 0
+	for i < n {
+		m := strings.IndexByte(s, sep)
+		if m < 0 {
+			break
+		}
+		(*a)[i] = s[:m]
+		s = s[m+1:]
+		i++
+	}
+	(*a)[i] = s
+
+	(*a) = (*a)[:i+1]
 }

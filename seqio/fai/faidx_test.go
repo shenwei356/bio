@@ -1,13 +1,35 @@
 package fai
 
 import (
+	"bytes"
 	"testing"
+
+	"github.com/shenwei356/bio/seqio/fastx"
 )
 
 func TestFastaReader(t *testing.T) {
 	file := "seq.fa"
 	idx, err := New(file)
-	checkErr(t, err)
+	if err != nil {
+		t.Errorf("failed to create faidx for %s: %s", file, err)
+		return
+	}
+
+	// all sequences
+	seqs, err := fastx.GetSeqs(file, nil, 4, 10, fastx.DefaultIDRegexp)
+	if err != nil {
+		t.Errorf("failed to read seqs: %v", err)
+	}
+	for _, rec := range seqs {
+		seq, err := idx.Seq(string(rec.ID))
+		checkErr(t, err)
+
+		if !bytes.Equal(seq, rec.Seq.Seq) {
+			t.Errorf("unmatched sequences %s: %s", rec.ID, seq)
+		}
+	}
+
+	//
 
 	chr := "cel-let-7"
 	s, err := idx.Base(chr, 1)
@@ -88,10 +110,44 @@ func TestFastaReader(t *testing.T) {
 func TestFastaReaderNotMapWholeFile(t *testing.T) {
 	MapWholeFile = false
 	TestFastaReader(t)
+	MapWholeFile = true
+}
+
+func TestFastaReader2NotMapWholeFile(t *testing.T) {
+	MapWholeFile = false
+	TestFastaReader2(t)
+	MapWholeFile = true
 }
 
 func checkErr(t *testing.T, err error) {
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestFastaReader2(t *testing.T) {
+	file := "seq2.fa"
+	idx, err := New(file)
+	if err != nil {
+		t.Errorf("failed to create faidx for %s: %s", file, err)
+		return
+	}
+
+	seqs, err := fastx.GetSeqs(file, nil, 4, 10, fastx.DefaultIDRegexp)
+	if err != nil {
+		t.Errorf("failed to read seqs: %v", err)
+	}
+	for _, rec := range seqs {
+		seq, err := idx.Seq(string(rec.ID))
+		checkErr(t, err)
+
+		if !bytes.Equal(seq, rec.Seq.Seq) {
+			t.Errorf("unmatched sequences %s: %s", rec.ID, seq)
+		}
+	}
+
+	err = idx.Close()
+	if err != nil {
+		t.Errorf("fail to close faidx: %v", err)
 	}
 }
