@@ -26,8 +26,8 @@ var cases = []testCaseLengthStats{
 	testCaseLengthStats{
 		data:   []uint64{2},
 		median: 2,
-		q1:     1,
-		q3:     1,
+		q1:     2,
+		q3:     2,
 		n50:    2,
 		min:    2,
 		max:    2,

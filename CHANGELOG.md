@@ -1,5 +1,14 @@
 # Changelog
 
+
+### v0.8.3 - 2022-12-02
+
+- util.LengthStats: fix computing Q1 and Q3 for one element.
+
+### v0.8.2 - 2022-11-16
+
+- faidx: allow empty lines at the end of sequences
+
 ### v0.8.1 - 2022-09-06
 
 - fastx: fix concurrency bug of `record.FormatToWriter()`.

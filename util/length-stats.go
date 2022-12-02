@@ -1,6 +1,7 @@
 package util
 
 import (
+	"math"
 	"sort"
 )
 
@@ -137,7 +138,7 @@ func (stats *LengthStats) Q1() float64 {
 	}
 
 	if len(stats.counts) == 1 {
-		return float64(stats.counts[0][0]) / 2
+		return float64(stats.counts[0][0])
 	}
 
 	even := stats.count&1 == 0    // %2 == 0
@@ -170,7 +171,7 @@ func (stats *LengthStats) Q3() float64 {
 	}
 
 	if len(stats.counts) == 1 {
-		return float64(stats.counts[0][0]) / 2
+		return float64(stats.counts[0][0])
 	}
 
 	even := stats.count&1 == 0    // %2 == 0
@@ -230,6 +231,36 @@ func (stats *LengthStats) getValue(even bool, iMedianL uint64, iMedianR uint64) 
 	// never happen
 	// panic("bio/util: should never happen")
 	return 0
+}
+
+func (stats *LengthStats) Percentile(percent float64) float64 {
+	if percent <= 0 || percent > 100 {
+		panic("invalid percentile")
+	}
+	if !stats.sorted {
+		stats.sort()
+	}
+	if len(stats.counts) == 0 {
+		return 0
+	}
+
+	if len(stats.counts) == 1 {
+		return float64(stats.counts[0][0])
+	}
+
+	i0 := float64(stats.count) * percent / 100
+	i := math.Floor(i0)
+
+	even := math.Abs(i0-i) > 0.001
+	var iMedianL, iMedianR uint64 // 0-based
+	if even {
+		iMedianL = uint64(i) - 1
+		iMedianR = uint64(i)
+	} else {
+		iMedianL = uint64(i - 1)
+	}
+
+	return stats.getValue(even, iMedianL, iMedianR)
 }
 
 // N50 returns N50
