@@ -267,6 +267,8 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 			lineWidths = append(lineWidths, len(line))
 			seqWidths = append(seqWidths, len(lineDropCR))
+		} else {
+			return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
 		}
 	}
 
