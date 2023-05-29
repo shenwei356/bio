@@ -19,10 +19,10 @@ Summary by [`seqkit`](https://github.com/shenwei356/seqkit):
     dataset_C.fq   FASTQ        DNA       9,186,045       100            100           100
 
 [`seqtk`](https://github.com/lh3/seqtk/)
-(Version [1.3-r117-dirty](https://github.com/lh3/seqtk/tree/7c04ce7898ad5909bd309c6ba3cd9c3bd0651f0e),
+(Version [1.3-r119-dirty](https://github.com/lh3/seqtk/commit/f6ea81cc30b9232e244dffa94187114275389132),
 using `kseq.h`)
 and [`seqkit`](https://github.com/shenwei356/seqkit)
-(Version [v2.0.0](https://github.com/shenwei356/seqkit/releases/tag/v2.0.0),
+(Version [v2.4.0](https://github.com/shenwei356/seqkit/releases/tag/v2.4.0),
 using this package) were used to test.
 **Note** that `seqtk` does not support wrapped (fixed line width) ouputing, so `seqkit` uses
 `-w 0` to disable outputing wrapping.

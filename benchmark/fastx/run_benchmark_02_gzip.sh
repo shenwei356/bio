@@ -17,7 +17,7 @@ for f in dataset_*.f{a,q}.gz; do
     echo == seqkit
     echo data: $f;
     
-    memusg -t -H seqkit seq $f -w 0 -o $f.seqkit.gz;    
+    memusg -t -H seqkit seq $f -w 0 -o $f.seqkit.gz --compress-level 6;    
     
     pigz -cd $f.seqkit.gz | md5sum;
     /bin/rm $f.seqkit.gz;
@@ -28,7 +28,7 @@ for f in dataset_*.f{a,q}.gz; do
     echo == seqkit_t1
     echo data: $f;
     
-    memusg -t -H seqkit seq $f -w 0 -j 1 -o $f.seqkit.gz;    
+    memusg -t -H seqkit seq $f -w 0 -j 1 -o $f.seqkit.gz --compress-level 6;    
     
     pigz -cd $f.seqkit.gz | md5sum;
     /bin/rm $f.seqkit.gz;
