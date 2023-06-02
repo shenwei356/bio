@@ -1,4 +1,5 @@
-/*Package seq defines a *Seq* type, and provides some basic operations of sequence,
+/*
+Package seq defines a *Seq* type, and provides some basic operations of sequence,
 like validation of DNA/RNA/Protein sequence and getting reverse complement sequence.
 
 This package was inspired by
@@ -7,7 +8,6 @@ This package was inspired by
 IUPAC nucleotide code: ACGTURYSWKMBDHVN
 
 http://droog.gs.washington.edu/parc/images/iupac.html
-
 
 	code	base	Complement
 	A	A	T
@@ -65,13 +65,12 @@ IUPAC amino acid code
 
 Reference:
 
-	1. http://www.bioinformatics.org/sms/iupac.html
-	2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
-	3. http://www.bioinformatics.org/sms2/iupac.html
-	4. http://www.matrixscience.com/blog/non-standard-amino-acid-residues.html
-	5. http://www.sbcs.qmul.ac.uk/iupac/AminoAcid/A2021.html#AA21
-	6. https://en.wikipedia.org/wiki/Amino_acid
-
+ 1. http://www.bioinformatics.org/sms/iupac.html
+ 2. http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
+ 3. http://www.bioinformatics.org/sms2/iupac.html
+ 4. http://www.matrixscience.com/blog/non-standard-amino-acid-residues.html
+ 5. http://www.sbcs.qmul.ac.uk/iupac/AminoAcid/A2021.html#AA21
+ 6. https://en.wikipedia.org/wiki/Amino_acid
 */
 package seq
 
@@ -81,10 +80,12 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/elliotwutingfeng/asciiset"
 	"github.com/shenwei356/util/byteutil"
 )
 
-/*Alphabet could be defined. Attention that,
+/*
+Alphabet could be defined. Attention that,
 **the letters are case sensitive**.
 
 For example, DNA:
@@ -95,7 +96,6 @@ For example, DNA:
 		[]byte("tgcaTGCA"),
 		[]byte(" -"),
 		[]byte("nN"))
-
 */
 type Alphabet struct {
 	t         string
@@ -327,15 +327,15 @@ func (a *Alphabet) PairLetter(b byte) (byte, error) {
 	return p, nil
 }
 
-/*Four types of alphabets are pre-defined:
+/*
+Four types of alphabets are pre-defined:
 
-  DNA           Deoxyribonucleotide code
-  DNAredundant  DNA + Ambiguity Codes
-  RNA           Oxyribonucleotide code
-  RNAredundant  RNA + Ambiguity Codes
-  Protein       Amino Acide single-letter Code
-  Unlimit       Self-defined, including all 26 English letters
-
+	DNA           Deoxyribonucleotide code
+	DNAredundant  DNA + Ambiguity Codes
+	RNA           Oxyribonucleotide code
+	RNAredundant  RNA + Ambiguity Codes
+	Protein       Amino Acide single-letter Code
+	Unlimit       Self-defined, including all 26 English letters
 */
 var (
 	DNA          *Alphabet
@@ -345,11 +345,11 @@ var (
 	Protein      *Alphabet
 	Unlimit      *Alphabet
 
-	abProtein      map[byte]bool
-	abDNAredundant map[byte]bool
-	abDNA          map[byte]bool
-	abRNAredundant map[byte]bool
-	abRNA          map[byte]bool
+	abProtein      asciiset.ASCIISet
+	abDNAredundant asciiset.ASCIISet
+	abDNA          asciiset.ASCIISet
+	abRNAredundant asciiset.ASCIISet
+	abRNA          asciiset.ASCIISet
 )
 
 func init() {
@@ -417,7 +417,7 @@ func GuessAlphabet(seqs []byte) *Alphabet {
 	if len(seqs) == 0 {
 		return Unlimit
 	}
-	var alphabetMap map[byte]bool
+	var alphabetMap asciiset.ASCIISet
 	if AlphabetGuessSeqLengthThreshold == 0 || len(seqs) <= AlphabetGuessSeqLengthThreshold {
 		alphabetMap = slice2map(byteutil.Alphabet(seqs))
 	} else { // reduce guessing time
@@ -454,19 +454,14 @@ func GuessAlphabetLessConservatively(seqs []byte) *Alphabet {
 	return ab
 }
 
-func isSubset(query, subject map[byte]bool) bool {
-	for b := range query {
-		if _, ok := subject[b]; !ok {
-			return false
-		}
-	}
-	return true
+// isSubset returns true if query is a subset of subject
+func isSubset(query, subject asciiset.ASCIISet) bool {
+	// A ⊆ B iff (A ∪ B) = B
+	union := query.Union(subject)
+	return union.Equals(subject)
 }
 
-func slice2map(s []byte) map[byte]bool {
-	m := make(map[byte]bool)
-	for _, b := range s {
-		m[b] = true
-	}
+func slice2map(s []byte) asciiset.ASCIISet {
+	m, _ := asciiset.MakeASCIISet(string(s))
 	return m
 }

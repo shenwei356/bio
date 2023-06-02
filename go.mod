@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/cznic/sortutil v0.0.0-20181122101858-f5f958428db8
 	github.com/edsrzf/mmap-go v1.0.0
+	github.com/elliotwutingfeng/asciiset v0.0.0-20230602022725-51bbb787efab
 	github.com/shenwei356/breader v0.3.2
 	github.com/shenwei356/kmers v0.1.0
 	github.com/shenwei356/util v0.5.0
