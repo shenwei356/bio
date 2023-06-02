@@ -457,7 +457,7 @@ func GuessAlphabetLessConservatively(seqs []byte) *Alphabet {
 // isSubset returns true if query is a subset of subject
 func isSubset(query, subject asciiset.ASCIISet) bool {
 	// A ⊆ B iff (A ∪ B) = B
-	var union = query.Union(subject)
+	union := query.Union(subject)
 	return union.Equals(subject)
 }
 
