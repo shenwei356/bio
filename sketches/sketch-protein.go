@@ -21,10 +21,10 @@
 package sketches
 
 import (
-	"sort"
 	"sync"
 
 	"github.com/shenwei356/bio/seq"
+	"github.com/twotwotwo/sorts"
 	"github.com/zeebo/wyhash"
 )
 
@@ -133,7 +133,8 @@ func (s *ProteinMinimizerSketch) Next() (code uint64, ok bool) {
 		// end of w
 		if s.idx == s.r {
 			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
-			sort.Sort(idxValues(s.buf)) // sort
+			// sort.Sort(idxValues(s.buf)) // sort
+			sorts.Quicksort(idxValues(s.buf)) // sort
 
 			s.i2v = s.buf[0]
 

@@ -1,4 +1,4 @@
-//Package gtf is used to read gtf features.
+// Package gtf is used to read gtf features.
 // ref: http://mblab.wustl.edu/GTF22.html
 package gtf
 
@@ -14,6 +14,10 @@ import (
 
 // Version is the GTF version
 const Version = 2.2
+
+var strandPositive = "+"
+var strandNegative = "-"
+var strandNotspecified = "."
 
 // Feature is the gff feature struct
 type Feature struct {
@@ -95,9 +99,9 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 			return nil, false, fmt.Errorf("%s: bad end: %s", items[0], items[4])
 		}
 
-		if start > end {
-			return nil, false, fmt.Errorf("%s: start (%d) must be < end (%d)", items[0], start, end)
-		}
+		// if start > end {
+		// 	return nil, false, fmt.Errorf("%s: start (%d) must be < end (%d)", items[0], start, end)
+		// }
 
 		var score *float64
 		if items[5] != "." {
@@ -111,10 +115,27 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 		var strand *string
 		if items[6] != "." {
 			s := items[6]
-			if !(s == "+" || s == "-") {
-				return nil, false, fmt.Errorf("%s: illigal strand: %s", items[0], s)
+			if s == "+" {
+				strand = &strandPositive
+			} else if s == "-" {
+				strand = &strandNegative
+			} else {
+				return nil, false, fmt.Errorf("%s: illegal strand: %s", items[0], s)
 			}
 			strand = &s
+
+			if start > end {
+				if s == "+" {
+					return nil, false, fmt.Errorf(`%s: start (%d) should be < end (%d) when the strand is "+"`, items[0], start, end)
+				} else {
+					strand = &strandNegative
+					tmp := start
+					start = end
+					end = tmp
+				}
+			}
+		} else {
+			strand = &strandNotspecified
 		}
 
 		var frame *int
@@ -124,7 +145,7 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 				return nil, false, fmt.Errorf("%s: bad frame: %s", items[0], items[7])
 			}
 			if !(f == 0 || f == 1 || f == 2) {
-				return nil, false, fmt.Errorf("%s: illigal frame: %d", items[0], f)
+				return nil, false, fmt.Errorf("%s: illegal frame: %d", items[0], f)
 			}
 			frame = &f
 		}

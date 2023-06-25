@@ -2,7 +2,8 @@ package util
 
 import (
 	"math"
-	"sort"
+
+	"github.com/twotwotwo/sorts"
 )
 
 // LengthStats accepts sequence lengths and calculate N50 et al..
@@ -19,6 +20,9 @@ type LengthStats struct {
 
 	n50Calculated bool
 	l50           int
+
+	nXCalculated bool
+	lX           int
 }
 
 // NewLengthStats initializes a LengthStats
@@ -43,12 +47,19 @@ func (stats *LengthStats) Add(length uint64) {
 	stats.sorted = false
 }
 
+type lengthCount [][2]uint64
+
+func (lc lengthCount) Len() int           { return len(lc) }
+func (lc lengthCount) Less(i, j int) bool { return lc[i][0] < lc[j][0] }
+func (lc lengthCount) Swap(i, j int)      { lc[i], lc[j] = lc[j], lc[i] }
+
 func (stats *LengthStats) sort() {
 	stats.counts = make([][2]uint64, 0, len(stats.lens))
 	for length, count := range stats.lens {
 		stats.counts = append(stats.counts, [2]uint64{length, count})
 	}
-	sort.Slice(stats.counts, func(i, j int) bool { return stats.counts[i][0] < stats.counts[j][0] })
+	// sort.Slice(stats.counts, func(i, j int) bool { return stats.counts[i][0] < stats.counts[j][0] })
+	sorts.Quicksort(lengthCount(stats.counts))
 
 	stats.accCounts = make([][2]uint64, len(stats.lens))
 	for i, data := range stats.counts {
@@ -295,6 +306,42 @@ func (stats *LengthStats) N50() uint64 {
 	return 0
 }
 
+// NX returns something like N50, where X could be a number in the range of [0, 100]
+func (stats *LengthStats) NX(n float64) uint64 {
+	if n < 0 || n > 100 {
+		panic("NX: where X should be in range of [0, 100]")
+	}
+
+	if !stats.sorted {
+		stats.sort()
+	}
+	if len(stats.counts) == 0 {
+		return 0
+	}
+
+	if len(stats.counts) == 1 {
+		return stats.counts[0][0]
+	}
+
+	var sumLen float64
+	var data [2]uint64
+	var boundary = float64(stats.sum) * n / 100
+	for i := len(stats.counts) - 1; i >= 0; i-- {
+		data = stats.counts[i]
+
+		sumLen += float64(data[0] * data[1])
+		if sumLen >= boundary {
+			stats.lX = i + 1
+			stats.nXCalculated = true
+			return data[0]
+		}
+	}
+
+	// never happen
+	// panic("bio/util: should never happen")
+	return 0
+}
+
 // L50 returns L50
 func (stats *LengthStats) L50() int {
 	if !stats.sorted {
@@ -304,4 +351,15 @@ func (stats *LengthStats) L50() int {
 		stats.N50()
 	}
 	return stats.l50
+}
+
+// LX returns something like L50, where X could be a number in the range of [0, 100]
+func (stats *LengthStats) LX(n float64) int {
+	if !stats.sorted {
+		stats.NX(n)
+	}
+	if !stats.nXCalculated {
+		stats.NX(n)
+	}
+	return stats.lX
 }

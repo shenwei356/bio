@@ -22,10 +22,10 @@ package sketches
 
 import (
 	"fmt"
-	"sort"
 	"sync"
 
 	"github.com/shenwei356/bio/seq"
+	"github.com/twotwotwo/sorts"
 	"github.com/will-rowe/nthash"
 )
 
@@ -232,7 +232,8 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 		// end of w
 		if s.idx == s.r {
 			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
-			sort.Sort(idxValues(s.buf)) // sort
+			// sort.Sort(idxValues(s.buf)) // sort
+			sorts.Quicksort(idxValues(s.buf)) // sort
 
 			s.i2v = s.buf[0]
 
@@ -346,7 +347,8 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 				}
 				s.buf = append(s.buf, IdxValue{Idx: s.i, Val: s.v})
 			}
-			sort.Sort(idxValues(s.buf))
+			// sort.Sort(idxValues(s.buf))
+			sorts.Quicksort(idxValues(s.buf)) // sort
 		} else {
 			// remove s-mer not in this window.
 			// have to check position/index one by one
