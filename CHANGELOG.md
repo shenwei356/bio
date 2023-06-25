@@ -1,5 +1,10 @@
 # Changelog
 
+### v0.9.0 - 2023-06-25
+
+- util/LengthStats: new method to compute N50 for any number
+- seq/alphabet: faster with asciiset
+
 ### v0.8.4 - 2023-02-14
 
 - seqio/fai: report error for non-fasta files
