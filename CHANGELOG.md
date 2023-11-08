@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.9.1 - 2023-11-08
+
+- seqio/fastx.Reader: recycle []byte buffer to save memory for reading a large number of sequences.
+
 ### v0.9.0 - 2023-06-25
 
 - util/LengthStats: new method to compute N50 for any number

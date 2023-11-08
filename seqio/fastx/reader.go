@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sync"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/xopen"
@@ -50,6 +51,8 @@ type Reader struct {
 	qualBuffer      *bytes.Buffer
 	record          *Record
 
+	bufR, bufS, bufQ *[]byte
+
 	Err error // Current error
 }
 
@@ -68,17 +71,21 @@ func NewDefaultReader(file string) (*Reader, error) {
 
 var defaultBytesBufferSize = 10 << 20
 
+var poolBuffer2 = &sync.Pool{New: func() interface{} {
+	buf := make([]byte, 0, defaultBytesBufferSize)
+	return &buf
+}}
+
 // NewReader is constructor of FASTX Reader.
 //
 // Parameters:
 //
-//        t            sequence alphabet
-//                     if nil is given, it will guess alphabet by the first record
-//        file         file name, "-" for stdin
-//        idRegexp     id parsing regular expression string, must contains "(" and ")" to capture matched ID
-//                     "" for default value: `^([^\s]+)\s?`
-//                     if record head does not match the idRegxp, whole name will be the id
-//
+//	t            sequence alphabet
+//	             if nil is given, it will guess alphabet by the first record
+//	file         file name, "-" for stdin
+//	idRegexp     id parsing regular expression string, must contains "(" and ")" to capture matched ID
+//	             "" for default value: `^([^\s]+)\s?`
+//	             if record head does not match the idRegxp, whole name will be the id
 func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
 	if idRegexp == "" {
@@ -120,9 +127,18 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 		firstseq:     true,
 		checkSeqType: true,
 	}
-	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	// fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	// fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	// fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	fastxReader.bufR = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufR = (*fastxReader.bufR)[:0]
+	fastxReader.buffer = bytes.NewBuffer(*fastxReader.bufR)
+	fastxReader.bufS = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufS = (*fastxReader.bufS)[:0]
+	fastxReader.seqBuffer = bytes.NewBuffer(*fastxReader.bufS)
+	fastxReader.bufQ = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufQ = (*fastxReader.bufQ)[:0]
+	fastxReader.qualBuffer = bytes.NewBuffer(*fastxReader.bufQ)
 
 	fastxReader.record = &Record{
 		ID:   nil,
@@ -138,13 +154,12 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 //
 // Parameters:
 //
-//        t            sequence alphabet
-//                     if nil is given, it will guess alphabet by the first record
-//        file         an io.Reader
-//        idRegexp     id parsing regular expression string, must contains "(" and ")" to capture matched ID
-//                     "" for default value: `^([^\s]+)\s?`
-//                     if record head does not match the idRegxp, whole name will be the id
-//
+//	t            sequence alphabet
+//	             if nil is given, it will guess alphabet by the first record
+//	file         an io.Reader
+//	idRegexp     id parsing regular expression string, must contains "(" and ")" to capture matched ID
+//	             "" for default value: `^([^\s]+)\s?`
+//	             if record head does not match the idRegxp, whole name will be the id
 func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
 	if idRegexp == "" {
@@ -177,9 +192,18 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 		firstseq:     true,
 		checkSeqType: true,
 	}
-	fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
-	fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
-	fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	// fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	// fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	// fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
+	fastxReader.bufR = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufR = (*fastxReader.bufR)[:0]
+	fastxReader.buffer = bytes.NewBuffer(*fastxReader.bufR)
+	fastxReader.bufS = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufS = (*fastxReader.bufS)[:0]
+	fastxReader.seqBuffer = bytes.NewBuffer(*fastxReader.bufS)
+	fastxReader.bufQ = poolBuffer2.Get().(*[]byte)
+	*fastxReader.bufQ = (*fastxReader.bufQ)[:0]
+	fastxReader.qualBuffer = bytes.NewBuffer(*fastxReader.bufQ)
 
 	fastxReader.record = &Record{
 		ID:   nil,
@@ -209,6 +233,9 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 func (fastxReader *Reader) read() {
 	if fastxReader.lastPart && fastxReader.finished {
+		poolBuffer2.Put(fastxReader.bufR)
+		poolBuffer2.Put(fastxReader.bufS)
+		poolBuffer2.Put(fastxReader.bufQ)
 		fastxReader.Err = io.EOF
 		return
 	}
