@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.9.2 - 2023-11-10
+
+- seq/alphabet.IsValid: fix panic: close of closed channel
+
 ### v0.9.1 - 2023-11-08
 
 - seqio/fastx.Reader: recycle []byte buffer to save memory for reading a large number of sequences.

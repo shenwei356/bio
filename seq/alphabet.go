@@ -244,7 +244,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 
 	l := len(s)
 	var i int
-	if l < ValidSeqLengthThreshold {
+	if !ValidateWholeSeq && l < ValidSeqLengthThreshold {
 		for _, b := range s {
 			i = int(b)
 			if i >= len(a.pairLetters) || a.pairLetters[i] == 0 {
@@ -254,15 +254,13 @@ func (a *Alphabet) IsValid(s []byte) error {
 		return nil
 	}
 
-	if ValidateWholeSeq || ValidSeqThreads == 0 {
-		ValidSeqThreads = len(s)
-	}
-	chunkSize, start, end := int(l/ValidSeqThreads), 0, 0
+	chunkSize, start, end := int(l/ValidSeqThreads)+1, 0, 0
 
 	var wg sync.WaitGroup
 	tokens := make(chan int, ValidSeqThreads)
 	ch := make(chan seqCheckStatus, ValidSeqThreads)
 	done := make(chan struct{})
+	var once sync.Once
 	finished := false
 	for i := 0; i < ValidSeqThreads; i++ {
 		start = i * chunkSize
@@ -282,7 +280,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 			case <-done:
 				if !finished {
 					finished = true
-					close(ch)
+					// close(ch)
 					return
 				}
 			default:
@@ -294,7 +292,9 @@ func (a *Alphabet) IsValid(s []byte) error {
 				j = int(s[i])
 				if j >= len(a.pairLetters) || a.pairLetters[j] == 0 {
 					ch <- seqCheckStatus{fmt.Errorf("seq: invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
-					close(done)
+					once.Do(func() {
+						close(done)
+					})
 					return
 				}
 			}
