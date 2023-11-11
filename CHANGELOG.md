@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.9.3 - 2023-11-11
+
+- seqio/fastx.Reader: fix a panic of nil pointer when some files has file size of 0.
+
 ### v0.9.2 - 2023-11-10
 
 - seq/alphabet.IsValid: fix panic: close of closed channel

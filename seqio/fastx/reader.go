@@ -133,9 +133,11 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	fastxReader.bufR = poolBuffer2.Get().(*[]byte)
 	*fastxReader.bufR = (*fastxReader.bufR)[:0]
 	fastxReader.buffer = bytes.NewBuffer(*fastxReader.bufR)
+
 	fastxReader.bufS = poolBuffer2.Get().(*[]byte)
 	*fastxReader.bufS = (*fastxReader.bufS)[:0]
 	fastxReader.seqBuffer = bytes.NewBuffer(*fastxReader.bufS)
+
 	fastxReader.bufQ = poolBuffer2.Get().(*[]byte)
 	*fastxReader.bufQ = (*fastxReader.bufQ)[:0]
 	fastxReader.qualBuffer = bytes.NewBuffer(*fastxReader.bufQ)
@@ -233,9 +235,15 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 func (fastxReader *Reader) read() {
 	if fastxReader.lastPart && fastxReader.finished {
-		poolBuffer2.Put(fastxReader.bufR)
-		poolBuffer2.Put(fastxReader.bufS)
-		poolBuffer2.Put(fastxReader.bufQ)
+		if fastxReader.bufR != nil {
+			poolBuffer2.Put(fastxReader.bufR)
+		}
+		if fastxReader.bufS != nil {
+			poolBuffer2.Put(fastxReader.bufS)
+		}
+		if fastxReader.bufQ != nil {
+			poolBuffer2.Put(fastxReader.bufQ)
+		}
 		fastxReader.Err = io.EOF
 		return
 	}
