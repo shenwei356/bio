@@ -1,5 +1,10 @@
 # Changelog
 
+### v0.11.0 - 2023-12-03
+
+- seqio/fastx.Reader: delete reader.Recycle() to avoid API changes.
+- This version should be 0.9.4.
+
 ### v0.10.0 - 2023-12-03
 
 - seqio/fastx.Reader: reuse reader with object pool, this requires users to call reader.Recycle() after using.

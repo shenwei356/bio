@@ -220,11 +220,6 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 	return fastxReader, nil
 }
 
-// Recycle recyles the reader, but it can only be called after handling the records.
-func (fastxReader *Reader) Recycle() {
-	poolReader.Put(fastxReader)
-}
-
 // close closes the reader
 func (fastxReader *Reader) close() {
 	if fastxReader.fh != nil {
@@ -237,17 +232,14 @@ func (fastxReader *Reader) close() {
 // the current record will change after your another call of this method.
 // So, you could use record.Clone() to make a copy.
 func (fastxReader *Reader) Read() (*Record, error) {
-	fastxReader.read()
-	return fastxReader.record, fastxReader.Err
-}
-
-func (fastxReader *Reader) read() {
 	if fastxReader.lastPart && fastxReader.finished {
 		fastxReader.Err = io.EOF
-		return
+		poolReader.Put(fastxReader)
+		return nil, io.EOF
 	}
 	if fastxReader.Err != nil {
-		return
+		poolReader.Put(fastxReader)
+		return nil, fastxReader.Err
 	}
 
 	var n int
@@ -263,12 +255,14 @@ func (fastxReader *Reader) read() {
 				} else {
 					fastxReader.Err = err
 					fastxReader.close()
-					return
+					poolReader.Put(fastxReader)
+					return nil, err
 				}
 			} else if n == 0 {
 				fastxReader.Err = io.ErrUnexpectedEOF
 				fastxReader.close()
-				return
+				poolReader.Put(fastxReader)
+				return nil, io.ErrUnexpectedEOF
 			}
 
 			// last part of file OR just because reader not fulfill the buf,
@@ -302,7 +296,8 @@ func (fastxReader *Reader) read() {
 						if i > 10240 { // ErrNotFASTXFormat
 							fastxReader.Err = ErrNotFASTXFormat
 							fastxReader.close()
-							return
+							poolReader.Put(fastxReader)
+							return nil, ErrNotFASTXFormat
 						}
 					}
 					// break FORCHECK
@@ -310,7 +305,8 @@ func (fastxReader *Reader) read() {
 					// if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
 					fastxReader.Err = ErrNotFASTXFormat
 					fastxReader.close()
-					return
+					poolReader.Put(fastxReader)
+					return nil, ErrNotFASTXFormat
 					// }
 				}
 			}
@@ -350,12 +346,14 @@ func (fastxReader *Reader) read() {
 							continue FORSEARCH
 						}
 						fastxReader.Err = ErrBadFASTQFormat
-						return
+						fastxReader.close()
+						poolReader.Put(fastxReader)
+						return nil, ErrBadFASTQFormat
 					}
 					fastxReader.buffer.Reset()
 					fastxReader.needMoreCheckOfBuf = true
 					fastxReader.r += i + 1
-					return
+					return fastxReader.record, nil
 				}
 				// inline >/@
 				fastxReader.buffer.Write(fastxReader.buf[fastxReader.r : fastxReader.r+i+1])
@@ -370,12 +368,13 @@ func (fastxReader *Reader) read() {
 				if err != nil { // no any chance
 					fastxReader.Err = err
 					fastxReader.close()
-					return
+					poolReader.Put(fastxReader)
+					return nil, err
 				}
 				fastxReader.buffer.Reset()
 				fastxReader.close()
 				fastxReader.finished = true
-				return
+				return fastxReader.record, nil
 			}
 			fastxReader.needMoreCheckOfBuf = false
 			break FORSEARCH

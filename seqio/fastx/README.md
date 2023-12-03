@@ -50,8 +50,6 @@ This package seamlessly parses both FASTA and FASTQ formats.
 
     		record.FormatToWriter(outfh, 0)
     	}
-
-    	reader.Recycle() // remember to recycle the reader.
     }
 
     func checkError(err error) {
