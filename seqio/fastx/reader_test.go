@@ -13,6 +13,7 @@ func TestFastaReader2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	for {
 		_, err := reader.Read()
 		if err != nil {
@@ -32,6 +33,7 @@ func TestFastaReader3(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
@@ -49,6 +51,7 @@ func TestFastqReadern(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 
 	for {
 		_, err := reader.Read()
@@ -71,6 +74,7 @@ func TestFastaReader(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
@@ -92,6 +96,7 @@ func TestFastqReader(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
@@ -112,6 +117,7 @@ func TestFastqReader2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	n := 0
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
@@ -133,6 +139,7 @@ func TestFastqReader3(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	n := 0
 	l := -1
 	for chunk := range reader.ChunkChan(0, 1) {
@@ -163,6 +170,7 @@ func TestBlankFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	for chunk := range reader.ChunkChan(0, 1) {
 		if chunk.Err != nil {
 			if chunk.Err != ErrNotFASTXFormat {
@@ -178,6 +186,7 @@ func TestBlankFile2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	for chunk := range reader.ChunkChan(0, 1) {
 		// should not reach here
 		t.Errorf("should not reach here. error: %s", chunk.Err)
@@ -190,6 +199,7 @@ func TestEmptyFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer reader.Recycle()
 	for chunk := range reader.ChunkChan(0, 1) {
 		// should not reach here
 		t.Errorf("should not reach here. error: %s", chunk.Err)

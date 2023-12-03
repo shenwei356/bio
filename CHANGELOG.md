@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.10.0 - 2023-12-03
+
+- seqio/fastx.Reader: reuse reader with object pool, this requires users to call reader.Recycle() after using.
+
 ### v0.9.3 - 2023-11-11
 
 - seqio/fastx.Reader: fix a panic of nil pointer when some files has file size of 0.

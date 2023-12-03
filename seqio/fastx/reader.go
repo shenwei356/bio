@@ -26,6 +26,28 @@ var ErrNoContent = errors.New("fastx: no content found")
 
 var bufSize = 65536
 
+var poolReader = &sync.Pool{New: func() interface{} {
+	t := &Reader{}
+
+	t.buf = make([]byte, bufSize)
+
+	t.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	t.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+	t.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
+
+	t.bufR = make([]byte, 0, defaultBytesBufferSize)
+	t.bufS = make([]byte, 0, defaultBytesBufferSize)
+	t.bufQ = make([]byte, 0, defaultBytesBufferSize)
+
+	t.record = &Record{
+		ID:   nil,
+		Name: nil,
+		Desc: nil,
+		Seq:  &seq.Seq{},
+	}
+	return t
+}}
+
 // Reader seamlessly parse both FASTA and FASTQ formats
 type Reader struct {
 	fh *xopen.Reader // file handle, xopen is such a wonderful package
@@ -51,9 +73,40 @@ type Reader struct {
 	qualBuffer      *bytes.Buffer
 	record          *Record
 
-	bufR, bufS, bufQ *[]byte
+	bufR, bufS, bufQ []byte
 
 	Err error // Current error
+}
+
+func (fastxReader *Reader) Reset() {
+	n := bufSize - len(fastxReader.buf)
+	for i := 0; i < n; i++ {
+		fastxReader.buf = append(fastxReader.buf, 0)
+	}
+	fastxReader.r = 0
+	fastxReader.buffer.Reset()
+	fastxReader.needMoreCheckOfBuf = false
+	fastxReader.lastByte = 0
+	fastxReader.checkSeqType = true
+	fastxReader.lastPart = false
+	fastxReader.finished = false
+
+	fastxReader.firstseq = true
+	fastxReader.delim = 0
+	fastxReader.IsFastq = false
+
+	fastxReader.seqBuffer.Reset()
+	fastxReader.qualBuffer.Reset()
+
+	fastxReader.head = nil
+	fastxReader.seq = nil
+	fastxReader.qual = nil
+
+	fastxReader.bufR = fastxReader.bufR[:0]
+	fastxReader.bufS = fastxReader.bufS[:0]
+	fastxReader.bufQ = fastxReader.bufQ[:0]
+
+	fastxReader.Err = nil
 }
 
 // regexp for checking idRegexp string.
@@ -70,11 +123,6 @@ func NewDefaultReader(file string) (*Reader, error) {
 }
 
 var defaultBytesBufferSize = 10 << 20
-
-var poolBuffer2 = &sync.Pool{New: func() interface{} {
-	buf := make([]byte, 0, defaultBytesBufferSize)
-	return &buf
-}}
 
 // NewReader is constructor of FASTX Reader.
 //
@@ -119,35 +167,12 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 		return nil, fmt.Errorf("fastx: %s", err)
 	}
 
-	fastxReader := &Reader{
-		fh:           fh,
-		buf:          make([]byte, bufSize),
-		t:            t,
-		IDRegexp:     r,
-		firstseq:     true,
-		checkSeqType: true,
-	}
-	// fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	// fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	// fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	fastxReader.bufR = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufR = (*fastxReader.bufR)[:0]
-	fastxReader.buffer = bytes.NewBuffer(*fastxReader.bufR)
+	fastxReader := poolReader.Get().(*Reader)
+	fastxReader.Reset()
 
-	fastxReader.bufS = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufS = (*fastxReader.bufS)[:0]
-	fastxReader.seqBuffer = bytes.NewBuffer(*fastxReader.bufS)
-
-	fastxReader.bufQ = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufQ = (*fastxReader.bufQ)[:0]
-	fastxReader.qualBuffer = bytes.NewBuffer(*fastxReader.bufQ)
-
-	fastxReader.record = &Record{
-		ID:   nil,
-		Name: nil,
-		Desc: nil,
-		Seq:  &seq.Seq{},
-	}
+	fastxReader.fh = fh
+	fastxReader.t = t
+	fastxReader.IDRegexp = r
 
 	return fastxReader, nil
 }
@@ -186,39 +211,22 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 		panic(err)
 	}
 
-	fastxReader := &Reader{
-		fh:           fh,
-		buf:          make([]byte, bufSize),
-		t:            t,
-		IDRegexp:     r,
-		firstseq:     true,
-		checkSeqType: true,
-	}
-	// fastxReader.buffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
-	// fastxReader.seqBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
-	// fastxReader.qualBuffer = bytes.NewBuffer(make([]byte, 0, 1<<20))
-	fastxReader.bufR = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufR = (*fastxReader.bufR)[:0]
-	fastxReader.buffer = bytes.NewBuffer(*fastxReader.bufR)
-	fastxReader.bufS = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufS = (*fastxReader.bufS)[:0]
-	fastxReader.seqBuffer = bytes.NewBuffer(*fastxReader.bufS)
-	fastxReader.bufQ = poolBuffer2.Get().(*[]byte)
-	*fastxReader.bufQ = (*fastxReader.bufQ)[:0]
-	fastxReader.qualBuffer = bytes.NewBuffer(*fastxReader.bufQ)
-
-	fastxReader.record = &Record{
-		ID:   nil,
-		Name: nil,
-		Desc: nil,
-		Seq:  &seq.Seq{},
-	}
+	fastxReader := poolReader.Get().(*Reader)
+	fastxReader.fh = fh
+	fastxReader.t = t
+	fastxReader.IDRegexp = r
+	fastxReader.Reset()
 
 	return fastxReader, nil
 }
 
-// Close closes the reader
-func (fastxReader *Reader) Close() {
+// Recycle recyles the reader, but it can only be called after handling the records.
+func (fastxReader *Reader) Recycle() {
+	poolReader.Put(fastxReader)
+}
+
+// close closes the reader
+func (fastxReader *Reader) close() {
 	if fastxReader.fh != nil {
 		fastxReader.fh.Close()
 	}
@@ -235,15 +243,6 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 func (fastxReader *Reader) read() {
 	if fastxReader.lastPart && fastxReader.finished {
-		if fastxReader.bufR != nil {
-			poolBuffer2.Put(fastxReader.bufR)
-		}
-		if fastxReader.bufS != nil {
-			poolBuffer2.Put(fastxReader.bufS)
-		}
-		if fastxReader.bufQ != nil {
-			poolBuffer2.Put(fastxReader.bufQ)
-		}
 		fastxReader.Err = io.EOF
 		return
 	}
@@ -263,12 +262,12 @@ func (fastxReader *Reader) read() {
 					fastxReader.lastPart = true
 				} else {
 					fastxReader.Err = err
-					fastxReader.Close()
+					fastxReader.close()
 					return
 				}
 			} else if n == 0 {
 				fastxReader.Err = io.ErrUnexpectedEOF
-				fastxReader.Close()
+				fastxReader.close()
 				return
 			}
 
@@ -302,7 +301,7 @@ func (fastxReader *Reader) read() {
 					if pn > 100 {
 						if i > 10240 { // ErrNotFASTXFormat
 							fastxReader.Err = ErrNotFASTXFormat
-							fastxReader.Close()
+							fastxReader.close()
 							return
 						}
 					}
@@ -310,7 +309,7 @@ func (fastxReader *Reader) read() {
 				default: // not typical FASTA/Q
 					// if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
 					fastxReader.Err = ErrNotFASTXFormat
-					fastxReader.Close()
+					fastxReader.close()
 					return
 					// }
 				}
@@ -370,11 +369,11 @@ func (fastxReader *Reader) read() {
 				_, err = fastxReader.parseRecord()
 				if err != nil { // no any chance
 					fastxReader.Err = err
-					fastxReader.Close()
+					fastxReader.close()
 					return
 				}
 				fastxReader.buffer.Reset()
-				fastxReader.Close()
+				fastxReader.close()
 				fastxReader.finished = true
 				return
 			}
@@ -455,11 +454,6 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	}
 	// new record
 	if fastxReader.IsFastq {
-		// fastxReader.record, fastxReader.Err = NewRecordWithQual(fastxReader.t,
-		// 	fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
-		// 	fastxReader.parseHeadDesc(fastxReader.head),
-		// 	fastxReader.seq, fastxReader.qual)
-
 		fastxReader.record.Seq.Alphabet = fastxReader.t
 		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
 		fastxReader.record.Name = fastxReader.head
@@ -476,11 +470,6 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 		}
 
 	} else {
-		// fastxReader.record, fastxReader.Err = NewRecord(fastxReader.t,
-		// 	fastxReader.parseHeadID(fastxReader.head), fastxReader.head,
-		// 	fastxReader.parseHeadDesc(fastxReader.head),
-		// 	fastxReader.seq)
-
 		fastxReader.record.Seq.Alphabet = fastxReader.t
 		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
 		fastxReader.record.Name = fastxReader.head
@@ -492,7 +481,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	}
 
 	if fastxReader.Err != nil {
-		fastxReader.Close()
+		fastxReader.close()
 	}
 
 	return false, fastxReader.Err
