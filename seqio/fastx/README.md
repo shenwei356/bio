@@ -33,7 +33,7 @@ This package seamlessly parses both FASTA and FASTQ formats.
 
     	reader, err := fastx.NewDefaultReader("-")
     	checkError(err)
-    	defer reader.Recycle() // remember to recycle the reader.
+
     	var record *fastx.Record
     	for {
     		record, err = reader.Read()
@@ -50,6 +50,8 @@ This package seamlessly parses both FASTA and FASTQ formats.
 
     		record.FormatToWriter(outfh, 0)
     	}
+
+    	reader.Recycle() // remember to recycle the reader.
     }
 
     func checkError(err error) {
