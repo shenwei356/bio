@@ -1,9 +1,15 @@
 # Changelog
 
+### v0.12.0 - 2023-12-04
+
+- seqio/fastx.Reader: reuse the reader with an object pool, this requires users to call reader.Close() after using.
+  The benefit is that it reduces memory when handling of a lot of sequences.
+
 ### v0.11.0 - 2023-12-03
 
+Do not use this version!
+
 - seqio/fastx.Reader: delete reader.Recycle() to avoid API changes.
-- This version should be 0.9.4.
 
 ### v0.10.0 - 2023-12-03
 

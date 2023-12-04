@@ -63,9 +63,7 @@ func GetSeqs(file string, alphabet *seq.Alphabet, bufferSize int, chunkSize int,
 			return records, err
 		}
 
-		for _, record := range chunk.Data {
-			records = append(records, record)
-		}
+		records = append(records, chunk.Data...)
 	}
 	return records, nil
 }
@@ -89,14 +87,13 @@ func GuessAlphabet(file string) (*seq.Alphabet, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	for {
-		_, err := reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				return reader.Alphabet(), false, io.EOF
-			}
-			return nil, false, err
+
+	_, err = reader.Read()
+	if err != nil {
+		if err == io.EOF {
+			return reader.Alphabet(), false, io.EOF
 		}
-		return reader.Alphabet(), reader.IsFastq, nil
+		return nil, false, err
 	}
+	return reader.Alphabet(), reader.IsFastq, nil
 }
