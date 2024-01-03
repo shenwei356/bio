@@ -138,6 +138,9 @@ func Create(fileSeq, fileFai string) (Index, error) {
 		line, err = reader.ReadBytes('\n')
 		if err != nil { // end of file
 			id = string(parseHeadID(lastName))
+			if strings.Contains(id, "\t") {
+				id = reTabs.ReplaceAllString(id, " ")
+			}
 
 			// check lineWidths
 			lastLineWidth, chances = -2, 2
@@ -208,6 +211,9 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 			if lastName != nil { // not the first record
 				id = string(parseHeadID(lastName))
+				if strings.Contains(id, "\t") {
+					id = reTabs.ReplaceAllString(id, " ")
+				}
 
 				// check lineWidths
 				lastLineWidth, chances = -1, 2
@@ -280,6 +286,8 @@ func Create(fileSeq, fileFai string) (Index, error) {
 var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 var defaultIDRegexp = `^(\S+)\s?`
+
+var reTabs = regexp.MustCompile(`\t+`)
 
 // IDRegexp is regexp for parsing record id
 var IDRegexp = regexp.MustCompile(defaultIDRegexp)

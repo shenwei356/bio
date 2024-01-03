@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.12.1 - 2024-01-03
+
+- seqio/fai: when using the whole FASTA header as the sequence ID, replace possible tabs in FASTA header with spaces.
+
 ### v0.12.0 - 2023-12-04
 
 - seqio/fastx.Reader: reuse the reader with an object pool, this requires users to call reader.Close() after using.
