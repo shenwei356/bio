@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.0 - 2024-02-19
+
+- seq: remove the global variable: `seq.ValidateWholeSeq`.
+
 ### v0.12.1 - 2024-01-03
 
 - seqio/fai: when using the whole FASTA header as the sequence ID, replace possible tabs in FASTA header with spaces.

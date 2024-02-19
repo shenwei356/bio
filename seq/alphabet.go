@@ -223,9 +223,6 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 // needed to  parallelly checking sequence
 var ValidSeqLengthThreshold = 10000
 
-// ValidateWholeSeq is used to determin whether validate all bases of a seq
-var ValidateWholeSeq = true
-
 // ValidSeqThreads is the threads number of parallelly checking sequence
 var ValidSeqThreads = runtime.NumCPU()
 
@@ -244,7 +241,7 @@ func (a *Alphabet) IsValid(s []byte) error {
 
 	l := len(s)
 	var i int
-	if !ValidateWholeSeq && l < ValidSeqLengthThreshold {
+	if l < ValidSeqLengthThreshold {
 		for _, b := range s {
 			i = int(b)
 			if i >= len(a.pairLetters) || a.pairLetters[i] == 0 {
