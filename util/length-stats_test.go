@@ -10,6 +10,7 @@ type testCaseLengthStats struct {
 
 	q1, median, q3 float64
 	n50            uint64
+	l50            int
 	min, max       uint64
 }
 
@@ -20,6 +21,7 @@ var cases = []testCaseLengthStats{
 		q1:     0,
 		q3:     0,
 		n50:    0,
+		l50:    0,
 		min:    0,
 		max:    0,
 	},
@@ -29,6 +31,7 @@ var cases = []testCaseLengthStats{
 		q1:     2,
 		q3:     2,
 		n50:    2,
+		l50:    1,
 		min:    2,
 		max:    2,
 	},
@@ -38,6 +41,7 @@ var cases = []testCaseLengthStats{
 		q1:     1,
 		q3:     2,
 		n50:    2,
+		l50:    1,
 		min:    1,
 		max:    2,
 	},
@@ -47,6 +51,7 @@ var cases = []testCaseLengthStats{
 		q1:     1.5,
 		q3:     2.5,
 		n50:    3,
+		l50:    1,
 		min:    1,
 		max:    3,
 	},
@@ -56,6 +61,7 @@ var cases = []testCaseLengthStats{
 		q1:     1.5,
 		q3:     3.5,
 		n50:    3,
+		l50:    2,
 		min:    1,
 		max:    4,
 	},
@@ -66,6 +72,7 @@ var cases = []testCaseLengthStats{
 		q1:     3.5,
 		q3:     7.5,
 		n50:    7,
+		l50:    3,
 		min:    2,
 		max:    9,
 	},
@@ -113,6 +120,11 @@ func Test(t *testing.T) {
 		n50 := stats.N50()
 		if n50 != _case.n50 {
 			t.Errorf("case %d: n50 mismatch: %d != %d", i, n50, _case.n50)
+		}
+
+		l50 := stats.L50()
+		if l50 != _case.l50 {
+			t.Errorf("case %d: l50 mismatch: %d != %d", i, l50, _case.l50)
 		}
 	}
 }

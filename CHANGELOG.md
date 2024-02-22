@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.1 - 2024-02-22
+
+- util: fix computation of L50.
+
 ### v0.13.0 - 2024-02-19
 
 - seq: remove the global variable: `seq.ValidateWholeSeq`.

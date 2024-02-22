@@ -54,6 +54,11 @@ func (lc lengthCount) Less(i, j int) bool { return lc[i][0] < lc[j][0] }
 func (lc lengthCount) Swap(i, j int)      { lc[i], lc[j] = lc[j], lc[i] }
 
 func (stats *LengthStats) sort() {
+	if len(stats.lens) == 0 {
+		stats.sorted = true
+		return
+	}
+
 	stats.counts = make([][2]uint64, 0, len(stats.lens))
 	for length, count := range stats.lens {
 		stats.counts = append(stats.counts, [2]uint64{length, count})
@@ -62,11 +67,11 @@ func (stats *LengthStats) sort() {
 	sorts.Quicksort(lengthCount(stats.counts))
 
 	stats.accCounts = make([][2]uint64, len(stats.lens))
-	for i, data := range stats.counts {
-		if i == 0 {
-			stats.accCounts[i] = [2]uint64{data[0], data[1]}
-		} else {
-			stats.accCounts[i] = [2]uint64{data[0], data[1] + stats.accCounts[i-1][1]}
+
+	stats.accCounts[0] = [2]uint64{stats.counts[0][0], stats.counts[0][1]}
+	if len(stats.counts) > 1 {
+		for i, data := range stats.counts[1:] {
+			stats.accCounts[i+1] = [2]uint64{data[0], data[1] + stats.accCounts[i][1]}
 		}
 	}
 
@@ -284,6 +289,7 @@ func (stats *LengthStats) N50() uint64 {
 	}
 
 	if len(stats.counts) == 1 {
+		stats.l50 = 1
 		return stats.counts[0][0]
 	}
 
@@ -295,7 +301,7 @@ func (stats *LengthStats) N50() uint64 {
 
 		sumLen += float64(data[0] * data[1])
 		if sumLen >= halfSum {
-			stats.l50 = i + 1
+			stats.l50 = len(stats.counts) - i
 			stats.n50Calculated = true
 			return data[0]
 		}
