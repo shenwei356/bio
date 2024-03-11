@@ -124,22 +124,25 @@ func (seq *Seq) Clone2() *Seq {
 	}
 }
 
-/*SubSeq returns a sub seq. start and end is 1-based.
+/*
+SubSeq returns a sub seq. start and end is 1-based.
 
 Examples:
 
- 1-based index    1 2 3 4 5 6 7 8 9 10
+	1-based index    1 2 3 4 5 6 7 8 9 10
+
 negative index    0-9-8-7-6-5-4-3-2-1
-           seq    A C G T N a c g t n
-           1:1    A
-           2:4      C G T
-         -4:-2                c g t
-         -4:-1                c g t n
-         -1:-1                      n
-          2:-2      C G T N a c g t
-          1:-1    A C G T N a c g t n
-		  1:12    A C G T N a c g t n
-		-12:-1    A C G T N a c g t n
+
+	           seq    A C G T N a c g t n
+	           1:1    A
+	           2:4      C G T
+	         -4:-2                c g t
+	         -4:-1                c g t n
+	         -1:-1                      n
+	          2:-2      C G T N a c g t
+	          1:-1    A C G T N a c g t n
+			  1:12    A C G T N a c g t n
+			-12:-1    A C G T N a c g t n
 */
 func (seq *Seq) SubSeq(start int, end int) *Seq {
 	var newseq *Seq
@@ -187,22 +190,24 @@ func (seq *Seq) SubSeqInplace(start int, end int) *Seq {
 	return seq
 }
 
-/*SubLocation is my sublocation strategy,
+/*
+SubLocation is my sublocation strategy,
 start, end and returned start and end are all 1-based
 
- 1-based index    1 2 3 4 5 6 7 8 9 10
-negative index    0-9-8-7-6-5-4-3-2-1
-           seq    A C G T N a c g t n
-           1:1    A
-           2:4      C G T
-         -4:-2                c g t
-         -4:-1                c g t n
-         -1:-1                      n
-          2:-2      C G T N a c g t
-          1:-1    A C G T N a c g t n
-		  1:12    A C G T N a c g t n
-		-12:-1    A C G T N a c g t n
+	1-based index    1 2 3 4 5 6 7 8 9 10
 
+negative index    0-9-8-7-6-5-4-3-2-1
+
+	           seq    A C G T N a c g t n
+	           1:1    A
+	           2:4      C G T
+	         -4:-2                c g t
+	         -4:-1                c g t n
+	         -1:-1                      n
+	          2:-2      C G T N a c g t
+	          1:-1    A C G T N a c g t n
+			  1:12    A C G T N a c g t n
+			-12:-1    A C G T N a c g t n
 */
 func SubLocation(length, start, end int) (int, int, bool) {
 	if length == 0 {
@@ -361,7 +366,7 @@ func (seq *Seq) ReverseInplace() *Seq {
 
 // ComplementSeqLenThreshold is the threshold of sequence length that
 // needed to  parallelly complement sequence
-var ComplementSeqLenThreshold = 1000
+var ComplementSeqLenThreshold = 1000000
 
 // ComplementThreads is the threads number of parallelly complement sequence
 var ComplementThreads = runtime.NumCPU()
@@ -423,10 +428,10 @@ func (seq *Seq) FormatSeq(width int) []byte {
 	return byteutil.WrapByteSlice(seq.Seq, width)
 }
 
-/*BaseContent returns base content for given bases. For example:
+/*
+BaseContent returns base content for given bases. For example:
 
-  seq.BaseContent("gc")
-
+	seq.BaseContent("gc")
 */
 func (seq *Seq) BaseContent(list string) float64 {
 	if len(seq.Seq) == 0 {

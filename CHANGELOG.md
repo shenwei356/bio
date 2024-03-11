@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.2 - 2024-03-11
+
+- seq: increase default value of `seq.ComplementSeqLenThreshold` from 1000 to 1000000, which means only parallelize complement computation for sequences longer than 1Mb.
+
 ### v0.13.1 - 2024-02-22
 
 - util: fix computation of L50.
