@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.4 - 2024-07-15
+
+- fix seq.SubSeq for (-start,-end), where start > len(seq).
+
 ### v0.13.3 - 2024-03-11
 
 - fix dependency.

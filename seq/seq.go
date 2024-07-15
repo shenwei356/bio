@@ -222,9 +222,10 @@ func SubLocation(length, start, end int) (int, int, bool) {
 			}
 
 			if -start > length {
-				return start, end, false
+				start = 1
+			} else {
+				start = length + start + 1
 			}
-			start = length + start + 1
 		}
 	}
 	if start > length {
