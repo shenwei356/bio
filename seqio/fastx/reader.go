@@ -481,24 +481,24 @@ func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 
 var emptyByteSlice = []byte{}
 
+// var tabspace string = "\t "
+
 func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 	if isUsingDefaultIDRegexp {
-		if i := bytes.IndexByte(head, ' '); i > 0 {
-			e := len(head)
-			j := i + 1
-			for ; j < e; j++ {
-				if head[j] == ' ' || head[j] == '\t' {
-					j++
-				} else {
-					break
-				}
-			}
-			if j >= e {
-				return head[0:i], emptyByteSlice
-			}
-			return head[0:i], head[j:]
+		// i := bytes.IndexAny(head, tabspace) // slower
+
+		iTab := bytes.IndexByte(head, '\t')
+		iSpace := bytes.IndexByte(head, ' ')
+
+		i := -1
+		if iTab >= 0 {
+			i = iTab
 		}
-		if i := bytes.IndexByte(head, '\t'); i > 0 {
+		if iSpace >= 0 && iSpace < i {
+			i = iSpace
+		}
+
+		if i >= 0 {
 			e := len(head)
 			j := i + 1
 			for ; j < e; j++ {

@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.5 - 2024-09-05
+
+- fix sequence ID parsing with the default regular expression (in this case, we actually use bytes.Index instead) for a rare case: "xxx\tyyy zzz" was wrongly parsed as "xxx\tyyy".
+
 ### v0.13.4 - 2024-07-15
 
 - fix seq.SubSeq for (-start,-end), where start > len(seq).
