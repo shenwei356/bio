@@ -491,29 +491,30 @@ func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
 		iSpace := bytes.IndexByte(head, ' ')
 
 		i := -1
-		if iTab >= 0 {
-			i = iTab
-		}
-		if iSpace >= 0 && iSpace < i {
+		if iSpace >= 0 {
 			i = iSpace
+			if iTab >= 0 && iTab < iSpace {
+				i = iTab
+			}
+		} else if iTab >= 0 {
+			i = iTab
+		} else {
+			return head, emptyByteSlice
 		}
 
-		if i >= 0 {
-			e := len(head)
-			j := i + 1
-			for ; j < e; j++ {
-				if head[j] == ' ' || head[j] == '\t' {
-					j++
-				} else {
-					break
-				}
+		e := len(head)
+		j := i + 1
+		for ; j < e; j++ {
+			if head[j] == ' ' || head[j] == '\t' {
+				j++
+			} else {
+				break
 			}
-			if j >= e {
-				return head[0:i], emptyByteSlice
-			}
-			return head[0:i], head[j:]
 		}
-		return head, emptyByteSlice
+		if j >= e {
+			return head[0:i], emptyByteSlice
+		}
+		return head[0:i], head[j:]
 	}
 
 	found := idRegexp.FindSubmatch(head)
