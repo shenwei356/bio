@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.7 - 2025-08-12
+
+- fastx: fix a bug that it did not report error when the invalid record is not the last one.
+
 ### v0.13.6 - 2024-09-12
 
 - fix sequence ID parsing with the default regular expression (in this case, we actually use bytes.Index instead) for a rare case: "xxx\tyyy zzz" was wrongly parsed as "xxx\tyyy".

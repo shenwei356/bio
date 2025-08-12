@@ -341,7 +341,7 @@ func (fastxReader *Reader) Read() (*Record, error) {
 					fastxReader.buffer.Reset()
 					fastxReader.needMoreCheckOfBuf = true
 					fastxReader.r += i + 1
-					return fastxReader.record, nil
+					return fastxReader.record, err
 				}
 				// inline >/@
 				fastxReader.buffer.Write(fastxReader.buf[fastxReader.r : fastxReader.r+i+1])
