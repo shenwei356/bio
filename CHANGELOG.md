@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.8 - 2025-08-29
+
+- update dependencies.
+
 ### v0.13.7 - 2025-08-12
 
 - fastx: fix a bug that it did not report error when the invalid record is not the last one.
