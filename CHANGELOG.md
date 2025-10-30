@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.13.9 - 2025-10-30
+
+- fix reading records with both empty id and sequence.
+
 ### v0.13.8 - 2025-08-29
 
 - update dependencies.

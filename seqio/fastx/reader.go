@@ -57,6 +57,8 @@ type Reader struct {
 	lastPart           bool
 	finished           bool
 
+	hasSomeSeq bool
+
 	firstseq bool // for guess alphabet by the first seq
 	delim    byte
 	IsFastq  bool // if the file is fastq format
@@ -82,6 +84,7 @@ func (fastxReader *Reader) Reset() {
 	fastxReader.buffer.Reset()
 	fastxReader.needMoreCheckOfBuf = false
 	fastxReader.lastByte = 0
+	fastxReader.hasSomeSeq = false
 	fastxReader.checkSeqType = true
 	fastxReader.lastPart = false
 	fastxReader.finished = false
@@ -267,19 +270,20 @@ func (fastxReader *Reader) Read() (*Record, error) {
 			fastxReader.r = 0 /// TO CHECK
 		}
 
-		// check seq type via the first non-empty charator, run for onece
+		// check seq type via the first non-empty charator, run for once
 		if fastxReader.checkSeqType {
 			pn := 0
 		FORCHECK:
 			for i := range fastxReader.buf {
 				switch fastxReader.buf[i] {
 				case '>':
-					fastxReader.checkSeqType = false
+					fastxReader.hasSomeSeq = true
 					fastxReader.IsFastq = false
 					fastxReader.delim = '>'
 					fastxReader.r = i + 1
 					break FORCHECK
 				case '@':
+					fastxReader.hasSomeSeq = true
 					fastxReader.IsFastq = true
 					fastxReader.delim = '@'
 					fastxReader.r = i + 1
@@ -360,6 +364,9 @@ func (fastxReader *Reader) Read() (*Record, error) {
 				fastxReader.buffer.Reset()
 				fastxReader.close()
 				fastxReader.finished = true
+				if !fastxReader.hasSomeSeq {
+					return nil, io.EOF
+				}
 				return fastxReader.record, nil
 			}
 			fastxReader.needMoreCheckOfBuf = false
@@ -376,7 +383,8 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	}
 
 	var p = fastxReader.buffer.Bytes()
-	if j := bytes.IndexByte(p, '\n'); j > 0 {
+	j := bytes.IndexByte(p, '\n')
+	if j > 0 {
 		fastxReader.head = dropCR(p[0:j])
 		r := j + 1
 
@@ -420,8 +428,12 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 			fastxReader.qual = fastxReader.qualBuffer.Bytes()
 		}
 
-	} else {
-		fastxReader.head = dropCR(dropLF(p))
+	} else if j == 0 { // empty header
+		fastxReader.head = []byte{}
+		fastxReader.seq = dropCR(dropLF(p[1:]))
+		fastxReader.qual = []byte{}
+	} else { // empty seq, no LF found
+		fastxReader.head = dropCR(p)
 		fastxReader.seq = []byte{}
 		fastxReader.qual = []byte{}
 	}
@@ -434,7 +446,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 		fastxReader.firstseq = false
 	}
 
-	if len(fastxReader.head) == 0 && len(fastxReader.seq) == 0 {
+	if len(fastxReader.head) == 0 && len(fastxReader.seq) == 0 && !fastxReader.hasSomeSeq { // has not meet any record
 		return false, io.EOF
 	}
 
@@ -484,6 +496,9 @@ var emptyByteSlice = []byte{}
 // var tabspace string = "\t "
 
 func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
+	if len(head) == 0 {
+		return head, head
+	}
 	if isUsingDefaultIDRegexp {
 		// i := bytes.IndexAny(head, tabspace) // slower
 
