@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.14.0 - 2026-05-13
+
+- fastx: allow wrapping FASTQ sequences.
+
 ### v0.13.9 - 2025-10-30
 
 - fix reading records with both empty id and sequence.

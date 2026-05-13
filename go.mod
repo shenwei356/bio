@@ -8,7 +8,7 @@ require (
 	github.com/elliotwutingfeng/asciiset v0.0.0-20230602022725-51bbb787efab
 	github.com/shenwei356/breader v0.3.2
 	github.com/shenwei356/kmers v0.1.0
-	github.com/shenwei356/util v0.5.4
+	github.com/shenwei356/util v0.5.6
 	github.com/shenwei356/xopen v0.3.2
 	github.com/twotwotwo/sorts v0.0.0-20160814051341-bf5c1f2b8553
 	github.com/will-rowe/nthash v0.4.0

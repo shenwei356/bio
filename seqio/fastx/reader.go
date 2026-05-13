@@ -61,7 +61,7 @@ type Reader struct {
 
 	firstseq bool // for guess alphabet by the first seq
 	delim    byte
-	IsFastq  bool // if the file is fastq format
+	IsFastq  bool // if the file is fastq format, you have to check this field after the first call of Read() method, because it will be determined by the first non-empty charator in the file.
 
 	t        *seq.Alphabet  // alphabet
 	IDRegexp *regexp.Regexp // regexp for parsing record id

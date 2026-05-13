@@ -121,10 +121,28 @@ func (record *Record) FormatToWriter(outfh *xopen.Writer, width int) {
 		outfh.Write(record.Name)
 		outfh.Write(_mark_newline)
 
-		outfh.Write(record.Seq.Seq)
+		if width < 1 {
+			outfh.Write(record.Seq.Seq)
+		} else {
+			var text []byte
+			buffer := poolBuffer.Get().(*bytes.Buffer)
+			text, buffer = wrapByteSlice(record.Seq.Seq, width, buffer)
+			outfh.Write(text)
+			poolBuffer.Put(buffer)
+		}
+
 		outfh.Write(_mark_newline_plus_newline)
 
-		outfh.Write(record.Seq.Qual)
+		if width < 1 {
+			outfh.Write(record.Seq.Qual)
+		} else {
+			var text []byte
+			buffer := poolBuffer.Get().(*bytes.Buffer)
+			text, buffer = wrapByteSlice(record.Seq.Qual, width, buffer)
+			outfh.Write(text)
+			poolBuffer.Put(buffer)
+		}
+
 		outfh.Write(_mark_newline)
 
 		return
