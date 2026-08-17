@@ -1,6 +1,7 @@
 package seq
 
 import (
+	"bytes"
 	"regexp"
 	"strings"
 	"testing"
@@ -68,4 +69,18 @@ DEKAKEEPGNHTTLILAMLAIGVFSLGAFIKIIQLRKNN>`, "")
 		return
 	}
 
+}
+
+func TestAlphabetParallelValidationReportsFirstInvalidLetter(t *testing.T) {
+	sequence := bytes.Repeat([]byte{'A'}, ValidSeqLengthThreshold+1000)
+	sequence[123] = '!'
+	sequence[len(sequence)-10] = '?'
+
+	err := DNA.IsValid(sequence)
+	if err == nil {
+		t.Fatal("invalid sequence passed validation")
+	}
+	if !strings.Contains(err.Error(), "at 123") {
+		t.Fatalf("reported the wrong invalid position: %v", err)
+	}
 }

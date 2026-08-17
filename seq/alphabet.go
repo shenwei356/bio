@@ -79,6 +79,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/elliotwutingfeng/asciiset"
 	"github.com/shenwei356/util/byteutil"
@@ -226,10 +227,6 @@ var ValidSeqLengthThreshold = 10000
 // ValidSeqThreads is the threads number of parallelly checking sequence
 var ValidSeqThreads = runtime.NumCPU()
 
-type seqCheckStatus struct {
-	err error
-}
-
 // IsValid is used to validate a byte slice
 func (a *Alphabet) IsValid(s []byte) error {
 	if len(s) == 0 {
@@ -251,59 +248,51 @@ func (a *Alphabet) IsValid(s []byte) error {
 		return nil
 	}
 
-	chunkSize, start, end := int(l/ValidSeqThreads)+1, 0, 0
+	threads := ValidSeqThreads
+	if threads < 1 {
+		threads = 1
+	}
+	if threads > l {
+		threads = l
+	}
+	chunkSize := (l + threads - 1) / threads
 
 	var wg sync.WaitGroup
-	tokens := make(chan int, ValidSeqThreads)
-	ch := make(chan seqCheckStatus, ValidSeqThreads)
-	done := make(chan struct{})
-	var once sync.Once
-	finished := false
-	for i := 0; i < ValidSeqThreads; i++ {
-		start = i * chunkSize
-		end = (i + 1) * chunkSize
+	var firstInvalid atomic.Int64
+	firstInvalid.Store(int64(l))
+	for i := 0; i < threads; i++ {
+		start := i * chunkSize
+		end := (i + 1) * chunkSize
 		if end > l {
 			end = l
 		}
-		tokens <- 1
+		if start >= end {
+			break
+		}
 		wg.Add(1)
 		go func(start, end int) {
-			defer func() {
-				<-tokens
-				wg.Done()
-			}()
-
-			select {
-			case <-done:
-				if !finished {
-					finished = true
-					// close(ch)
-					return
-				}
-			default:
-
-			}
+			defer wg.Done()
 
 			var j int
 			for i := start; i < end; i++ {
+				if int64(i) >= firstInvalid.Load() {
+					return
+				}
 				j = int(s[i])
 				if j >= len(a.pairLetters) || a.pairLetters[j] == 0 {
-					ch <- seqCheckStatus{fmt.Errorf("seq: invalid %s lebtter: %s at %d", a, []byte{s[i]}, i)}
-					once.Do(func() {
-						close(done)
-					})
+					for previous := firstInvalid.Load(); int64(i) < previous; previous = firstInvalid.Load() {
+						if firstInvalid.CompareAndSwap(previous, int64(i)) {
+							break
+						}
+					}
 					return
 				}
 			}
-			ch <- seqCheckStatus{nil}
 		}(start, end)
 	}
 	wg.Wait()
-	close(ch)
-	for status := range ch {
-		if status.err != nil {
-			return status.err
-		}
+	if i := int(firstInvalid.Load()); i < l {
+		return fmt.Errorf("seq: invalid %s letter: %s at %d", a, []byte{s[i]}, i)
 	}
 
 	return nil

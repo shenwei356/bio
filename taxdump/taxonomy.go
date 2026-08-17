@@ -369,7 +369,7 @@ func (t *Taxonomy) LoadNames(file string, taxidColumn int, nameColumn int, typeC
 		return ErrIllegalColumnIndex
 	}
 
-	maxColumns := maxInt(nameColumn, nameColumn, typeColumn)
+	maxColumns := maxInt(taxidColumn, nameColumn, typeColumn)
 
 	fh, err := xopen.Ropen(file)
 	if err != nil {

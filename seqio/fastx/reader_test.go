@@ -3,8 +3,118 @@ package fastx
 import (
 	"bytes"
 	"io"
+	"regexp"
+	"strings"
 	"testing"
+
+	"github.com/shenwei356/bio/seq"
 )
+
+type trackingReadCloser struct {
+	*bytes.Reader
+	closed bool
+}
+
+func (r *trackingReadCloser) Close() error {
+	r.closed = true
+	return nil
+}
+
+func TestReaderKeepsLargeInitialBuffers(t *testing.T) {
+	reader, err := NewReaderFromIO(nil, strings.NewReader(">id\nACGT\n"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	for name, capacity := range map[string]int{
+		"record": reader.buffer.Cap(),
+		"seq":    reader.seqBuffer.Cap(),
+		"qual":   reader.qualBuffer.Cap(),
+	} {
+		if capacity != defaultBytesBufferSize {
+			t.Fatalf("%s buffer capacity = %d, want %d", name, capacity, defaultBytesBufferSize)
+		}
+	}
+}
+
+func TestReaderCloseClosesInput(t *testing.T) {
+	source := &trackingReadCloser{Reader: bytes.NewReader([]byte(">id\nACGT\n"))}
+	reader, err := NewReaderFromIO(nil, source, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader.Close()
+	if !source.closed {
+		t.Fatal("closing the FASTX reader did not close its input")
+	}
+}
+
+func TestReaderFromEmptyIO(t *testing.T) {
+	source := &trackingReadCloser{Reader: bytes.NewReader(nil)}
+	reader, err := NewReaderFromIO(seq.DNA, source, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reader.Alphabet() != seq.DNA {
+		t.Fatal("empty reader did not retain its configured alphabet")
+	}
+	if _, err := reader.Read(); err != io.EOF {
+		t.Fatalf("empty reader returned %v, want io.EOF", err)
+	}
+	reader.Close()
+	if !source.closed {
+		t.Fatal("closing an empty reader did not close its input")
+	}
+}
+
+func TestReaderRejectsIDRegexpWithoutCapture(t *testing.T) {
+	for _, pattern := range []string{`^\S+`, `^\(literal-parentheses\)$`} {
+		if _, err := NewReaderFromIO(nil, strings.NewReader(">id\nACGT\n"), pattern); err == nil {
+			t.Fatalf("accepted regexp without a capturing group: %q", pattern)
+		}
+	}
+
+	if got := ParseHeadID(regexp.MustCompile(`^\S+`), []byte("id description")); string(got) != "id description" {
+		t.Fatalf("ParseHeadID without capture returned %q", got)
+	}
+}
+
+func TestReaderHandlesLeadingNewlinesAcrossBuffers(t *testing.T) {
+	input := strings.Repeat("\n", bufSize+1) + ">id\nACGT\n"
+	reader, err := NewReaderFromIO(nil, strings.NewReader(input), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	record, err := reader.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(record.ID) != "id" || string(record.Seq.Seq) != "ACGT" {
+		t.Fatalf("unexpected record: id=%q seq=%q", record.ID, record.Seq.Seq)
+	}
+}
+
+func TestReaderGrowsBuffersForLargeRecords(t *testing.T) {
+	sequence := strings.Repeat("ACGT", bufSize/2)
+	reader, err := NewReaderFromIO(nil, strings.NewReader(">large\n"+sequence+"\n"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	record, err := reader.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(record.Seq.Seq) != sequence {
+		t.Fatalf("large record length = %d, want %d", len(record.Seq.Seq), len(sequence))
+	}
+}
 
 func TestReaderIDRegexpStateIsPerReader(t *testing.T) {
 	customReader, err := NewReaderFromIO(nil, bytes.NewBufferString(">id description\nACGT\n"), `^(.+)$`)

@@ -146,6 +146,8 @@ func NewSimHashIterator(s *seq.Seq, k int, m int, scale int, canonical bool, cir
 	iter.finished = false
 	iter.revcomStrand = false
 	iter.idx = 0
+	iter.hash = true
+	iter.simhash = true
 
 	iter.length = len(s2.Seq)
 	iter.end = iter.length - k + 1
@@ -158,6 +160,7 @@ func NewSimHashIterator(s *seq.Seq, k int, m int, scale int, canonical bool, cir
 	var err error
 	iter.hasher, err = nthash.NewHasher(&s2.Seq, uint(m))
 	if err != nil {
+		poolIterator.Put(iter)
 		return nil, err
 	}
 
@@ -631,6 +634,7 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	iter.idx = 0
 
 	iter.hash = true
+	iter.simhash = false
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
 	iter.kP1Uint = uint(k - 1)
@@ -648,6 +652,7 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	}
 	iter.hasher, err = nthash.NewHasher(&seq2, uint(k))
 	if err != nil {
+		poolIterator.Put(iter)
 		return nil, err
 	}
 
@@ -656,9 +661,14 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 
 // NextHash returns next ntHash.
 func (iter *Iterator) NextHash() (code uint64, ok bool) {
+	if iter.finished {
+		return 0, false
+	}
 	code, ok = iter.hasher.Next(iter.canonical)
 	if !ok {
+		iter.finished = true
 		poolIterator.Put(iter)
+		return 0, false
 	}
 	iter.idx++
 	return code, ok
@@ -674,9 +684,11 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	}
 
 	var s2 *seq.Seq
-	if circular {
+	if circular || !canonical {
 		s2 = s.Clone() // do not edit original sequence
-		s2.Seq = append(s2.Seq, s.Seq[0:k-1]...)
+		if circular {
+			s2.Seq = append(s2.Seq, s.Seq[0:k-1]...)
+		}
 	} else {
 		s2 = s
 	}
@@ -690,6 +702,8 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	iter.finished = false
 	iter.revcomStrand = false
 	iter.idx = 0
+	iter.hash = false
+	iter.simhash = false
 
 	iter.length = len(s2.Seq)
 	iter.end = iter.length - k + 1

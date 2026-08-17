@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -92,22 +93,26 @@ func CreateWithFullHead(fileSeq, fileFai string) (Index, error) {
 
 // CreateWithIDRegexp uses custom regular expression to get sequence ID
 func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error) {
-	if idRegexp != defaultIDRegexp {
-		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`regular expression must contain "(" and ")" to capture matched ID. default: %s`, `^([^\s]+)\s?`)
-		}
-		var err error
-		IDRegexp, err = regexp.Compile(idRegexp)
-		if err != nil {
-			return nil, fmt.Errorf("fail to Compile idRegexp: %s", err)
-		}
-		isUsingDefaultIDRegexp = false
+	idRegexpCompiled, err := regexp.Compile(idRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("fail to compile idRegexp %q: %w", idRegexp, err)
 	}
-	return Create(fileSeq, fileFai)
+	if idRegexpCompiled.NumSubexp() == 0 {
+		return nil, fmt.Errorf("regular expression must contain a capturing group for the ID; default: %s", defaultIDRegexp)
+	}
+	return create(fileSeq, fileFai, idRegexpCompiled, idRegexp == defaultIDRegexp)
 }
 
 // Create .fai for file
 func Create(fileSeq, fileFai string) (Index, error) {
+	idRegexp := IDRegexp
+	if idRegexp == nil {
+		idRegexp = regexp.MustCompile(defaultIDRegexp)
+	}
+	return create(fileSeq, fileFai, idRegexp, idRegexp.String() == defaultIDRegexp)
+}
+
+func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRegexp bool) (Index, error) {
 	fh, err := os.Open(fileSeq)
 	if err != nil {
 		return nil, fmt.Errorf("fail to open seq file: %s", err)
@@ -137,7 +142,14 @@ func Create(fileSeq, fileFai string) (Index, error) {
 	for {
 		line, err = reader.ReadBytes('\n')
 		if err != nil { // end of file
-			id = string(parseHeadID(lastName))
+			if err != io.EOF {
+				return nil, fmt.Errorf("read fasta file: %w", err)
+			}
+			if !hasSeq {
+				return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
+			}
+
+			id = string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, lastName))
 			if strings.Contains(id, "\t") {
 				id = reTabs.ReplaceAllString(id, " ")
 			}
@@ -210,7 +222,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 			thisName = dropCR(line[1 : len(line)-1])
 
 			if lastName != nil { // not the first record
-				id = string(parseHeadID(lastName))
+				id = string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, lastName))
 				if strings.Contains(id, "\t") {
 					id = reTabs.ReplaceAllString(id, " ")
 				}
@@ -283,17 +295,14 @@ func Create(fileSeq, fileFai string) (Index, error) {
 
 // ------------------------------------------------------------
 
-var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
-
 var defaultIDRegexp = `^(\S+)\s?`
 
 var reTabs = regexp.MustCompile(`\t+`)
 
 // IDRegexp is regexp for parsing record id
 var IDRegexp = regexp.MustCompile(defaultIDRegexp)
-var isUsingDefaultIDRegexp = true
 
-func parseHeadID(head []byte) []byte {
+func parseHeadID(idRegexp *regexp.Regexp, isUsingDefaultIDRegexp bool, head []byte) []byte {
 	if isUsingDefaultIDRegexp {
 		if i := bytes.IndexByte(head, ' '); i > 0 {
 			return head[0:i]
@@ -304,8 +313,8 @@ func parseHeadID(head []byte) []byte {
 		return head
 	}
 
-	found := IDRegexp.FindSubmatch(head)
-	if found == nil { // not match
+	found := idRegexp.FindSubmatch(head)
+	if len(found) < 2 { // not match or no capturing group
 		return head
 	}
 	return found[1]

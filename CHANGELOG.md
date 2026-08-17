@@ -1,8 +1,23 @@
 # Changelog
 
-### v0.14.1 - 2026-xx-xx
+### v0.15.0 - 2026-08-07
 
 - fastx: avoid data race when using different id regexps.
+- fastx: close underlying readers before returning readers to the pool.
+- fastx: handle empty IO readers without panicking.
+- fastx: better handle leading blank lines across input buffers.
+- fastx: restore the input buffer size after short reads.
+- seq: avoid data race when validating long sequences in parallel.
+- fai: avoid leaking custom ID regexp state between index creations.
+- fai: return an error for out-of-range base queries.
+- fai: make closing indexes idempotent.
+- fai: close files when memory mapping fails.
+- fai: preserve the access mode of each opened index.
+- fai: reject empty FASTA files and invalid ID regexps.
+- sketches: reset pooled iterator mode state.
+- sketches: avoid returning hash iterators to the pool more than once.
+- sketches: avoid mutating input sequences during non-canonical k-mer iteration.
+- taxdump: fix loading names when the taxid column has the highest index.
 
 ### v0.14.0 - 2026-05-13
 

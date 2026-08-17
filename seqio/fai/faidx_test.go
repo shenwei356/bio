@@ -2,6 +2,9 @@ package fai
 
 import (
 	"bytes"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/shenwei356/bio/seqio/fastx"
@@ -149,5 +152,98 @@ func TestFastaReader2(t *testing.T) {
 	err = idx.Close()
 	if err != nil {
 		t.Errorf("fail to close faidx: %v", err)
+	}
+}
+
+func TestBaseOutOfRangeReturnsError(t *testing.T) {
+	idx, err := New("seq.fa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer idx.Close()
+
+	if _, err := idx.Base("cel-let-7", 1<<20); !errors.Is(err, ErrPositionOutOfRange) {
+		t.Fatalf("Base returned %v, want ErrPositionOutOfRange", err)
+	}
+}
+
+func TestCloseIsIdempotent(t *testing.T) {
+	idx, err := New("seq.fa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := idx.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := idx.Close(); err != nil {
+		t.Fatalf("second Close returned %v", err)
+	}
+}
+
+func TestFaidxKeepsItsConfiguredAccessMode(t *testing.T) {
+	previous := MapWholeFile
+	MapWholeFile = false
+	idx, err := New("seq.fa")
+	MapWholeFile = true
+	defer func() { MapWholeFile = previous }()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer idx.Close()
+
+	base, err := idx.Base("cel-let-7", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base != 'U' {
+		t.Fatalf("Base returned %q, want U", base)
+	}
+}
+
+func TestCreateWithIDRegexpDoesNotChangeDefault(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "input.fa")
+	if err := os.WriteFile(fasta, []byte(">id description\nACGT\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	custom, err := CreateWithFullHead(fasta, filepath.Join(tmpDir, "custom.fai"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := custom["id description"]; !ok {
+		t.Fatalf("custom index did not contain the full header: %v", custom)
+	}
+
+	standard, err := Create(fasta, filepath.Join(tmpDir, "standard.fai"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := standard["id"]; !ok {
+		t.Fatalf("custom regexp leaked into default Create: %v", standard)
+	}
+}
+
+func TestCreateRejectsRegexpWithoutCapture(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "input.fa")
+	if err := os.WriteFile(fasta, []byte(">id\nACGT\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := CreateWithIDRegexp(fasta, filepath.Join(tmpDir, "input.fai"), `^\S+`); err == nil {
+		t.Fatal("accepted ID regexp without a capturing group")
+	}
+}
+
+func TestCreateRejectsEmptyFASTA(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "empty.fa")
+	if err := os.WriteFile(fasta, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Create(fasta, filepath.Join(tmpDir, "empty.fa.fai")); err == nil {
+		t.Fatal("created an index for an empty FASTA file")
 	}
 }

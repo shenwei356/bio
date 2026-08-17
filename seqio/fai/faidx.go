@@ -1,6 +1,7 @@
 package fai
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -58,6 +59,7 @@ func NewWithIndex(file string, index Index) (*Faidx, error) {
 	if MapWholeFile {
 		m, err = mmap.Map(reader, mmap.RDONLY, 0)
 		if err != nil {
+			_ = reader.Close()
 			return nil, fmt.Errorf("mmap err: %s", err)
 		}
 	}
@@ -78,6 +80,9 @@ func position(r Record, p int) int64 {
 
 // ErrSeqNotExists means that sequence not exists
 var ErrSeqNotExists = fmt.Errorf("sequence not exists")
+
+// ErrPositionOutOfRange means that a requested base is outside the sequence.
+var ErrPositionOutOfRange = errors.New("position out of range")
 
 // SubSeq returns subsequence of chr from start to end. start and end are 1-based.
 func (f *Faidx) SubSeq(chr string, start int, end int) ([]byte, error) {
@@ -108,7 +113,7 @@ func (f *Faidx) SubSeqNotCleaned(chr string, start int, end int) ([]byte, error)
 
 	pstart := position(index, start-1)
 	pend := position(index, end)
-	if MapWholeFile {
+	if f.mmap != nil {
 		if pend > int64(len(f.mmap)) { // for truncated file
 			pend = int64(len(f.mmap))
 		}
@@ -150,34 +155,48 @@ func (f *Faidx) Base(chr string, pos int) (byte, error) {
 	if err != nil {
 		return ' ', err
 	}
+	if len(sequence) == 0 {
+		return ' ', ErrPositionOutOfRange
+	}
 	return sequence[0], nil
 }
 
 // Close the readers
 func (f *Faidx) Close() error {
-	f.reader.Close()
-	if f.mmap == nil {
-		return nil
+	var errs []error
+	if f.mmap != nil {
+		if err := f.mmap.Unmap(); err != nil {
+			errs = append(errs, err)
+		}
+		f.mmap = nil
 	}
-	return f.mmap.Unmap()
+	if f.reader != nil {
+		if err := f.reader.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		f.reader = nil
+	}
+	return errors.Join(errs...)
 }
 
-/*SubLocation is my sublocation strategy,
+/*
+SubLocation is my sublocation strategy,
 start, end and returned start and end are all 1-based
 
- 1-based index    1 2 3 4 5 6 7 8 9 10
-negative index    0-9-8-7-6-5-4-3-2-1
-           seq    A C G T N a c g t n
-           1:1    A
-           2:4      C G T
-         -4:-2                c g t
-         -4:-1                c g t n
-         -1:-1                      n
-          2:-2      C G T N a c g t
-          1:-1    A C G T N a c g t n
-          1:12    A C G T N a c g t n
-        -12:-1    A C G T N a c g t n
+	1-based index    1 2 3 4 5 6 7 8 9 10
 
+negative index    0-9-8-7-6-5-4-3-2-1
+
+	   seq    A C G T N a c g t n
+	   1:1    A
+	   2:4      C G T
+	 -4:-2                c g t
+	 -4:-1                c g t n
+	 -1:-1                      n
+	  2:-2      C G T N a c g t
+	  1:-1    A C G T N a c g t n
+	  1:12    A C G T N a c g t n
+	-12:-1    A C G T N a c g t n
 */
 func SubLocation(length, start, end int) (int, int, bool) {
 	if length == 0 {

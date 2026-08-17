@@ -24,29 +24,34 @@ var ErrUnequalSeqAndQual = errors.New("fastx: unequal sequence and quality")
 // ErrNoContent means nothing in the file or stream
 var ErrNoContent = errors.New("fastx: no content found")
 
-var bufSize = 65536
+const (
+	bufSize                = 64 << 10
+	defaultBytesBufferSize = 10 << 20
+)
+
+func newReader() *Reader {
+	return &Reader{
+		buf:        make([]byte, bufSize),
+		buffer:     bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize)),
+		seqBuffer:  bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize)),
+		qualBuffer: bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize)),
+		record: &Record{
+			Seq: &seq.Seq{}, // can't be nil
+		},
+		checkSeqType: true,
+		firstseq:     true,
+	}
+}
 
 var poolReader = &sync.Pool{New: func() interface{} {
-	t := &Reader{}
-
-	t.buf = make([]byte, bufSize)
-
-	t.buffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	t.seqBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-	t.qualBuffer = bytes.NewBuffer(make([]byte, 0, defaultBytesBufferSize))
-
-	t.record = &Record{
-		ID:   nil,
-		Name: nil,
-		Desc: nil,
-		Seq:  &seq.Seq{}, // can't be nil
-	}
-	return t
+	return newReader()
 }}
 
 // Reader seamlessly parse both FASTA and FASTQ formats
 type Reader struct {
 	fh *xopen.Reader // file handle, xopen is such a wonderful package
+	// closer is used when xopen cannot create a Reader for an empty input.
+	closer io.Closer
 
 	buf                []byte // for store readed data from fh
 	r                  int
@@ -71,6 +76,8 @@ type Reader struct {
 	seqBuffer       *bytes.Buffer
 	qualBuffer      *bytes.Buffer
 	record          *Record
+
+	closed bool
 
 	// only for compatibility of empty files
 	Err error
@@ -103,11 +110,9 @@ func (fastxReader *Reader) Reset() {
 	fastxReader.qual = nil
 
 	fastxReader.Err = nil
+	fastxReader.closed = false
+	fastxReader.closer = nil
 }
-
-// regexp for checking idRegexp string.
-// The regular expression must contain "(" and ")" to capture matched ID
-var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // DefaultIDRegexp is the default ID parsing regular expression
 var DefaultIDRegexp = `^(\S+)\s?`
@@ -117,7 +122,21 @@ func NewDefaultReader(file string) (*Reader, error) {
 	return NewReader(nil, file, "")
 }
 
-var defaultBytesBufferSize = 10 << 20
+func compileIDRegexp(idRegexp string) (*regexp.Regexp, bool, error) {
+	isUsingDefaultIDRegexp := idRegexp == "" || idRegexp == DefaultIDRegexp
+	if idRegexp == "" {
+		idRegexp = DefaultIDRegexp
+	}
+
+	r, err := regexp.Compile(idRegexp)
+	if err != nil {
+		return nil, false, fmt.Errorf("fastx: fail to compile regexp %q: %w", idRegexp, err)
+	}
+	if r.NumSubexp() == 0 {
+		return nil, false, fmt.Errorf("fastx: regular expression must contain a capturing group for the ID; default: %s", DefaultIDRegexp)
+	}
+	return r, isUsingDefaultIDRegexp, nil
+}
 
 // NewReader is constructor of FASTX Reader.
 //
@@ -132,23 +151,9 @@ var defaultBytesBufferSize = 10 << 20
 //
 // Please call reader.Close() afer using the records!!!
 func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
-	var r *regexp.Regexp
-	isUsingDefaultIDRegexp := false
-	if idRegexp == "" {
-		r = regexp.MustCompile(DefaultIDRegexp)
-		isUsingDefaultIDRegexp = true
-	} else {
-		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
-		}
-		var err error
-		r, err = regexp.Compile(idRegexp)
-		if err != nil {
-			return nil, fmt.Errorf("fastx: fail to compile regexp: %s", idRegexp)
-		}
-		if idRegexp == DefaultIDRegexp {
-			isUsingDefaultIDRegexp = true
-		}
+	r, isUsingDefaultIDRegexp, err := compileIDRegexp(idRegexp)
+	if err != nil {
+		return nil, err
 	}
 
 	fh, err := xopen.Ropen(file)
@@ -156,6 +161,9 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 		if err == xopen.ErrNoContent {
 			fastxReader := poolReader.Get().(*Reader)
 			fastxReader.Reset()
+			fastxReader.t = t
+			fastxReader.IDRegexp = r
+			fastxReader.isUsingDefaultIDRegexp = isUsingDefaultIDRegexp
 			fastxReader.Err = io.EOF // so the first call of Read will return an io.EOF error.
 			return fastxReader, nil
 		}
@@ -164,7 +172,6 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 
 	fastxReader := poolReader.Get().(*Reader)
 	fastxReader.Reset()
-
 	fastxReader.fh = fh
 	fastxReader.t = t
 	fastxReader.IDRegexp = r
@@ -186,33 +193,30 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 //
 // Please call reader.Close() afer using the records!!!
 func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Reader, error) {
-	var r *regexp.Regexp
-	isUsingDefaultIDRegexp := false
-	if idRegexp == "" {
-		r = regexp.MustCompile(DefaultIDRegexp)
-		isUsingDefaultIDRegexp = true
-	} else {
-		if !reCheckIDregexpStr.MatchString(idRegexp) {
-			return nil, fmt.Errorf(`fastx: regular expression must contain "(" and ")" to capture matched ID. default: %s`, DefaultIDRegexp)
-		}
-		var err error
-		r, err = regexp.Compile(idRegexp)
-		if err != nil {
-			return nil, fmt.Errorf("fastx: fail to compile regexp: %s", idRegexp)
-		}
-		if idRegexp == DefaultIDRegexp {
-			isUsingDefaultIDRegexp = true
-		}
+	r, isUsingDefaultIDRegexp, err := compileIDRegexp(idRegexp)
+	if err != nil {
+		return nil, err
 	}
 
 	fh, err := xopen.Buf(ioReader)
 	if err != nil {
-		panic(err)
+		if err == xopen.ErrNoContent {
+			fastxReader := poolReader.Get().(*Reader)
+			fastxReader.Reset()
+			fastxReader.t = t
+			fastxReader.IDRegexp = r
+			fastxReader.isUsingDefaultIDRegexp = isUsingDefaultIDRegexp
+			if closer, ok := ioReader.(io.Closer); ok {
+				fastxReader.closer = closer
+			}
+			fastxReader.Err = io.EOF
+			return fastxReader, nil
+		}
+		return nil, fmt.Errorf("fastx: %w", err)
 	}
 
 	fastxReader := poolReader.Get().(*Reader)
 	fastxReader.Reset()
-
 	fastxReader.fh = fh
 	fastxReader.t = t
 	fastxReader.IDRegexp = r
@@ -221,16 +225,28 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 	return fastxReader, nil
 }
 
-// Close cleans up everything, the most important thing is recyling the reader.
-// Please do remember to calls this method!!!
+// Close releases the underlying reader and returns this Reader to the pool.
+// The Reader must not be used after Close.
 func (fastxReader *Reader) Close() {
+	if fastxReader.closed {
+		return
+	}
+	fastxReader.close()
+	fastxReader.closed = true
+	fastxReader.lastPart = true
+	fastxReader.finished = true
 	poolReader.Put(fastxReader)
 }
 
 // close closes the file handler
 func (fastxReader *Reader) close() {
 	if fastxReader.fh != nil {
-		fastxReader.fh.Close()
+		_ = fastxReader.fh.Close()
+		fastxReader.fh = nil
+	}
+	if fastxReader.closer != nil {
+		_ = fastxReader.closer.Close()
+		fastxReader.closer = nil
 	}
 }
 
@@ -254,6 +270,9 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 	for {
 		if !fastxReader.needMoreCheckOfBuf && !fastxReader.lastPart {
+			// A short read shrinks buf below. Restore its full length before the
+			// next read so streaming readers do not remain stuck on tiny reads.
+			fastxReader.buf = fastxReader.buf[:bufSize]
 			n, err = fastxReader.fh.Read(fastxReader.buf)
 			if err != nil {
 				if err == io.EOF {
@@ -275,9 +294,9 @@ func (fastxReader *Reader) Read() (*Record, error) {
 			fastxReader.r = 0 /// TO CHECK
 		}
 
-		// check seq type via the first non-empty charator, run for once
+		// check seq type via the first non-empty character, run once
 		if fastxReader.checkSeqType {
-			pn := 0
+			found := false
 		FORCHECK:
 			for i := range fastxReader.buf {
 				switch fastxReader.buf[i] {
@@ -286,28 +305,32 @@ func (fastxReader *Reader) Read() (*Record, error) {
 					fastxReader.IsFastq = false
 					fastxReader.delim = '>'
 					fastxReader.r = i + 1
+					found = true
 					break FORCHECK
 				case '@':
 					fastxReader.hasSomeSeq = true
 					fastxReader.IsFastq = true
 					fastxReader.delim = '@'
 					fastxReader.r = i + 1
+					found = true
 					break FORCHECK
 				case '\n': // allow some lines
-					pn++
-					if pn > 100 {
-						if i > 10240 { // ErrNotFASTXFormat
-							fastxReader.close()
-							return nil, ErrNotFASTXFormat
-						}
-					}
-					// break FORCHECK
+					continue
 				default: // not typical FASTA/Q
 					// if i > 10240 || fastxReader.lastPart { // ErrNotFASTXFormat
 					fastxReader.close()
 					return nil, ErrNotFASTXFormat
 					// }
 				}
+			}
+			if !found {
+				if fastxReader.lastPart {
+					fastxReader.close()
+					fastxReader.finished = true
+					return nil, io.EOF
+				}
+				fastxReader.needMoreCheckOfBuf = false
+				continue
 			}
 			fastxReader.checkSeqType = false
 		}
@@ -490,7 +513,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 // ParseHeadID parse ID from head by IDRegexp. not used.
 func ParseHeadID(idRegexp *regexp.Regexp, head []byte) []byte {
 	found := idRegexp.FindSubmatch(head)
-	if found == nil { // not match
+	if len(found) < 2 { // not match or no capturing group
 		return head
 	}
 	return found[1]

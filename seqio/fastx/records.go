@@ -20,9 +20,9 @@ type Record struct {
 // Clone of a Record
 func (record *Record) Clone() *Record {
 	return &Record{
-		[]byte(string(record.ID)),
-		[]byte(string(record.Name)),
-		[]byte(string(record.Desc)),
+		append([]byte(nil), record.ID...),
+		append([]byte(nil), record.Name...),
+		append([]byte(nil), record.Desc...),
 		record.Seq.Clone(),
 	}
 }

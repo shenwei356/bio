@@ -21,6 +21,8 @@
 package taxdump
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -40,5 +42,20 @@ func TestPackTwoTaxids(t *testing.T) {
 		if c != test.c {
 			t.Errorf("pack2uint32 error: %d != %d ", c, test.c)
 		}
+	}
+}
+
+func TestLoadNamesWithTaxIDInHighestColumn(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "names.tsv")
+	if err := os.WriteFile(file, []byte("scientific name\twanted\tunused\t42\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	taxonomy := &Taxonomy{}
+	if err := taxonomy.LoadNames(file, 4, 1, 2, "wanted"); err != nil {
+		t.Fatal(err)
+	}
+	if got := taxonomy.Name(42); got != "scientific name" {
+		t.Fatalf("loaded name %q, want %q", got, "scientific name")
 	}
 }

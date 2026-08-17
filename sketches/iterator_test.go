@@ -21,6 +21,7 @@
 package sketches
 
 import (
+	"bytes"
 	"math/rand"
 	"testing"
 
@@ -141,6 +142,77 @@ func TestSimHashIterator(t *testing.T) {
 		if len(codes) != len(_s)-k+1 {
 			t.Errorf("k-mer hashes number error")
 		}
+	}
+}
+
+func TestIteratorNextResetsPooledMode(t *testing.T) {
+	sequence, err := seq.NewSeq(seq.DNA, []byte("ACGTTGCAACGTTGCAACGTTGCA"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	simhash, err := NewSimHashIterator(sequence, 10, 4, 1, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	simhashCount := 0
+	for {
+		_, ok, err := simhash.Next()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			break
+		}
+		simhashCount++
+	}
+	if want := len(sequence.Seq) - 10 + 1; simhashCount != want {
+		t.Fatalf("generic Next returned %d simhashes, want %d", simhashCount, want)
+	}
+
+	kmers, err := NewKmerIterator(sequence, 5, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kmerCount := 0
+	for {
+		_, ok, err := kmers.Next()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			break
+		}
+		kmerCount++
+	}
+	if want := len(sequence.Seq) - 5 + 1; kmerCount != want {
+		t.Fatalf("pooled iterator returned %d k-mers, want %d", kmerCount, want)
+	}
+}
+
+func TestNonCanonicalKmerIteratorDoesNotMutateInput(t *testing.T) {
+	sequence, err := seq.NewSeq(seq.DNA, []byte("ACGTTGCA"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := append([]byte(nil), sequence.Seq...)
+
+	iter, err := NewKmerIterator(sequence, 4, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		_, ok, err := iter.NextKmer()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			break
+		}
+	}
+
+	if !bytes.Equal(sequence.Seq, original) {
+		t.Fatalf("iterator mutated input sequence: got %q, want %q", sequence.Seq, original)
 	}
 }
 
