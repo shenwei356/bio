@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.14.1 - 2026-xx-xx
+
+- fastx: avoid data race when using different id regexps.
+
 ### v0.14.0 - 2026-05-13
 
 - fastx: allow wrapping FASTQ sequences.

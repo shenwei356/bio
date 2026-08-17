@@ -63,8 +63,9 @@ type Reader struct {
 	delim    byte
 	IsFastq  bool // if the file is fastq format, you have to check this field after the first call of Read() method, because it will be determined by the first non-empty charator in the file.
 
-	t        *seq.Alphabet  // alphabet
-	IDRegexp *regexp.Regexp // regexp for parsing record id
+	t                      *seq.Alphabet  // alphabet
+	IDRegexp               *regexp.Regexp // regexp for parsing record id
+	isUsingDefaultIDRegexp bool           // whether IDRegexp uses the default parsing rule
 
 	head, seq, qual []byte
 	seqBuffer       *bytes.Buffer
@@ -92,6 +93,7 @@ func (fastxReader *Reader) Reset() {
 	fastxReader.firstseq = true
 	fastxReader.delim = 0
 	fastxReader.IsFastq = false
+	fastxReader.isUsingDefaultIDRegexp = false
 
 	fastxReader.seqBuffer.Reset()
 	fastxReader.qualBuffer.Reset()
@@ -109,7 +111,6 @@ var reCheckIDregexpStr = regexp.MustCompile(`\(.+\)`)
 
 // DefaultIDRegexp is the default ID parsing regular expression
 var DefaultIDRegexp = `^(\S+)\s?`
-var isUsingDefaultIDRegexp bool
 
 // NewDefaultReader automaticlly recognizes sequence type and parses id with default manner
 func NewDefaultReader(file string) (*Reader, error) {
@@ -132,6 +133,7 @@ var defaultBytesBufferSize = 10 << 20
 // Please call reader.Close() afer using the records!!!
 func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
+	isUsingDefaultIDRegexp := false
 	if idRegexp == "" {
 		r = regexp.MustCompile(DefaultIDRegexp)
 		isUsingDefaultIDRegexp = true
@@ -166,6 +168,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 	fastxReader.fh = fh
 	fastxReader.t = t
 	fastxReader.IDRegexp = r
+	fastxReader.isUsingDefaultIDRegexp = isUsingDefaultIDRegexp
 
 	return fastxReader, nil
 }
@@ -184,6 +187,7 @@ func NewReader(t *seq.Alphabet, file string, idRegexp string) (*Reader, error) {
 // Please call reader.Close() afer using the records!!!
 func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Reader, error) {
 	var r *regexp.Regexp
+	isUsingDefaultIDRegexp := false
 	if idRegexp == "" {
 		r = regexp.MustCompile(DefaultIDRegexp)
 		isUsingDefaultIDRegexp = true
@@ -212,6 +216,7 @@ func NewReaderFromIO(t *seq.Alphabet, ioReader io.Reader, idRegexp string) (*Rea
 	fastxReader.fh = fh
 	fastxReader.t = t
 	fastxReader.IDRegexp = r
+	fastxReader.isUsingDefaultIDRegexp = isUsingDefaultIDRegexp
 
 	return fastxReader, nil
 }
@@ -454,7 +459,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 	// new record
 	if fastxReader.IsFastq { // fastq
 		fastxReader.record.Seq.Alphabet = fastxReader.t
-		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
+		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head, fastxReader.isUsingDefaultIDRegexp)
 		fastxReader.record.Name = fastxReader.head
 		fastxReader.record.Seq.Seq = fastxReader.seq
 		fastxReader.record.Seq.Qual = fastxReader.qual
@@ -470,7 +475,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 
 	} else { // fasta
 		fastxReader.record.Seq.Alphabet = fastxReader.t
-		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head)
+		fastxReader.record.ID, fastxReader.record.Desc = parseHeadIDAndDesc(fastxReader.IDRegexp, fastxReader.head, fastxReader.isUsingDefaultIDRegexp)
 		fastxReader.record.Name = fastxReader.head
 		fastxReader.record.Seq.Seq = fastxReader.seq
 
@@ -495,7 +500,7 @@ var emptyByteSlice = []byte{}
 
 // var tabspace string = "\t "
 
-func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte) ([]byte, []byte) {
+func parseHeadIDAndDesc(idRegexp *regexp.Regexp, head []byte, isUsingDefaultIDRegexp bool) ([]byte, []byte) {
 	if len(head) == 0 {
 		return head, head
 	}

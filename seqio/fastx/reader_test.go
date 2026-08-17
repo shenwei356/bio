@@ -1,11 +1,40 @@
 package fastx
 
 import (
-	// "fmt"
-
+	"bytes"
 	"io"
 	"testing"
 )
+
+func TestReaderIDRegexpStateIsPerReader(t *testing.T) {
+	customReader, err := NewReaderFromIO(nil, bytes.NewBufferString(">id description\nACGT\n"), `^(.+)$`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer customReader.Close()
+
+	defaultReader, err := NewReaderFromIO(nil, bytes.NewBufferString(">other description\nACGT\n"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer defaultReader.Close()
+
+	defaultRecord, err := defaultReader.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(defaultRecord.ID), "other"; got != want {
+		t.Fatalf("default ID parsing: got %q, want %q", got, want)
+	}
+
+	record, err := customReader.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(record.ID), "id description"; got != want {
+		t.Fatalf("custom ID regexp affected by another reader: got %q, want %q", got, want)
+	}
+}
 
 func TestFastaReader2(t *testing.T) {
 	file := "test.fa"
