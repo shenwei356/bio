@@ -548,102 +548,122 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		return a
 	}
 
-	// check cache
-	var ok bool
-
 	var query uint64
-	var tmp interface{}
 	if t.cacheLCA {
 		query = pack2uint32(a, b)
-
-		tmp, ok = t.lcaCache.Load(query)
-		if ok {
+		if tmp, ok := t.lcaCache.Load(query); ok {
 			return tmp.(uint32)
 		}
 	}
 
-	mA := make(map[uint32]struct{}, 16)
+	a, okA := t.lcaStart(a)
+	b, okB := t.lcaStart(b)
+	result := uint32(0)
+	if okA && okB {
+		result = t.lcaByPaths(a, b)
+	}
+	if t.cacheLCA {
+		t.lcaCache.Store(query, result)
+	}
+	return result
+}
 
-	var child, parent, newTaxid uint32
-	var flag bool
+// lcaStart resolves a taxid to the node where the LCA walk should start.
+// Merged taxids start at the resolved node's parent to preserve LCA's existing
+// behavior for queries mixing old and current taxids.
+func (t *Taxonomy) lcaStart(taxid uint32) (uint32, bool) {
+	if _, ok := t.Nodes[taxid]; ok {
+		return taxid, true
+	}
+	newTaxid, ok := t.MergeNodes[taxid]
+	if !ok {
+		return 0, false
+	}
+	parent, ok := t.Nodes[newTaxid]
+	return parent, ok
+}
 
-	child = a
-	for {
-		parent, ok = t.Nodes[child]
-		if !ok {
-			flag = false
-			if newTaxid, ok = t.MergeNodes[child]; ok { // merged
-				child = newTaxid // update child
+const lcaPathBufferSize = 64
 
-				parent, ok = t.Nodes[child]
-				if ok {
-					flag = true
-				}
-			}
-
-			if !flag {
-				if t.cacheLCA {
-					t.lcaCache.Store(query, uint32(0))
-				}
-				return 0
-			}
-		}
-		if parent == child { // root
-			mA[parent] = struct{}{}
-			break
-		}
-		if parent == b { // b is ancestor of a
-			if t.cacheLCA {
-				t.lcaCache.Store(query, b)
-			}
-			return b
-		}
-		mA[parent] = struct{}{}
-
-		child = parent
+func (t *Taxonomy) lcaByPaths(a uint32, b uint32) uint32 {
+	var bufferA, bufferB [lcaPathBufferSize]uint32
+	pathA, ok := t.lcaPath(a, bufferA[:0])
+	if !ok {
+		return t.lcaByDepth(a, b)
+	}
+	pathB, ok := t.lcaPath(b, bufferB[:0])
+	if !ok {
+		return t.lcaByDepth(a, b)
 	}
 
-	child = b
-	for {
-		parent, ok = t.Nodes[child]
-		if !ok {
-			flag = false
-			if newTaxid, ok = t.MergeNodes[child]; ok { // merged
-				child = newTaxid // update child
-
-				parent, ok = t.Nodes[child]
-				if ok {
-					flag = true
-				}
-			}
-
-			if !flag {
-				if t.cacheLCA {
-					t.lcaCache.Store(query, uint32(0))
-				}
-				return 0
-			}
-		}
-
-		if parent == child { // root
-			break
-		}
-		if parent == a { // a is ancestor of b
-			if t.cacheLCA {
-				t.lcaCache.Store(query, a)
-			}
-			return a
-		}
-		if _, ok = mA[parent]; ok {
-			if t.cacheLCA {
-				t.lcaCache.Store(query, parent)
-			}
-			return parent
-		}
-
-		child = parent
+	i, j := len(pathA)-1, len(pathB)-1
+	lca := t.rootNode
+	for i >= 0 && j >= 0 && pathA[i] == pathB[j] {
+		lca = pathA[i]
+		i--
+		j--
 	}
-	return t.rootNode
+	return lca
+}
+
+func (t *Taxonomy) lcaPath(taxid uint32, path []uint32) ([]uint32, bool) {
+	for len(path) < cap(path) {
+		parent, ok := t.Nodes[taxid]
+		if !ok {
+			return nil, false
+		}
+		path = append(path, taxid)
+		if parent == taxid {
+			return path, true
+		}
+		taxid = parent
+	}
+	return nil, false
+}
+
+func (t *Taxonomy) lcaByDepth(a uint32, b uint32) uint32 {
+	depthA, ok := t.nodeDepth(a)
+	if !ok {
+		return 0
+	}
+	depthB, ok := t.nodeDepth(b)
+	if !ok {
+		return 0
+	}
+
+	for depthA > depthB {
+		a = t.Nodes[a]
+		depthA--
+	}
+	for depthB > depthA {
+		b = t.Nodes[b]
+		depthB--
+	}
+	for a != b {
+		parentA := t.Nodes[a]
+		parentB := t.Nodes[b]
+		if parentA == a || parentB == b {
+			return t.rootNode
+		}
+		a = parentA
+		b = parentB
+	}
+	return a
+}
+
+func (t *Taxonomy) nodeDepth(taxid uint32) (int, bool) {
+	depth := 0
+	for {
+		parent, ok := t.Nodes[taxid]
+		if !ok {
+			return 0, false
+		}
+		if parent == taxid {
+			return depth, true
+		}
+		taxid = parent
+		depth++
+	}
 }
 
 // LineageNames returns nodes' names of the the complete lineage.

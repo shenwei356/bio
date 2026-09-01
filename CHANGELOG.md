@@ -11,6 +11,7 @@
 - seq: speed up copying parsed quality values in `seq.SubSeq`.
 - sketches: safely return exhausted sketches to the correct object pools.
 - sketches: reuse sketch buffers to reduce allocations.
+- taxdump: reduce time and allocations in `Taxonomy.LCA`.
 
 ### v0.15.0 - 2026-08-07
 
