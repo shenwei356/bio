@@ -272,6 +272,9 @@ func (fastxReader *Reader) Read() (*Record, error) {
 		if !fastxReader.needMoreCheckOfBuf && !fastxReader.lastPart {
 			// A short read shrinks buf below. Restore its full length before the
 			// next read so streaming readers do not remain stuck on tiny reads.
+			//
+			// This fixed a performance problem existing for many years:
+			// Old fastx readers could become extremely slow on BGZF FASTQ files.
 			fastxReader.buf = fastxReader.buf[:bufSize]
 			n, err = fastxReader.fh.Read(fastxReader.buf)
 			if err != nil {
