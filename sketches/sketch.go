@@ -47,6 +47,7 @@ type Sketch struct {
 	k        int
 	s        int
 	circular bool
+	finished bool
 	hasher   *nthash.NTHi
 
 	kMs int // k-s, just for syncmer
@@ -80,6 +81,17 @@ var poolSketch = &sync.Pool{New: func() interface{} {
 	return &Sketch{}
 }}
 
+func (s *Sketch) finish() {
+	if s.finished {
+		return
+	}
+	s.finished = true
+	s.S = nil
+	s.hasher = nil
+	s.hasherS = nil
+	poolSketch.Put(s)
+}
+
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
 // It returns the minHashes in all windows of w (w>=1) bp.
 func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error) {
@@ -100,6 +112,7 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 	sketch.k = k
 	sketch.w = w
 	sketch.circular = circular
+	sketch.finished = false
 	sketch.skip = w == 1
 
 	var seq2 []byte
@@ -107,10 +120,10 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 		seq2 = make([]byte, len(S.Seq), len(S.Seq)+k-1)
 		copy(seq2, S.Seq) // do not edit original sequence
 		seq2 = append(seq2, S.Seq[0:k-1]...)
-		sketch.S = seq2
 	} else {
 		seq2 = S.Seq
 	}
+	sketch.S = seq2
 
 	sketch.idx = 0
 	sketch.end = len(seq2) - 1
@@ -119,10 +132,11 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 	var err error
 	sketch.hasher, err = nthash.NewHasher(&seq2, uint(k))
 	if err != nil {
+		sketch.finish()
 		return nil, err
 	}
 
-	if sketch.buf == nil {
+	if cap(sketch.buf) < w {
 		sketch.buf = make([]IdxValue, 0, w)
 	} else {
 		sketch.buf = sketch.buf[:0]
@@ -157,6 +171,7 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 	sketch.k = k
 	sketch.s = s
 	sketch.circular = circular
+	sketch.finished = false
 	sketch.skip = s == k
 
 	var seq2 []byte
@@ -164,10 +179,10 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 		seq2 = make([]byte, len(S.Seq), len(S.Seq)+k-1)
 		copy(seq2, S.Seq) // do not edit original sequence
 		seq2 = append(seq2, S.Seq[0:k-1]...)
-		sketch.S = seq2
 	} else {
 		seq2 = S.Seq
 	}
+	sketch.S = seq2
 
 	sketch.idx = 0
 	sketch.end = len(seq2) - 2*k + s + 1 // len(sequence) - L (2*k - s - 1)
@@ -178,16 +193,19 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 	var err error
 	sketch.hasher, err = nthash.NewHasher(&seq2, uint(k))
 	if err != nil {
+		sketch.finish()
 		return nil, err
 	}
 
 	sketch.hasherS, err = nthash.NewHasher(&seq2, uint(s))
 	if err != nil {
+		sketch.finish()
 		return nil, err
 	}
 
-	if sketch.buf == nil {
-		sketch.buf = make([]IdxValue, 0, (k-s)<<1)
+	bufSize := (k - s) << 1
+	if cap(sketch.buf) < bufSize {
+		sketch.buf = make([]IdxValue, 0, bufSize)
 	} else {
 		sketch.buf = sketch.buf[:0]
 	}
@@ -203,15 +221,19 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 
 // NextMinimizer returns next minimizer.
 func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
+	if s.finished {
+		return 0, false
+	}
 	for {
 		if s.idx > s.end {
+			s.finish()
 			return 0, false
 		}
 
 		// nthash of current k-mer
 		code, ok = s.hasher.Next(true)
 		if !ok {
-			poolSketch.Put(s)
+			s.finish()
 			return code, false
 		}
 
@@ -310,15 +332,19 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 
 // NextSyncmer returns next syncmer.
 func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
+	if s.finished {
+		return 0, false
+	}
 	for {
 		if s.idx > s.end {
+			s.finish()
 			return 0, false
 		}
 
 		// nthash of current k-mer
 		code, ok = s.hasher.Next(true)
 		if !ok {
-			poolSketch.Put(s)
+			s.finish()
 			return code, false
 		}
 
@@ -343,6 +369,7 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 				// fmt.Printf("s: %d\n", s.i)
 				s.v, ok = s.hasherS.Next(true)
 				if !ok {
+					s.finish()
 					return code, false
 				}
 				s.buf = append(s.buf, IdxValue{Idx: s.i, Val: s.v})
@@ -366,6 +393,7 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			// fmt.Printf("s: %d\n", s.idx+s.r)
 			s.v, ok = s.hasherS.Next(true)
 			if !ok {
+				s.finish()
 				return code, false
 			}
 			s.flag = false

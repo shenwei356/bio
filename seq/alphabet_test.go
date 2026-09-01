@@ -2,6 +2,7 @@ package seq
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -72,7 +73,15 @@ DEKAKEEPGNHTTLILAMLAIGVFSLGAFIKIIQLRKNN>`, "")
 }
 
 func TestAlphabetParallelValidationReportsFirstInvalidLetter(t *testing.T) {
-	sequence := bytes.Repeat([]byte{'A'}, ValidSeqLengthThreshold+1000)
+	oldThreshold, oldThreads := ValidSeqLengthThreshold, ValidSeqThreads
+	defer func() {
+		ValidSeqLengthThreshold = oldThreshold
+		ValidSeqThreads = oldThreads
+	}()
+	ValidSeqLengthThreshold = 1
+	ValidSeqThreads = 4
+
+	sequence := bytes.Repeat([]byte{'A'}, (64<<10)*4)
 	sequence[123] = '!'
 	sequence[len(sequence)-10] = '?'
 
@@ -82,5 +91,47 @@ func TestAlphabetParallelValidationReportsFirstInvalidLetter(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "at 123") {
 		t.Fatalf("reported the wrong invalid position: %v", err)
+	}
+}
+
+func TestAlphabetShortParallelValidationAvoidsWorkers(t *testing.T) {
+	oldThreshold, oldThreads := ValidSeqLengthThreshold, ValidSeqThreads
+	defer func() {
+		ValidSeqLengthThreshold = oldThreshold
+		ValidSeqThreads = oldThreads
+	}()
+	ValidSeqLengthThreshold = 64 << 10
+	ValidSeqThreads = 16
+
+	sequence := bytes.Repeat([]byte{'A'}, 10<<10)
+	if allocs := testing.AllocsPerRun(1000, func() {
+		if err := DNA.IsValid(sequence); err != nil {
+			panic(err)
+		}
+	}); allocs != 0 {
+		t.Fatalf("short validation allocated %.1f times per call", allocs)
+	}
+}
+
+func BenchmarkAlphabetIsValid(b *testing.B) {
+	oldThreshold, oldThreads := ValidSeqLengthThreshold, ValidSeqThreads
+	defer func() {
+		ValidSeqLengthThreshold = oldThreshold
+		ValidSeqThreads = oldThreads
+	}()
+	ValidSeqLengthThreshold = 64 << 10
+	ValidSeqThreads = 16
+
+	for _, size := range []int{10 << 10, 32 << 10, 64 << 10, 100 << 10, 1 << 20} {
+		sequence := bytes.Repeat([]byte{'A'}, size)
+		b.Run(fmt.Sprintf("%d", size), func(b *testing.B) {
+			b.SetBytes(int64(size))
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				if err := DNA.IsValid(sequence); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

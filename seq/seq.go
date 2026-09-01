@@ -156,9 +156,7 @@ func (seq *Seq) SubSeq(start int, end int) *Seq {
 		}
 		if len(seq.QualValue) > 0 {
 			qv := make([]int, end-start+1)
-			for i, v := range seq.QualValue[start-1 : end] {
-				qv[i] = v
-			}
+			copy(qv, seq.QualValue[start-1:end])
 			newseq.QualValue = qv
 		}
 	} else {
@@ -285,37 +283,32 @@ func (seq *Seq) RemoveGaps(letters string) *Seq {
 	return newSeq
 }
 
-// RemoveGapsInplace removes gaps in place
+// RemoveGapsInplace removes gaps while reusing the sequence backing arrays.
 func (seq *Seq) RemoveGapsInplace(letters string) *Seq {
 	if len(letters) == 0 {
 		return seq
 	}
 
-	// do not use map
-	querySlice := make([]byte, 256)
+	var querySlice [256]bool
 	for i := 0; i < len(letters); i++ {
-		querySlice[int(letters[i])] = letters[i]
+		querySlice[letters[i]] = true
 	}
 
-	s := make([]byte, len(seq.Seq))
-	q := make([]byte, len(seq.Qual))
-	var b, g byte
+	s := seq.Seq
+	q := seq.Qual
 	var j int
-	for i := 0; i < len(seq.Seq); i++ {
-		b = seq.Seq[i]
-
-		g = querySlice[int(b)]
-		if g == 0 { // not gap
+	for i, b := range s {
+		if !querySlice[b] {
 			s[j] = b
-			if len(seq.Qual) > 0 {
-				q[j] = seq.Qual[i]
+			if len(q) > 0 {
+				q[j] = q[i]
 			}
 			j++
 		}
 	}
-	seq.Seq = s[0:j]
-	if len(seq.Qual) > 0 {
-		seq.Qual = q[0:j]
+	seq.Seq = s[:j]
+	if len(q) > 0 {
+		seq.Qual = q[:j]
 	}
 	return seq
 }
@@ -729,19 +722,53 @@ func (seq *Seq) ParseQual(asciiBase int) {
 	seq.QualValue = qv
 }
 
-// AvgQual calculates average quality value.
+// AvgQual calculates average quality value without populating QualValue.
 func (seq *Seq) AvgQual(asciiBase int) float64 {
-	if len(seq.Qual) > 0 {
-		seq.ParseQual(asciiBase)
-	}
-	if len(seq.QualValue) == 0 {
+	if len(seq.Qual) == 0 && len(seq.QualValue) == 0 {
 		return 0.0
 	}
+
 	var sum float64
-	for _, q := range seq.QualValue {
-		sum += QUAL_MAP[q]
+	var n int
+	if len(seq.QualValue) > 0 {
+		for _, q := range seq.QualValue {
+			sum += QUAL_MAP[q]
+		}
+		n = len(seq.QualValue)
+	} else {
+		for _, q := range seq.Qual {
+			sum += QUAL_MAP[int(q)-asciiBase]
+		}
+		n = len(seq.Qual)
 	}
-	return -10 * math.Log10(sum/float64(len(seq.QualValue)))
+	return -10 * math.Log10(sum/float64(n))
+}
+
+// AvgQualOfRegion calculates the average quality value of a region. start and
+// end use the same 1-based coordinates as SubSeq.
+func (seq *Seq) AvgQualOfRegion(asciiBase int, start, end int) float64 {
+	var sum float64
+	var n int
+	if len(seq.QualValue) > 0 {
+		start, end, ok := SubLocation(len(seq.QualValue), start, end)
+		if !ok || start > end {
+			return 0.0
+		}
+		for _, q := range seq.QualValue[start-1 : end] {
+			sum += QUAL_MAP[q]
+		}
+		n = end - start + 1
+	} else {
+		start, end, ok := SubLocation(len(seq.Qual), start, end)
+		if !ok || start > end {
+			return 0.0
+		}
+		for _, q := range seq.Qual[start-1 : end] {
+			sum += QUAL_MAP[int(q)-asciiBase]
+		}
+		n = end - start + 1
+	}
+	return -10 * math.Log10(sum/float64(n))
 }
 
 // Slider returns a function for sliding the sequence.

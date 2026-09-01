@@ -21,6 +21,7 @@
 package sketches
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/shenwei356/bio/seq"
@@ -54,5 +55,41 @@ func TestProteinMinimizer(t *testing.T) {
 		// fmt.Printf("aa: %d-%s, %d\n", idx, sketch.s.Seq[idx:idx+k], code)
 
 		codes = append(codes, code)
+	}
+	if !sketch.finished {
+		t.Fatal("exhausted protein minimizer sketch was not marked finished")
+	}
+	for i := 0; i < 3; i++ {
+		if code, ok = sketch.Next(); ok || code != 0 {
+			t.Fatalf("finished protein minimizer sketch returned (%d, %t)", code, ok)
+		}
+	}
+
+	reused, err := NewProteinMinimizerSketch(sequence, k, 1, 1, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reusedCodes []uint64
+	for {
+		code, ok = reused.Next()
+		if !ok {
+			break
+		}
+		reusedCodes = append(reusedCodes, code)
+	}
+	if !slices.Equal(codes, reusedCodes) {
+		t.Fatal("protein minimizer output changed after reusing a pooled sketch")
+	}
+
+	// A protein minimizer must never contaminate the ProteinIterator pool.
+	iter, err := NewProteinIterator(sequence, k, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		_, ok = iter.Next()
+		if !ok {
+			break
+		}
 	}
 }

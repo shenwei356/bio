@@ -1,5 +1,15 @@
 # Changelog
 
+### v0.15.1 - 2026-09-01
+
+- seq: add `seq.AvgQualOfRegion` to compute the average quality of a region.
+- seq: avoid allocating parsed quality values in `seq.AvgQual`.
+- seq: reuse sequence and quality buffers in `seq.RemoveGapsInplace`.
+- seq: increase `seq.ValidSeqLengthThreshold` to 64 KiB to reduce parallel validation overhead.
+- seq: speed up copying parsed quality values in `seq.SubSeq`.
+- sketches: safely return exhausted sketches to the correct object pools.
+- sketches: reuse sketch buffers to reduce allocations.
+
 ### v0.15.0 - 2026-08-07
 
 - fastx: avoid data race when using different id regexps.

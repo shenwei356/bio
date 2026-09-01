@@ -220,9 +220,8 @@ func (a *Alphabet) IsValidLetter(b byte) bool {
 	return a.pairLetters[i] != 0
 }
 
-// ValidSeqLengthThreshold is the threshold of sequence length that
-// needed to  parallelly checking sequence
-var ValidSeqLengthThreshold = 10000
+// ValidSeqLengthThreshold is the sequence length at which validation becomes parallel.
+var ValidSeqLengthThreshold = 64 << 10
 
 // ValidSeqThreads is the threads number of parallelly checking sequence
 var ValidSeqThreads = runtime.NumCPU()
@@ -254,6 +253,15 @@ func (a *Alphabet) IsValid(s []byte) error {
 	}
 	if threads > l {
 		threads = l
+	}
+	if threads == 1 {
+		for i, b := range s {
+			j := int(b)
+			if j >= len(a.pairLetters) || a.pairLetters[j] == 0 {
+				return fmt.Errorf("seq: invalid %s letter: %s at %d", a, []byte{b}, i)
+			}
+		}
+		return nil
 	}
 	chunkSize := (l + threads - 1) / threads
 

@@ -21,6 +21,7 @@
 package sketches
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/shenwei356/bio/seq"
@@ -93,6 +94,7 @@ func TestSyncmer(t *testing.T) {
 	var ok bool
 	var idx int
 	codes := make([]uint64, 0, 1024)
+	indices := make([]int, 0, 1024)
 	for {
 		code, ok = sketch.NextSyncmer()
 		// fmt.Println(sketch.Index(), code, ok)
@@ -106,7 +108,34 @@ func TestSyncmer(t *testing.T) {
 		_syncmer = code
 
 		codes = append(codes, code)
+		indices = append(indices, idx)
 		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+	}
+	if !sketch.finished {
+		t.Fatal("exhausted syncmer sketch was not marked finished")
+	}
+	for i := 0; i < 3; i++ {
+		if code, ok = sketch.NextSyncmer(); ok || code != 0 {
+			t.Fatalf("finished syncmer sketch returned (%d, %t)", code, ok)
+		}
+	}
+
+	reused, err := NewSyncmerSketch(sequence, k, s, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reusedCodes []uint64
+	var reusedIndices []int
+	for {
+		code, ok = reused.NextSyncmer()
+		if !ok {
+			break
+		}
+		reusedCodes = append(reusedCodes, code)
+		reusedIndices = append(reusedIndices, reused.Index())
+	}
+	if !slices.Equal(codes, reusedCodes) || !slices.Equal(indices, reusedIndices) {
+		t.Fatal("syncmer output changed after reusing a pooled sketch")
 	}
 	// if len(codes) == 5 &&
 	// 	codes[0] == 7385093395039290540 &&

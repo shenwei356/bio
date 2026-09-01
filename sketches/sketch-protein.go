@@ -30,7 +30,8 @@ import (
 
 // ProteinMinimizerSketch is a protein k-mer minimizer iterator
 type ProteinMinimizerSketch struct {
-	s *seq.Seq // amino acid
+	s        *seq.Seq // amino acid
+	finished bool
 
 	k    int
 	end0 int
@@ -58,6 +59,15 @@ var poolProteinMinimizerSketch = &sync.Pool{New: func() interface{} {
 	return &ProteinMinimizerSketch{}
 }}
 
+func (s *ProteinMinimizerSketch) finish() {
+	if s.finished {
+		return
+	}
+	s.finished = true
+	s.s = nil
+	poolProteinMinimizerSketch.Put(s)
+}
+
 // NewProteinMinimizerSketch returns a ProteinMinimizerSketch
 func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w int) (*ProteinMinimizerSketch, error) {
 	if k < 1 {
@@ -78,11 +88,14 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 	s := poolProteinMinimizerSketch.Get().(*ProteinMinimizerSketch)
 	s.k = k
 	s.w = w
+	s.finished = false
+	s.s = nil
 
 	var err error
 	if S.Alphabet != seq.Protein {
 		s.s, err = S.Translate(codonTable, frame, false, false, true, false)
 		if err != nil {
+			s.finish()
 			return nil, err
 		}
 	} else {
@@ -96,7 +109,11 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 	s.end = len(s.s.Seq) - 1
 	s.r = w - 1 // L-k
 
-	s.buf = make([]IdxValue, 0, w)
+	if cap(s.buf) < w {
+		s.buf = make([]IdxValue, 0, w)
+	} else {
+		s.buf = s.buf[:0]
+	}
 	s.preMinIdx = -1
 
 	return s, nil
@@ -104,13 +121,16 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 
 // Next returns next hash value
 func (s *ProteinMinimizerSketch) Next() (code uint64, ok bool) {
+	if s.finished {
+		return 0, false
+	}
 	for {
 		// if s.idx > s.end {
 		// 	return 0, false
 		// }
 
 		if s.idx > s.end0 {
-			poolProteinIterator.Put(s)
+			s.finish()
 			return 0, false
 		}
 
