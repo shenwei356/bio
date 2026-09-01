@@ -2,6 +2,8 @@
 
 ### v0.15.1 - 2026-09-01
 
+- **fastx: reduce time and memory when reading large FASTA records**.
+- fai: reduce time and memory when creating indexes for large FASTA files.
 - seq: add `seq.AvgQualOfRegion` to compute the average quality of a region.
 - seq: avoid allocating parsed quality values in `seq.AvgQual`.
 - seq: reuse sequence and quality buffers in `seq.RemoveGapsInplace`.

@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const faiReaderSize = 64 << 10
+
 // Record is FASTA index record
 type Record struct {
 	Name         string
@@ -127,20 +129,15 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 
 	index := make(map[string]Record)
 
-	reader := bufio.NewReader(fh)
+	reader := bufio.NewReaderSize(fh, faiReaderSize)
 	checkSeqType := true
-	seqLen := 0
 	var hasSeq bool
-	var lastName, thisName []byte
-	var id string
-	var lastStart, thisStart int64
-	var lineWidths, seqWidths []int
-	var lastLineWidth, lineWidth, seqWidth int
-	var chances int
-	var line, lineDropCR []byte
-	var seenSeqs bool
+	var state faiSequenceState
+	var offset int64
+	var scratch []byte
 	for {
-		line, err = reader.ReadBytes('\n')
+		var line []byte
+		line, err = readFAILine(reader, &scratch)
 		if err != nil { // end of file
 			if err != io.EOF {
 				return nil, fmt.Errorf("read fasta file: %w", err)
@@ -148,64 +145,9 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 			if !hasSeq {
 				return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
 			}
-
-			id = string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, lastName))
-			if strings.Contains(id, "\t") {
-				id = reTabs.ReplaceAllString(id, " ")
+			if err := state.finish(index, outfh, idRegexp, isUsingDefaultIDRegexp, line, true); err != nil {
+				return nil, err
 			}
-
-			// check lineWidths
-			lastLineWidth, chances = -2, 2
-			seenSeqs = false
-			for i := len(lineWidths) - 1; i >= 0; i-- {
-				if !seenSeqs && seqWidths[i] == 0 { // skip empty lines in the end
-					continue
-				}
-				seenSeqs = true
-
-				if lastLineWidth == -2 {
-					lastLineWidth = lineWidths[i]
-					continue
-				}
-				if lineWidths[i] != lastLineWidth {
-					chances--
-					if chances == 0 || lineWidths[i] < lastLineWidth {
-						return nil, fmt.Errorf("different line length in sequence: %s. Please format the file with 'seqkit seq'", id)
-					}
-				}
-				lastLineWidth = lineWidths[i]
-			}
-			// lineWidth = 0
-			if len(lineWidths) > 0 {
-				lineWidth = lineWidths[0]
-			}
-			// seqWidth = 0
-			if len(seqWidths) > 0 {
-				seqWidth = seqWidths[0]
-			}
-
-			if len(line) > 0 && line[len(line)-1] != '\n' {
-				fmt.Fprintln(os.Stderr, `[WARNING]: newline character ('\n') not detected at end of file, truncated file?`)
-			}
-
-			seqLen += len(line)
-
-			if _, ok := index[id]; ok {
-				// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
-				os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
-			} else {
-				fmt.Fprintf(outfh, "%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth)
-				index[id] = Record{
-					Name:         id,
-					Length:       seqLen,
-					Start:        lastStart,
-					BasesPerLine: seqWidth,
-					BytesPerLine: lineWidth,
-				}
-			}
-
-			seqLen = 0
-
 			break
 		}
 
@@ -218,79 +160,142 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 		}
 
 		if line[0] == '>' {
-			hasSeq = true
-			thisName = dropCR(line[1 : len(line)-1])
-
-			if lastName != nil { // not the first record
-				id = string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, lastName))
-				if strings.Contains(id, "\t") {
-					id = reTabs.ReplaceAllString(id, " ")
+			if hasSeq {
+				if err := state.finish(index, outfh, idRegexp, isUsingDefaultIDRegexp, nil, false); err != nil {
+					return nil, err
 				}
-
-				// check lineWidths
-				lastLineWidth, chances = -1, 2
-				seenSeqs = false
-				for i := len(lineWidths) - 1; i >= 0; i-- {
-					if !seenSeqs && seqWidths[i] == 0 { // skip empty lines in the end
-						continue
-					}
-					seenSeqs = true
-
-					if lastLineWidth == -1 {
-						lastLineWidth = lineWidths[i]
-						continue
-					}
-					if lineWidths[i] != lastLineWidth {
-						chances--
-						if chances == 0 || lineWidths[i] < lastLineWidth {
-							return nil, fmt.Errorf("different line length in sequence: %s. Please format the file with 'seqkit seq'", id)
-						}
-					}
-					lastLineWidth = lineWidths[i]
-				}
-				// lineWidth = 0
-				if len(lineWidths) > 0 {
-					lineWidth = lineWidths[0]
-				}
-				// seqWidth = 0
-				if len(seqWidths) > 0 {
-					seqWidth = seqWidths[0]
-				}
-
-				if _, ok := index[id]; ok {
-					// return index, fmt.Errorf(`ignoring duplicate sequence "%s" at byte offset %d`, id, lastStart)
-					os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, lastStart))
-				} else {
-					fmt.Fprintf(outfh, "%s\t%d\t%d\t%d\t%d\n", id, seqLen, lastStart, seqWidth, lineWidth)
-					index[id] = Record{
-						Name:         id,
-						Length:       seqLen,
-						Start:        lastStart,
-						BasesPerLine: seqWidth,
-						BytesPerLine: lineWidth,
-					}
-				}
-
-				seqLen = 0
 			}
-			lineWidths = []int{}
-			seqWidths = []int{}
-			thisStart += int64(len(line))
-			lastStart = thisStart
-			lastName = thisName
+			hasSeq = true
+			state.reset(dropCR(line[1:len(line)-1]), offset+int64(len(line)))
 		} else if hasSeq {
-			lineDropCR = dropCR(line[0 : len(line)-1])
-			seqLen += len(lineDropCR)
-			thisStart += int64(len(line))
-
-			lineWidths = append(lineWidths, len(line))
-			seqWidths = append(seqWidths, len(lineDropCR))
+			state.addLine(line)
 		} else {
 			return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
 		}
+		offset += int64(len(line))
 	}
 
 	return index, nil
+}
+
+type faiLineWidths struct {
+	last        int
+	transitions int
+	started     bool
+	invalid     bool
+}
+
+func (w *faiLineWidths) add(width int) {
+	if !w.started {
+		w.last = width
+		w.started = true
+		return
+	}
+	if width == w.last {
+		return
+	}
+	// Preserve the previous rule: line widths may change once, and only to a
+	// shorter final width.
+	w.transitions++
+	if w.transitions > 1 || width > w.last {
+		w.invalid = true
+	}
+	w.last = width
+}
+
+type faiSequenceState struct {
+	name          []byte
+	start         int64
+	length        int
+	firstSeqWidth int
+	firstWidth    int
+	hasLine       bool
+
+	widths              faiLineWidths
+	pendingEmptyWidths  faiLineWidths
+	hasPendingEmptyLine bool
+}
+
+func (s *faiSequenceState) reset(name []byte, start int64) {
+	s.name = append(s.name[:0], name...)
+	s.start = start
+	s.length = 0
+	s.hasLine = false
+	s.widths = faiLineWidths{}
+	s.pendingEmptyWidths = faiLineWidths{}
+	s.hasPendingEmptyLine = false
+}
+
+func (s *faiSequenceState) addLine(line []byte) {
+	lineWidth := len(line)
+	seqWidth := len(dropCR(line[:lineWidth-1]))
+	s.length += seqWidth
+	if !s.hasLine {
+		s.firstSeqWidth = seqWidth
+		s.firstWidth = lineWidth
+		s.hasLine = true
+	}
+
+	if seqWidth == 0 {
+		// Trailing empty lines are ignored by the existing FAI validation.
+		// Keep their tentative state until another non-empty line appears.
+		if !s.hasPendingEmptyLine {
+			s.pendingEmptyWidths = s.widths
+			s.hasPendingEmptyLine = true
+		}
+		s.pendingEmptyWidths.add(lineWidth)
+		return
+	}
+
+	if s.hasPendingEmptyLine {
+		s.widths = s.pendingEmptyWidths
+		s.hasPendingEmptyLine = false
+	}
+	s.widths.add(lineWidth)
+}
+
+func (s *faiSequenceState) finish(index Index, out io.Writer, idRegexp *regexp.Regexp, isUsingDefaultIDRegexp bool, tail []byte, warnNoFinalNewline bool) error {
+	id := string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, s.name))
+	if strings.Contains(id, "\t") {
+		id = reTabs.ReplaceAllString(id, " ")
+	}
+	if s.widths.invalid {
+		return fmt.Errorf("different line length in sequence: %s. Please format the file with 'seqkit seq'", id)
+	}
+	if warnNoFinalNewline && len(tail) > 0 {
+		fmt.Fprintln(os.Stderr, `[WARNING]: newline character ('\n') not detected at end of file, truncated file?`)
+	}
+
+	length := s.length + len(tail)
+	if _, ok := index[id]; ok {
+		os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, s.start))
+		return nil
+	}
+	if _, err := fmt.Fprintf(out, "%s\t%d\t%d\t%d\t%d\n", id, length, s.start, s.firstSeqWidth, s.firstWidth); err != nil {
+		return err
+	}
+	index[id] = Record{
+		Name:         id,
+		Length:       length,
+		Start:        s.start,
+		BasesPerLine: s.firstSeqWidth,
+		BytesPerLine: s.firstWidth,
+	}
+	return nil
+}
+
+func readFAILine(reader *bufio.Reader, scratch *[]byte) ([]byte, error) {
+	line, err := reader.ReadSlice('\n')
+	if err != bufio.ErrBufferFull {
+		return line, err
+	}
+
+	*scratch = append((*scratch)[:0], line...)
+	for err == bufio.ErrBufferFull {
+		line, err = reader.ReadSlice('\n')
+		*scratch = append(*scratch, line...)
+	}
+	return *scratch, err
 }
 
 // ------------------------------------------------------------

@@ -405,8 +405,8 @@ func (fastxReader *Reader) Read() (*Record, error) {
 
 // parseRecord parse a FASTA/Q record from the fastxReader.buffer
 func (fastxReader *Reader) parseRecord() (bool, error) {
-	fastxReader.seqBuffer.Reset()
 	if fastxReader.IsFastq {
+		fastxReader.seqBuffer.Reset()
 		fastxReader.qualBuffer.Reset()
 	}
 
@@ -417,16 +417,7 @@ func (fastxReader *Reader) parseRecord() (bool, error) {
 		r := j + 1
 
 		if !fastxReader.IsFastq { // FASTA
-			for {
-				if k := bytes.IndexByte(p[r:], '\n'); k >= 0 {
-					fastxReader.seqBuffer.Write(dropCR(p[r : r+k]))
-					r += k + 1
-					continue
-				}
-				fastxReader.seqBuffer.Write(dropCR(p[r:]))
-				break
-			}
-			fastxReader.seq = fastxReader.seqBuffer.Bytes()
+			fastxReader.seq = removeLineBreaksInplace(p[r:])
 		} else { // FASTQ
 			var isQual bool
 			for {
@@ -587,6 +578,21 @@ func dropLF(data []byte) []byte {
 		return data[0 : len(data)-1]
 	}
 	return data
+}
+
+func removeLineBreaksInplace(data []byte) []byte {
+	r, w := 0, 0
+	for {
+		i := bytes.IndexByte(data[r:], '\n')
+		if i < 0 {
+			line := dropCR(data[r:])
+			w += copy(data[w:], line)
+			return data[:w]
+		}
+		line := dropCR(data[r : r+i])
+		w += copy(data[w:], line)
+		r += i + 1
+	}
 }
 
 // -------------------------------------------------

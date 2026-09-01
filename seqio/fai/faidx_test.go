@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shenwei356/bio/seqio/fastx"
@@ -245,5 +246,92 @@ func TestCreateRejectsEmptyFASTA(t *testing.T) {
 
 	if _, err := Create(fasta, filepath.Join(tmpDir, "empty.fa.fai")); err == nil {
 		t.Fatal("created an index for an empty FASTA file")
+	}
+}
+
+func TestCreateHandlesCRLFAndTrailingEmptyLines(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "input.fa")
+	content := []byte(">id description\r\nACGT\r\nAC\r\n\r\n>next\nTT\n")
+	if err := os.WriteFile(fasta, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	index, err := Create(fasta, filepath.Join(tmpDir, "input.fai"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := index["id"]
+	if record.Length != 6 || record.Start != 17 || record.BasesPerLine != 4 || record.BytesPerLine != 6 {
+		t.Fatalf("unexpected CRLF index record: %+v", record)
+	}
+	next := index["next"]
+	if next.Length != 2 || next.Start != 35 || next.BasesPerLine != 2 || next.BytesPerLine != 3 {
+		t.Fatalf("unexpected second index record: %+v", next)
+	}
+}
+
+func TestCreateKeepsBlankRecordLineWidthsCompatible(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "input.fa")
+	if err := os.WriteFile(fasta, []byte(">id\nACGT\n>blank\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	index, err := Create(fasta, filepath.Join(tmpDir, "input.fai"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	blank := index["blank"]
+	if blank.Length != 0 || blank.BasesPerLine != 4 || blank.BytesPerLine != 5 {
+		t.Fatalf("unexpected blank index record: %+v", blank)
+	}
+}
+
+func TestCreatePreservesLineWidthValidation(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		content string
+		valid   bool
+	}{
+		{"repeated short final width", ">id\nAAAA\nAA\nAA\n", true},
+		{"increasing width", ">id\nAA\nAAAA\n", false},
+		{"two width transitions", ">id\nAAAA\nAA\nA\n", false},
+		{"trailing empty lines", ">id\nAAAA\nAA\n\n\n", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			fasta := filepath.Join(tmpDir, "input.fa")
+			if err := os.WriteFile(fasta, []byte(test.content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := Create(fasta, filepath.Join(tmpDir, "input.fai"))
+			if test.valid && err != nil {
+				t.Fatalf("valid line widths returned %v", err)
+			}
+			if !test.valid && (err == nil || !strings.Contains(err.Error(), "different line length")) {
+				t.Fatalf("invalid line widths returned %v", err)
+			}
+		})
+	}
+}
+
+func TestCreateHandlesLinesLargerThanReaderBuffer(t *testing.T) {
+	tmpDir := t.TempDir()
+	fasta := filepath.Join(tmpDir, "input.fa")
+	description := strings.Repeat("x", 70<<10)
+	sequence := strings.Repeat("ACGT", 20<<10)
+	header := ">id " + description + "\n"
+	if err := os.WriteFile(fasta, []byte(header+sequence+"\nACGT\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	index, err := Create(fasta, filepath.Join(tmpDir, "input.fai"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := index["id"]
+	if record.Length != len(sequence)+4 || record.Start != int64(len(header)) || record.BasesPerLine != len(sequence) || record.BytesPerLine != len(sequence)+1 {
+		t.Fatalf("unexpected long-line index record: %+v", record)
 	}
 }

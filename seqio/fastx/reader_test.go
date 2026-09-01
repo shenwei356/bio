@@ -116,6 +116,45 @@ func TestReaderGrowsBuffersForLargeRecords(t *testing.T) {
 	}
 }
 
+func TestFastaReaderCompactsWrappedSequenceInplace(t *testing.T) {
+	input := ">id description\r\nAC\r\nG\rT\nA\r"
+	reader, err := NewReaderFromIO(nil, strings.NewReader(input), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	record, err := reader.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(record.ID), "id"; got != want {
+		t.Fatalf("ID = %q, want %q", got, want)
+	}
+	if got, want := string(record.Seq.Seq), "ACG\rTA"; got != want {
+		t.Fatalf("sequence = %q, want %q", got, want)
+	}
+	if reader.seqBuffer.Len() != 0 {
+		t.Fatalf("FASTA parsing copied sequence into the secondary buffer: %d bytes", reader.seqBuffer.Len())
+	}
+}
+
+func TestRemoveLineBreaksInplace(t *testing.T) {
+	for _, test := range []struct {
+		input, want string
+	}{
+		{"ACGT", "ACGT"},
+		{"AC\nGT\n", "ACGT"},
+		{"AC\r\nGT\r\n", "ACGT"},
+		{"A\rC\nG\r", "A\rCG"},
+	} {
+		data := []byte(test.input)
+		if got := string(removeLineBreaksInplace(data)); got != test.want {
+			t.Errorf("removeLineBreaksInplace(%q) = %q, want %q", test.input, got, test.want)
+		}
+	}
+}
+
 func TestReaderIDRegexpStateIsPerReader(t *testing.T) {
 	customReader, err := NewReaderFromIO(nil, bytes.NewBufferString(">id description\nACGT\n"), `^(.+)$`)
 	if err != nil {
