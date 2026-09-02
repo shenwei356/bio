@@ -96,6 +96,20 @@ func TestAvgQualDoesNotPopulateQualValue(t *testing.T) {
 	}
 }
 
+func TestAvgQualOfFASTA(t *testing.T) {
+	s, err := NewSeq(DNA, []byte("ACGT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got := s.AvgQual(33); got != 0 {
+		t.Errorf("AvgQual returned %g instead of 0", got)
+	}
+	if got := s.AvgQualOfRegion(33, 1, -1); got != 0 {
+		t.Errorf("AvgQualOfRegion returned %g instead of 0", got)
+	}
+}
+
 func TestAvgQualOfRegion(t *testing.T) {
 	qualityValue := []int{10, 15, 20, 25, 30, 35, 40, 45, 50, 55}
 	quality := make([]byte, len(qualityValue))
