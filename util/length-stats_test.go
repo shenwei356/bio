@@ -164,3 +164,44 @@ func Test(t *testing.T) {
 		}
 	}
 }
+
+func TestNXLX(t *testing.T) {
+	// Test NX and LX with all same values
+	stats := NewLengthStats()
+	for i := 0; i < 8; i++ {
+		stats.Add(10)
+	}
+
+	// Sum = 80, N50 boundary = 40
+	// Need 4 sequences of length 10 to reach 40
+	n50 := stats.N50()
+	if n50 != 10 {
+		t.Errorf("N50 should be 10, got %d", n50)
+	}
+	l50 := stats.L50()
+	if l50 != 4 {
+		t.Errorf("L50 should be 4, got %d", l50)
+	}
+
+	// Test N75 (75% of 80 = 60)
+	// Need 6 sequences of length 10 to reach 60
+	n75 := stats.NX(75)
+	if n75 != 10 {
+		t.Errorf("N75 should be 10, got %d", n75)
+	}
+	l75 := stats.LX(75)
+	if l75 != 6 {
+		t.Errorf("L75 should be 6, got %d", l75)
+	}
+
+	// Test N90 (90% of 80 = 72)
+	// Need 8 sequences (ceiling of 72/10 = 7.2)
+	n90 := stats.NX(90)
+	if n90 != 10 {
+		t.Errorf("N90 should be 10, got %d", n90)
+	}
+	l90 := stats.LX(90)
+	if l90 != 8 {
+		t.Errorf("L90 should be 8, got %d", l90)
+	}
+}

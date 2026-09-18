@@ -3,6 +3,8 @@ package seq
 import "errors"
 
 /*
+Bases
+
 	base    bases   code
 	A       A       1
 	C       C       2

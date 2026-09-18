@@ -1,4 +1,5 @@
-/*Package fai implements fasta sequence file index handling, including creating
+/*
+Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
 Code of fai data structure were copied and edited from [1].
@@ -15,79 +16,75 @@ Reference:
 
 ## General Usage
 
-    import "github.com/shenwei356/bio/seqio/fai"
+	import "github.com/shenwei356/bio/seqio/fai"
 
-    file := "seq.fa"
-    faidx, err := fai.New(file)
-    checkErr(err)
-    defer func() {
-        checkErr(faidx.Close())
-    }()
+	file := "seq.fa"
+	faidx, err := fai.New(file)
+	checkErr(err)
+	defer func() {
+	    checkErr(faidx.Close())
+	}()
 
-    // whole sequence
-    seq, err := faidx.Seq("cel-mir-2")
-    checkErr(err)
+	// whole sequence
+	seq, err := faidx.Seq("cel-mir-2")
+	checkErr(err)
 
-    // single base
-    s, err := faidx.Base("cel-let-7", 1)
-    checkErr(err)
+	// single base
+	s, err := faidx.Base("cel-let-7", 1)
+	checkErr(err)
 
-    // subsequence. start and end are all 1-based
-    seq, err := faidx.SubSeq("cel-mir-2", 15, 19)
-    checkErr(err)
-
+	// subsequence. start and end are all 1-based
+	seq, err := faidx.SubSeq("cel-mir-2", 15, 19)
+	checkErr(err)
 
 ## Extended SubSeq
 
-
 For extended SubSeq, negative position is allowed.
-
 
 This is my custom locating strategy. Start and end are all 1-based.
 To better understand the locating strategy, see examples below:
 
-
-     1-based index    1 2 3 4 5 6 7 8 9 10
-    negative index    0-9-8-7-6-5-4-3-2-1
-               seq    A C G T N a c g t n
-               1:1    A
-               2:4      C G T
-             -4:-2                c g t
-             -4:-1                c g t n
-             -1:-1                      n
-              2:-2      C G T N a c g t
-              1:-1    A C G T N a c g t n
-              1:12    A C G T N a c g t n
-            -12:-1    A C G T N a c g t n
+	 1-based index    1 2 3 4 5 6 7 8 9 10
+	negative index    0-9-8-7-6-5-4-3-2-1
+	           seq    A C G T N a c g t n
+	           1:1    A
+	           2:4      C G T
+	         -4:-2                c g t
+	         -4:-1                c g t n
+	         -1:-1                      n
+	          2:-2      C G T N a c g t
+	          1:-1    A C G T N a c g t n
+	          1:12    A C G T N a c g t n
+	        -12:-1    A C G T N a c g t n
 
 Examples:
 
-    // last 12 bases
-    seq, err := faidx.SubSeq("cel-mir-2", -12, -1)
-    checkErr(err)
+	// last 12 bases
+	seq, err := faidx.SubSeq("cel-mir-2", -12, -1)
+	checkErr(err)
 
 ## Advanced Usage
 
 Function `fai.New(file string)` is a wraper to simplify the process of
 creating and reading FASTA index . Let's see what's happened inside:
 
-    func New(file string) (*Faidx, error) {
-            fileFai := file + ".fai"
-            var index Index
-            if _, err := os.Stat(fileFai); os.IsNotExist(err) {
-                    index, err = Create(file)
-                    if err != nil {
-                            return nil, err
-                    }
-            } else {
-                    index, err = Read(fileFai)
-                    if err != nil {
-                            return nil, err
-                    }
-            }
+	func New(file string) (*Faidx, error) {
+	        fileFai := file + ".fai"
+	        var index Index
+	        if _, err := os.Stat(fileFai); os.IsNotExist(err) {
+	                index, err = Create(file)
+	                if err != nil {
+	                        return nil, err
+	                }
+	        } else {
+	                index, err = Read(fileFai)
+	                if err != nil {
+	                        return nil, err
+	                }
+	        }
 
-            return NewWithIndex(file, index)
-    }
+	        return NewWithIndex(file, index)
+	}
 
 By default, sequence ID is used as key in FASTA index file.
 Inside the package, a regular expression is used to get sequence ID from
@@ -100,7 +97,6 @@ you could use `fai.CreateWithIDRegexp(file string, idRegexp string)` to create f
 Here, the `idRegexp` should be `^(.+)$`. For convenience, you can use another function
 `CreateWithFullHead`.
 
-
 ## More Advanced Usages
 
 Note that, ***by default, whole file is mapped into shared memory***,
@@ -108,10 +104,9 @@ which is OK for small files (smaller than your RAM).
 For very big files, you should disable that.
 Instead, file seeking is used.
 
-    // change the global variable
-    fai.MapWholeFile = false
+	// change the global variable
+	fai.MapWholeFile = false
 
-    // then do other things
-
+	// then do other things
 */
 package fai

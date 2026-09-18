@@ -24,3 +24,6 @@ _testmain.go
 *.directory
 
 .DS_Store
+.claude
+.codex
+*.out

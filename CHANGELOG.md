@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.15.2 - 2026-09-18
+
+- util: fix the calculation of `L50` and `LX`.
+
 ### v0.15.1 - 2026-09-01
 
 - **fastx: reduce time and memory when reading large FASTA records**.

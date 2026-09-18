@@ -336,21 +336,31 @@ func (stats *LengthStats) NX(n float64) uint64 {
 	}
 
 	if len(stats.counts) == 1 {
+		boundary := float64(stats.sum) * n / 100
+		stats.lX = int(math.Ceil(boundary / float64(stats.counts[0][0])))
 		return stats.counts[0][0]
 	}
 
 	var sumLen float64
+	var seqCount int
 	var data [2]uint64
 	var boundary = float64(stats.sum) * n / 100
 	for i := len(stats.counts) - 1; i >= 0; i-- {
 		data = stats.counts[i]
+		length := data[0]
+		count := data[1]
 
-		sumLen += float64(data[0] * data[1])
-		if sumLen >= boundary {
-			stats.lX = i + 1
+		// Check if we need all sequences of this length
+		if sumLen+float64(length*count) >= boundary {
+			// We need only part of sequences at this length
+			needed := math.Ceil((boundary - sumLen) / float64(length))
+			stats.lX = seqCount + int(needed)
 			stats.nXCalculated = true
-			return data[0]
+			return length
 		}
+
+		sumLen += float64(length * count)
+		seqCount += int(count)
 	}
 
 	// never happen
