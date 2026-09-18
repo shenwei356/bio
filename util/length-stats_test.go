@@ -76,6 +76,42 @@ var cases = []testCaseLengthStats{
 		min:    2,
 		max:    9,
 	},
+
+	// All values are the same - odd count
+	testCaseLengthStats{
+		data:   []uint64{3, 3, 3},
+		median: 3,
+		q1:     3,
+		q3:     3,
+		n50:    3,
+		l50:    2,
+		min:    3,
+		max:    3,
+	},
+
+	// All values are the same - even count
+	testCaseLengthStats{
+		data:   []uint64{5, 5, 5, 5},
+		median: 5,
+		q1:     5,
+		q3:     5,
+		n50:    5,
+		l50:    2,
+		min:    5,
+		max:    5,
+	},
+
+	// All values are the same - larger count
+	testCaseLengthStats{
+		data:   []uint64{7, 7, 7, 7, 7, 7, 7, 7},
+		median: 7,
+		q1:     7,
+		q3:     7,
+		n50:    7,
+		l50:    4,
+		min:    7,
+		max:    7,
+	},
 }
 
 func Test(t *testing.T) {
@@ -113,7 +149,7 @@ func Test(t *testing.T) {
 		}
 
 		q3 := stats.Q3()
-		if q1 != _case.q1 {
+		if q3 != _case.q3 {
 			t.Errorf("case %d: q3 mismatch: %f != %f", i, q3, _case.q3)
 		}
 

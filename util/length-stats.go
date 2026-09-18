@@ -289,22 +289,32 @@ func (stats *LengthStats) N50() uint64 {
 	}
 
 	if len(stats.counts) == 1 {
-		stats.l50 = 1
+		// Calculate how many sequences are needed
+		halfSum := float64(stats.sum) / 2
+		stats.l50 = int(math.Ceil(halfSum / float64(stats.counts[0][0])))
 		return stats.counts[0][0]
 	}
 
 	var sumLen float64
+	var seqCount int
 	var data [2]uint64
 	var halfSum = float64(stats.sum) / 2
 	for i := len(stats.counts) - 1; i >= 0; i-- {
 		data = stats.counts[i]
+		length := data[0]
+		count := data[1]
 
-		sumLen += float64(data[0] * data[1])
-		if sumLen >= halfSum {
-			stats.l50 = len(stats.counts) - i
+		// Check if we need all sequences of this length
+		if sumLen+float64(length*count) >= halfSum {
+			// We need only part of sequences at this length
+			needed := math.Ceil((halfSum - sumLen) / float64(length))
+			stats.l50 = seqCount + int(needed)
 			stats.n50Calculated = true
-			return data[0]
+			return length
 		}
+
+		sumLen += float64(length * count)
+		seqCount += int(count)
 	}
 
 	// never happen
