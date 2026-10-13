@@ -3,8 +3,6 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/bio/seqio/fastx.svg)](https://pkg.go.dev/github.com/shenwei356/bio/seqio/fastx)
 
 This package seamlessly parses both FASTA and FASTQ formats.
-
-
 ## Examples
 
 
@@ -93,3 +91,28 @@ of records in a chunk.
     )
 
     reader, err := fastx.NewReader(seq.DNA, file, "^([^\s]+)\s?")
+
+## Input handling
+
+In the examples below, `\n` denotes LF and `\r\n` denotes CRLF. Empty inputs
+return `io.EOF` on the first call to `Read()` without returning a record.
+
+| Input | Handling |
+| --- | --- |
+| Zero-byte file or stream | Accepted; 0 records. |
+| One or more LF line breaks, e.g. `\n` or `\n\n\n` | Accepted; 0 records, including inputs spanning multiple read buffers. |
+| Leading LF-only blank lines before a FASTA or FASTQ header | Accepted; records are parsed normally. |
+| A space or tab before any header, alone or mixed with LF line breaks, e.g. ` `, ` \n`, `\t`, or `\n\t\n` | Rejected with `ErrNotFASTXFormat`. |
+| Leading CRLF blank lines, alone or before a header, e.g. `\r\n` or `\r\n>id\nACGT\n` | Rejected with `ErrNotFASTXFormat`. |
+| A header with leading spaces or tabs, e.g. ` >id\nACGT\n` | Rejected with `ErrNotFASTXFormat`. |
+| Sequence data without a header, e.g. `ACGT\n` | Rejected with `ErrNotFASTXFormat`. |
+| An initial UTF-8 BOM | Ignored; a BOM alone or followed only by LF line breaks yields 0 records. |
+| A UTF-8 BOM after leading line breaks | Rejected with `ErrNotFASTXFormat`; only a BOM at the start is ignored. |
+| `>`, `>\n`, or `\n\n>` | Accepted; 1 record with an empty ID and sequence. |
+| `>id\n` | Accepted; 1 record with ID `id` and an empty sequence. |
+| `>\nACGT\n` | Accepted; 1 record with an empty ID and sequence `ACGT`. |
+| FASTA records using CRLF line endings, e.g. `>id\r\nACGT\r\n` | Accepted; line endings are removed from the parsed header and sequence. |
+| A FASTA header or sequence without a final LF, e.g. `>id` or `>id\nACGT` | Accepted; 1 record. |
+| Repeated IDs, including empty IDs, e.g. `>\n>\n` | Every record is returned; IDs are not deduplicated. |
+| A valid gzip file whose decompressed content is empty or contains only LF line breaks | Accepted; 0 records. Whitespace handling is the same as for uncompressed input. |
+

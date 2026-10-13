@@ -1,5 +1,11 @@
 # Changelog
 
+### v0.15.3 - 2026-10-13
+
+- fai: allow empty FASTA files, leading LF-only blank lines, and an initial UTF-8 BOM.
+- fai: handle headers and single-line sequences without a final newline.
+- fai: remove incomplete indexes when creation fails.
+
 ### v0.15.2 - 2026-09-18
 
 - util: fix the calculation of `L50` and `LX`.

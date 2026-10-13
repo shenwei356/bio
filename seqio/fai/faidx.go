@@ -56,7 +56,8 @@ func NewWithIndex(file string, index Index) (*Faidx, error) {
 	}
 
 	var m mmap.MMap
-	if MapWholeFile {
+	// An empty index needs no mapped data; mmap rejects zero-byte files.
+	if MapWholeFile && len(index) > 0 {
 		m, err = mmap.Map(reader, mmap.RDONLY, 0)
 		if err != nil {
 			_ = reader.Close()

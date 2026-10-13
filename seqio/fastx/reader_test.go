@@ -2,7 +2,11 @@ package fastx
 
 import (
 	"bytes"
+	"compress/gzip"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -96,6 +100,127 @@ func TestReaderHandlesLeadingNewlinesAcrossBuffers(t *testing.T) {
 	}
 	if string(record.ID) != "id" || string(record.Seq.Seq) != "ACGT" {
 		t.Fatalf("unexpected record: id=%q seq=%q", record.ID, record.Seq.Seq)
+	}
+}
+
+// TestReaderEmptyAndLeadingInput checks the empty-input policy for files and streams.
+func TestReaderEmptyAndLeadingInput(t *testing.T) {
+	for _, test := range []struct {
+		name, input, id, sequence string
+		count                     int
+		invalid                   bool
+	}{
+		{name: "zero bytes"},
+		{name: "one newline", input: "\n"},
+		{name: "multiple newlines", input: "\n\n\n"},
+		{name: "newlines across buffers", input: strings.Repeat("\n", bufSize+1)},
+		{name: "space", input: " ", invalid: true},
+		{name: "space and newline", input: " \n", invalid: true},
+		{name: "tab", input: "\t", invalid: true},
+		{name: "tab and newline", input: "\t\n", invalid: true},
+		{name: "CRLF", input: "\r\n", invalid: true},
+		{name: "carriage return", input: "\r", invalid: true},
+		{name: "space after newlines", input: "\n\n \n", invalid: true},
+		{name: "space across buffers", input: strings.Repeat("\n", bufSize) + " ", invalid: true},
+		{name: "sequence without header", input: "ACGT\n", invalid: true},
+		{name: "BOM only", input: "\xef\xbb\xbf"},
+		{name: "BOM and newlines", input: "\xef\xbb\xbf\n\n"},
+		{name: "BOM", input: "\xef\xbb\xbf>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "BOM after newline", input: "\n\xef\xbb\xbf>id\nACGT\n", invalid: true},
+		{name: "indented header", input: " >id\nACGT\n", invalid: true},
+		{name: "CRLF before header", input: "\r\n>id\nACGT\n", invalid: true},
+		{name: "bare header", input: ">", count: 1},
+		{name: "empty record", input: ">\n", count: 1},
+		{name: "empty records", input: ">\n>\n", count: 2},
+		{name: "empty record after newlines", input: "\n\n>", count: 1},
+		{name: "header without final newline", input: ">id", id: "id", count: 1},
+		{name: "empty sequence", input: ">id\n", id: "id", count: 1},
+		{name: "empty ID", input: ">\nACGT\n", sequence: "ACGT", count: 1},
+		{name: "leading newlines", input: "\n\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "sequence without final newline", input: ">id\nACGT", id: "id", sequence: "ACGT", count: 1},
+		{name: "CRLF record", input: ">id\r\nACGT\r\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "leading newlines before FASTQ", input: "\n\n@id\nACGT\n+\n!!!!\n", id: "id", sequence: "ACGT", count: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "input.fx")
+			if err := os.WriteFile(file, []byte(test.input), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			for _, fromIO := range []bool{false, true} {
+				var reader *Reader
+				var err error
+				if fromIO {
+					reader, err = NewReaderFromIO(nil, strings.NewReader(test.input), "")
+				} else {
+					reader, err = NewDefaultReader(file)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Close each reader before constructing another pooled reader.
+				func() {
+					defer reader.Close()
+					var count int
+					for {
+						record, err := reader.Read()
+						if test.invalid {
+							if err != ErrNotFASTXFormat {
+								t.Errorf("fromIO=%v: got %v, want ErrNotFASTXFormat", fromIO, err)
+							}
+							return
+						}
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							t.Fatal(err)
+						}
+						count++
+						if string(record.ID) != test.id || string(record.Seq.Seq) != test.sequence {
+							t.Fatalf("fromIO=%v: got ID=%q sequence=%q", fromIO, record.ID, record.Seq.Seq)
+						}
+					}
+					if count != test.count {
+						t.Errorf("fromIO=%v: got %d records, want %d", fromIO, count, test.count)
+					}
+					if _, err := reader.Read(); err != io.EOF {
+						t.Errorf("fromIO=%v: repeated Read returned %v, want io.EOF", fromIO, err)
+					}
+				}()
+			}
+		})
+	}
+}
+
+// TestReaderEmptyGzipInput checks inputs that are empty only after decompression.
+func TestReaderEmptyGzipInput(t *testing.T) {
+	for _, input := range []string{"", "\n", "\n\n", " \n"} {
+		t.Run(fmt.Sprintf("input=%q", input), func(t *testing.T) {
+			var compressed bytes.Buffer
+			writer := gzip.NewWriter(&compressed)
+			if _, err := writer.Write([]byte(input)); err != nil {
+				t.Fatal(err)
+			}
+			if err := writer.Close(); err != nil {
+				t.Fatal(err)
+			}
+			file := filepath.Join(t.TempDir(), "input.fx.gz")
+			if err := os.WriteFile(file, compressed.Bytes(), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			reader, err := NewDefaultReader(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reader.Close()
+			want := io.EOF
+			if input == " \n" {
+				want = ErrNotFASTXFormat
+			}
+			if _, err := reader.Read(); err != want {
+				t.Fatalf("got %v, want %v", err, want)
+			}
+		})
 	}
 }
 

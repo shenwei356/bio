@@ -105,7 +105,7 @@ func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error)
 	return create(fileSeq, fileFai, idRegexpCompiled, idRegexp == defaultIDRegexp)
 }
 
-// Create .fai for file
+// Create .fai for file. Empty files and leading LF-only blank lines are allowed.
 func Create(fileSeq, fileFai string) (Index, error) {
 	idRegexp := IDRegexp
 	if idRegexp == nil {
@@ -114,6 +114,7 @@ func Create(fileSeq, fileFai string) (Index, error) {
 	return create(fileSeq, fileFai, idRegexp, idRegexp.String() == defaultIDRegexp)
 }
 
+// create builds an index while preserving the original FASTA byte offsets.
 func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRegexp bool) (Index, error) {
 	fh, err := os.Open(fileSeq)
 	if err != nil {
@@ -125,7 +126,14 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 	if err != nil {
 		return nil, fmt.Errorf("fail to write fai file: %s", err)
 	}
-	defer outfh.Close()
+	// Remove incomplete indexes so a failed creation cannot succeed on retry.
+	complete := false
+	defer func() {
+		outfh.Close()
+		if !complete {
+			os.Remove(fileFai)
+		}
+	}()
 
 	index := make(map[string]Record)
 
@@ -135,25 +143,29 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 	var state faiSequenceState
 	var offset int64
 	var scratch []byte
+	var tail []byte // final sequence line without a newline
 	for {
 		var line []byte
 		line, err = readFAILine(reader, &scratch)
-		if err != nil { // end of file
-			if err != io.EOF {
-				return nil, fmt.Errorf("read fasta file: %w", err)
-			}
-			if !hasSeq {
-				return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
-			}
-			if err := state.finish(index, outfh, idRegexp, isUsingDefaultIDRegexp, line, true); err != nil {
-				return nil, err
-			}
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("read fasta file: %w", err)
+		}
+		// Match fastx/xopen's handling of a UTF-8 BOM, retaining byte offsets.
+		if offset == 0 && bytes.HasPrefix(line, []byte("\xef\xbb\xbf")) {
+			line = line[3:]
+			offset = 3
+		}
+		if len(line) == 0 {
 			break
 		}
 
 		if checkSeqType {
+			// Only LF-only blank lines may precede the first FASTA header.
+			if len(line) == 1 && line[0] == '\n' {
+				offset++
+				continue
+			}
 			if line[0] == '@' {
-				os.Remove(fileFai)
 				return nil, fmt.Errorf("FASTQ format not supported")
 			}
 			checkSeqType = false
@@ -166,15 +178,32 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 				}
 			}
 			hasSeq = true
-			state.reset(dropCR(line[1:len(line)-1]), offset+int64(len(line)))
+			head := line[1:]
+			if err != io.EOF {
+				head = head[:len(head)-1] // strip the terminating LF
+			}
+			state.reset(dropCR(head), offset+int64(len(line)))
 		} else if hasSeq {
+			if err == io.EOF {
+				tail = dropCR(line)
+				break
+			}
 			state.addLine(line)
 		} else {
 			return nil, fmt.Errorf("invalid fasta file: %s", fileSeq)
 		}
 		offset += int64(len(line))
+		if err == io.EOF {
+			break
+		}
 	}
 
+	if hasSeq {
+		if err := state.finish(index, outfh, idRegexp, isUsingDefaultIDRegexp, tail, true); err != nil {
+			return nil, err
+		}
+	}
+	complete = true
 	return index, nil
 }
 
@@ -254,6 +283,7 @@ func (s *faiSequenceState) addLine(line []byte) {
 	s.widths.add(lineWidth)
 }
 
+// finish validates and writes a sequence, including an optional unterminated tail.
 func (s *faiSequenceState) finish(index Index, out io.Writer, idRegexp *regexp.Regexp, isUsingDefaultIDRegexp bool, tail []byte, warnNoFinalNewline bool) error {
 	id := string(parseHeadID(idRegexp, isUsingDefaultIDRegexp, s.name))
 	if strings.Contains(id, "\t") {
@@ -267,6 +297,11 @@ func (s *faiSequenceState) finish(index Index, out io.Writer, idRegexp *regexp.R
 	}
 
 	length := s.length + len(tail)
+	if !s.hasLine && len(tail) > 0 {
+		// A single unterminated sequence line still needs widths for random access.
+		s.firstSeqWidth = len(tail)
+		s.firstWidth = len(tail)
+	}
 	if _, ok := index[id]; ok {
 		os.Stderr.WriteString(fmt.Sprintf("[fai warning] ignoring duplicate sequence \"%s\" at byte offset %d\n", id, s.start))
 		return nil

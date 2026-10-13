@@ -6,6 +6,12 @@
 Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
+Empty files and files containing only LF (`\n`) blank lines produce an empty
+index. Leading LF-only blank lines and an initial UTF-8 BOM are ignored, as in
+`fastx`. Spaces, tabs, and CRLF blank lines before the first header are rejected.
+A `>` header represents a record even when both its ID and sequence are empty.
+FASTA records may use CRLF line endings or omit the final newline.
+
 Code of fai data structure were copied and edited from [1].
 
 But I wrote the code of creating and reading fai, and so did test code.
