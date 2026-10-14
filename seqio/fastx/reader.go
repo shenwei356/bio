@@ -108,6 +108,9 @@ func (fastxReader *Reader) Reset() {
 	fastxReader.head = nil
 	fastxReader.seq = nil
 	fastxReader.qual = nil
+	// The pooled record must not retain qualities from the previous input.
+	fastxReader.record.Seq.Qual = nil
+	fastxReader.record.Seq.QualValue = nil
 
 	fastxReader.Err = nil
 	fastxReader.closed = false

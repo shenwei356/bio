@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.15.4 - 2026-10-14
+
+- fastx: clear quality fields when reusing pooled readers.
+
 ### v0.15.3 - 2026-10-13
 
 - fai: allow empty FASTA files, leading LF-only blank lines, and an initial UTF-8 BOM.

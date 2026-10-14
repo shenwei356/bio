@@ -12,7 +12,46 @@ import (
 	"testing"
 
 	"github.com/shenwei356/bio/seq"
+	"github.com/shenwei356/xopen"
 )
+
+// TestReaderResetClearsQuality reuses one reader without relying on pool retention.
+func TestReaderResetClearsQuality(t *testing.T) {
+	for _, input := range []string{">fa\nCC\n", ">fa\n", ">\nCC\n", ">\n"} {
+		t.Run(fmt.Sprintf("%q", input), func(t *testing.T) {
+			reader, err := NewReaderFromIO(nil, strings.NewReader("@fq\nGG\n+\nII\n"), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reader.Close()
+			record, err := reader.Read()
+			if err != nil {
+				t.Fatal(err)
+			}
+			record.Seq.ParseQual(33)
+			if string(record.Seq.Qual) != "II" || len(record.Seq.QualValue) != 2 {
+				t.Fatal("FASTQ record did not populate quality fields")
+			}
+			// Follow the constructor's reset path while retaining ownership of the reader.
+			reader.close()
+			reader.Reset()
+			if reader.record.Seq.Qual != nil || reader.record.Seq.QualValue != nil {
+				t.Error("Reset retained quality fields from the previous input")
+			}
+			reader.fh, err = xopen.Buf(strings.NewReader(input))
+			if err != nil {
+				t.Fatal(err)
+			}
+			record, err = reader.Read()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if reader.IsFastq || len(record.Seq.Qual) != 0 || len(record.Seq.QualValue) != 0 {
+				t.Fatalf("FASTA retained FASTQ state: IsFastq=%v, Qual=%q, QualValue=%v", reader.IsFastq, record.Seq.Qual, record.Seq.QualValue)
+			}
+		})
+	}
+}
 
 type trackingReadCloser struct {
 	*bytes.Reader
