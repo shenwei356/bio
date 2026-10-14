@@ -1,14 +1,11 @@
 # Changelog
 
-### Unreleased
-
-- seq: add `AvgQualWithError` to report invalid quality scores.
-- seq: return NaN for invalid scores in `AvgQual` and `AvgQualOfRegion` instead of panicking.
-- gtf: read final attributes and skip attributes without values.
-
 ### v0.15.4 - 2026-10-14
 
 - fastx: clear quality fields when reusing pooled readers.
+- seq: add `AvgQualWithError` to report invalid quality scores.
+- seq: return NaN for invalid scores in `AvgQual` and `AvgQualOfRegion` instead of panicking.
+- gtf: read final attributes and skip attributes without values.
 
 ### v0.15.3 - 2026-10-13
 
