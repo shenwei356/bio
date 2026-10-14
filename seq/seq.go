@@ -723,52 +723,62 @@ func (seq *Seq) ParseQual(asciiBase int) {
 }
 
 // AvgQual calculates average quality value without populating QualValue.
+// It returns NaN for invalid quality scores; use AvgQualWithError for error details.
 func (seq *Seq) AvgQual(asciiBase int) float64 {
+	quality, _ := seq.AvgQualWithError(asciiBase)
+	return quality
+}
+
+// AvgQualWithError calculates average quality without populating QualValue.
+// It returns NaN and an error if a score is outside the quality lookup table.
+func (seq *Seq) AvgQualWithError(asciiBase int) (float64, error) {
 	if len(seq.Qual) == 0 && len(seq.QualValue) == 0 {
-		return 0.0
+		return 0.0, nil
 	}
 
 	var sum float64
 	var n int
 	if len(seq.QualValue) > 0 {
-		for _, q := range seq.QualValue {
+		for i, q := range seq.QualValue {
+			if uint(q) >= uint(len(QUAL_MAP)) {
+				return math.NaN(), fmt.Errorf("%w: score %d at position %d is outside [0, %d]", ErrInvalidPhredQuality, q, i+1, len(QUAL_MAP)-1)
+			}
 			sum += QUAL_MAP[q]
 		}
 		n = len(seq.QualValue)
 	} else {
-		for _, q := range seq.Qual {
-			sum += QUAL_MAP[int(q)-asciiBase]
+		for i, q := range seq.Qual {
+			value := int(q) - asciiBase
+			if uint(value) >= uint(len(QUAL_MAP)) {
+				return math.NaN(), fmt.Errorf("%w: quality character %q (ASCII %d) at position %d is incompatible with ASCII base %d (score %d outside [0, %d])", ErrInvalidPhredQuality, q, q, i+1, asciiBase, value, len(QUAL_MAP)-1)
+			}
+			sum += QUAL_MAP[value]
 		}
 		n = len(seq.Qual)
 	}
-	return -10 * math.Log10(sum/float64(n))
+	return -10 * math.Log10(sum/float64(n)), nil
 }
 
 // AvgQualOfRegion calculates the average quality value of a region. start and
 // end use the same 1-based coordinates as SubSeq.
+// It returns NaN if the selected region contains an invalid quality score.
 func (seq *Seq) AvgQualOfRegion(asciiBase int, start, end int) float64 {
-	var sum float64
-	var n int
+	// Slice a view so regional and whole-sequence calculations share validation.
+	var region Seq
 	if len(seq.QualValue) > 0 {
 		start, end, ok := SubLocation(len(seq.QualValue), start, end)
 		if !ok || start > end {
 			return 0.0
 		}
-		for _, q := range seq.QualValue[start-1 : end] {
-			sum += QUAL_MAP[q]
-		}
-		n = end - start + 1
+		region.QualValue = seq.QualValue[start-1 : end]
 	} else {
 		start, end, ok := SubLocation(len(seq.Qual), start, end)
 		if !ok || start > end {
 			return 0.0
 		}
-		for _, q := range seq.Qual[start-1 : end] {
-			sum += QUAL_MAP[int(q)-asciiBase]
-		}
-		n = end - start + 1
+		region.Qual = seq.Qual[start-1 : end]
 	}
-	return -10 * math.Log10(sum/float64(n))
+	return region.AvgQual(asciiBase)
 }
 
 // Slider returns a function for sliding the sequence.

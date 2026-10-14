@@ -1,5 +1,10 @@
 # Changelog
 
+### Unreleased
+
+- seq: add `AvgQualWithError` to report invalid quality scores.
+- seq: return NaN for invalid scores in `AvgQual` and `AvgQualOfRegion` instead of panicking.
+
 ### v0.15.4 - 2026-10-14
 
 - fastx: clear quality fields when reusing pooled readers.

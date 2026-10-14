@@ -1,8 +1,10 @@
 package seq
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -73,6 +75,74 @@ func TestRemoveGapsInplaceReusesBackingArrays(t *testing.T) {
 		s.RemoveGapsInplace("-.")
 	}); allocs != 0 {
 		t.Fatalf("RemoveGapsInplace allocated %.1f times per call", allocs)
+	}
+}
+
+// TestAvgQualInvalidScores checks both raw and cached out-of-range quality scores.
+func TestAvgQualInvalidScores(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		seq  *Seq
+		base int
+	}{
+		{"below ASCII base", &Seq{Qual: []byte("I!")}, 64},
+		{"negative cached score", &Seq{QualValue: []int{40, -1}}, 33},
+		{"large cached score", &Seq{QualValue: []int{40, len(QUAL_MAP)}}, 33},
+		{"large raw score", &Seq{Qual: []byte{255}}, -1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got, err := test.seq.AvgQualWithError(test.base); !math.IsNaN(got) || !errors.Is(err, ErrInvalidPhredQuality) {
+				t.Errorf("AvgQualWithError = %g, %v; want NaN and ErrInvalidPhredQuality", got, err)
+			}
+			if got := test.seq.AvgQual(test.base); !math.IsNaN(got) {
+				t.Errorf("AvgQual = %g, want NaN", got)
+			}
+			if got := test.seq.AvgQualOfRegion(test.base, 1, -1); !math.IsNaN(got) {
+				t.Errorf("AvgQualOfRegion = %g, want NaN", got)
+			}
+		})
+	}
+}
+
+// TestAvgQualWithError preserves valid boundaries, cached scores, and allocation behavior.
+func TestAvgQualWithError(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		seq  *Seq
+		base int
+		want float64
+	}{
+		{"empty", &Seq{}, 33, 0},
+		{"zero", &Seq{Qual: []byte("!")}, 33, 0},
+		{"Phred33", &Seq{Qual: []byte("IIII")}, 33, 40},
+		{"Phred64", &Seq{Qual: []byte("hhhh")}, 64, 40},
+		{"maximum ASCII", &Seq{Qual: []byte("~")}, 33, 93},
+		{"cached scores", &Seq{Qual: []byte("!"), QualValue: []int{40}}, 64, 40},
+		{"BAM missing quality", &Seq{Qual: []byte{255}}, 0, 0},
+		{"BAM cached missing quality", &Seq{QualValue: []int{255}}, 0, 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.seq.AvgQualWithError(test.base)
+			if err != nil || math.IsNaN(got) || math.Abs(got-test.want) > 1e-12 {
+				t.Fatalf("AvgQualWithError = %g, %v; want %g, nil", got, err, test.want)
+			}
+			if allocs := testing.AllocsPerRun(100, func() {
+				_, _ = test.seq.AvgQualWithError(test.base)
+			}); allocs != 0 {
+				t.Fatalf("AvgQualWithError allocated %.1f times per call", allocs)
+			}
+		})
+	}
+	s := &Seq{Qual: []byte("I!")}
+	_, err := s.AvgQualWithError(64)
+	if err == nil || !strings.Contains(err.Error(), "'!'") || !strings.Contains(err.Error(), "position 2") || !strings.Contains(err.Error(), "ASCII base 64") {
+		t.Fatalf("missing quality error details: %v", err)
+	}
+	if s.QualValue != nil {
+		t.Fatal("AvgQualWithError populated QualValue")
+	}
+	if got := s.AvgQualOfRegion(64, 1, 1); math.Abs(got-9) > 1e-12 {
+		t.Fatalf("valid region affected by an invalid quality outside it: %g", got)
 	}
 }
 

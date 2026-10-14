@@ -7,7 +7,7 @@ import (
 	"github.com/shenwei356/util/byteutil"
 )
 
-// ErrInvalidPhredQuality occurs for phred quality less than 0.
+// ErrInvalidPhredQuality occurs for negative or unsupported Phred quality scores.
 var ErrInvalidPhredQuality = errors.New("seq: invalid Phred quality")
 
 // ErrInvalidSolexaQuality occurs for solexa quality less than -5.
