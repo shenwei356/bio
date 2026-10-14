@@ -152,27 +152,45 @@ func ReadFilteredFeatures(file string, chrs []string, feats []string, attrs []st
 
 		feature := Feature{items[0], items[1], items[2], start, end, score, strand, frame, nil}
 
-		tagValues := strings.Split(items[8], "; ")
-		if len(tagValues) > 0 {
-			var ok bool
-			feature.Attributes = []Attribute{}
-			for _, tagValue := range tagValues[0 : len(tagValues)-1] {
-				items2 := strings.SplitN(tagValue, " ", 2)
-				tag := items2[0]
-				if _, ok = attrsMap[tag]; !ok {
+		attributes := items[8]
+		feature.Attributes = []Attribute{}
+		var attributeStart int // Start of the current attribute in column 9.
+		var quoted bool        // Semicolons inside quoted values are not separators.
+		for i := 0; i <= len(attributes); i++ {
+			if i < len(attributes) {
+				if quoted && attributes[i] == '\\' && i+1 < len(attributes) {
+					i++
 					continue
 				}
-				value := items2[1]
-				// if value[len(value)-1] == ';' {
-				// 	value = value[0 : len(value)-1]
-				// }
-				if len(value) > 2 {
-					value = value[1 : len(value)-1]
-				} else {
-					value = ""
+				if attributes[i] == '"' {
+					quoted = !quoted
 				}
-				feature.Attributes = append(feature.Attributes, Attribute{tag, value})
+				if attributes[i] != ';' || quoted {
+					continue
+				}
 			}
+			// Also parse the final attribute when there is no trailing semicolon.
+			tagValue := strings.TrimSpace(attributes[attributeStart:i])
+			attributeStart = i + 1
+			separator := strings.IndexAny(tagValue, " \t")
+			if separator < 0 {
+				continue
+			}
+			tag := tagValue[:separator]
+			if _, ok := attrsMap[tag]; !ok {
+				continue
+			}
+			value := strings.TrimSpace(tagValue[separator:])
+			if value == "" {
+				continue
+			}
+			if value[0] == '"' {
+				if len(value) < 2 || value[len(value)-1] != '"' {
+					continue
+				}
+				value = value[1 : len(value)-1]
+			}
+			feature.Attributes = append(feature.Attributes, Attribute{tag, value})
 		}
 		return feature, true, nil
 	}
