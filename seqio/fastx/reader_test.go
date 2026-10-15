@@ -179,6 +179,12 @@ func TestReaderEmptyAndLeadingInput(t *testing.T) {
 		{name: "sequence without final newline", input: ">id\nACGT", id: "id", sequence: "ACGT", count: 1},
 		{name: "CRLF record", input: ">id\r\nACGT\r\n", id: "id", sequence: "ACGT", count: 1},
 		{name: "leading newlines before FASTQ", input: "\n\n@id\nACGT\n+\n!!!!\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment lines", input: ";comment\n;~key: value\n;\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment lines and newlines", input: "\n;comment\n\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment across buffers", input: ";" + strings.Repeat("x", bufSize+1) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment only", input: ";comment\n"},
+		{name: "comment without final newline", input: ";comment"},
+		{name: "comment before FASTQ", input: ";comment\n@id\nACGT\n+\n!!!!\n", invalid: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "input.fx")

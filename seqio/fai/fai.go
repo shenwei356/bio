@@ -160,9 +160,17 @@ func create(fileSeq, fileFai string, idRegexp *regexp.Regexp, isUsingDefaultIDRe
 		}
 
 		if checkSeqType {
-			// Only LF-only blank lines may precede the first FASTA header.
+			// Only LF-only blank lines and ';' comment lines (the original FASTA
+			// convention) may precede the first FASTA header.
 			if len(line) == 1 && line[0] == '\n' {
 				offset++
+				continue
+			}
+			if line[0] == ';' {
+				offset += int64(len(line))
+				if err == io.EOF {
+					break
+				}
 				continue
 			}
 			if line[0] == '@' {

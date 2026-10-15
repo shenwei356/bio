@@ -64,6 +64,10 @@ type Reader struct {
 
 	hasSomeSeq bool
 
+	// state of ';' comment lines before the first FASTA record
+	inComment  bool
+	sawComment bool
+
 	firstseq bool // for guess alphabet by the first seq
 	delim    byte
 	IsFastq  bool // if the file is fastq format, you have to check this field after the first call of Read() method, because it will be determined by the first non-empty charator in the file.
@@ -94,6 +98,8 @@ func (fastxReader *Reader) Reset() {
 	fastxReader.lastByte = 0
 	fastxReader.hasSomeSeq = false
 	fastxReader.checkSeqType = true
+	fastxReader.inComment = false
+	fastxReader.sawComment = false
 	fastxReader.lastPart = false
 	fastxReader.finished = false
 
@@ -305,7 +311,17 @@ func (fastxReader *Reader) Read() (*Record, error) {
 			found := false
 		FORCHECK:
 			for i := range fastxReader.buf {
+				if fastxReader.inComment { // skip the rest of a ';' comment line
+					if fastxReader.buf[i] == '\n' {
+						fastxReader.inComment = false
+					}
+					continue
+				}
 				switch fastxReader.buf[i] {
+				case ';': // comment lines (the original FASTA convention) may precede the first FASTA record
+					fastxReader.inComment = true
+					fastxReader.sawComment = true
+					continue
 				case '>':
 					fastxReader.hasSomeSeq = true
 					fastxReader.IsFastq = false
@@ -314,6 +330,10 @@ func (fastxReader *Reader) Read() (*Record, error) {
 					found = true
 					break FORCHECK
 				case '@':
+					if fastxReader.sawComment { // FASTQ has no comment lines
+						fastxReader.close()
+						return nil, ErrNotFASTXFormat
+					}
 					fastxReader.hasSomeSeq = true
 					fastxReader.IsFastq = true
 					fastxReader.delim = '@'
