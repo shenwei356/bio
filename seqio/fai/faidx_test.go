@@ -284,6 +284,12 @@ func TestFaidxEmptyAndLeadingInput(t *testing.T) {
 		{name: "wrapped sequence without final newline", input: ">id\nAC\nGT", id: "id", sequence: "ACGT", count: 1},
 		{name: "trailing empty lines", input: ">id\nACGT\n\n\n", id: "id", sequence: "ACGT", count: 1},
 		{name: "CRLF record", input: ">id\r\nACGT\r\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment lines", input: ";comment\n;~key: value\n;\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment lines and newlines", input: "\n;comment\n\n>id\nAC\nGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment across buffers", input: ";" + strings.Repeat("x", faiReaderSize+1) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment only", input: ";comment\n"},
+		{name: "comment without final newline", input: ";comment"},
+		{name: "comment before FASTQ", input: ";comment\n@id\nACGT\n+\n!!!!\n", invalid: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			for _, mapWholeFile := range []bool{true, false} {
