@@ -2,6 +2,12 @@
 Package fai implements fasta sequence file index handling, including creating
 , reading and random accessing.
 
+Lines starting with ';' before the first FASTA header are skipped, including
+FHR metadata lines starting with ';~'. Comment-only files produce an empty index.
+Indexes retain absolute byte offsets into the unchanged input file; comments
+are not stored in the index or returned with sequences. Lines starting with ';'
+after the first header are not skipped. FASTQ is not supported.
+
 Code of fai data structure were copied and edited from [1].
 
 But I wrote the code of creating and reading fai, and so did test code.

@@ -12,6 +12,14 @@ index. Leading LF-only blank lines and an initial UTF-8 BOM are ignored, as in
 A `>` header represents a record even when both its ID and sequence are empty.
 FASTA records may use CRLF line endings or omit the final newline.
 
+Lines starting with `;` before the first FASTA header are skipped, including
+FHR metadata lines starting with `;~`. Comment lines may end in LF or CRLF;
+comment-only files produce an empty index, even without a final newline.
+Indexes retain absolute byte offsets into the original file. Comments are not
+stored in the index or returned with sequences, and the input file is unchanged.
+Lines starting with `;` after the first header are not skipped and may be indexed
+as sequence data or rejected. FASTQ remains unsupported.
+
 Code of fai data structure were copied and edited from [1].
 
 But I wrote the code of creating and reading fai, and so did test code.

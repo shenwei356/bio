@@ -290,6 +290,15 @@ func TestFaidxEmptyAndLeadingInput(t *testing.T) {
 		{name: "comment only", input: ";comment\n"},
 		{name: "comment without final newline", input: ";comment"},
 		{name: "comment before FASTQ", input: ";comment\n@id\nACGT\n+\n!!!!\n", invalid: true},
+		{name: "record markers in comment", input: ";>@not-a-record\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "BOM and CRLF comments", input: "\xef\xbb\xbf;comment\r\n;~key: value\r\n>id\r\nACGT\r\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment LF at buffer end", input: ";" + strings.Repeat("x", faiReaderSize-2) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment LF at buffer start", input: ";" + strings.Repeat("x", faiReaderSize-1) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment CRLF across buffers", input: ";" + strings.Repeat("x", faiReaderSize-2) + "\r\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "indented comment", input: " ;comment\n>id\nACGT\n", invalid: true},
+		{name: "tab after comment", input: ";comment\n\t>id\nACGT\n", invalid: true},
+		{name: "CRLF blank after comment", input: ";comment\n\r\n>id\nACGT\n", invalid: true},
+		{name: "comment after header is sequence", input: ">id\nACGT\n;mid\n", id: "id", sequence: "ACGT;mid", count: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			for _, mapWholeFile := range []bool{true, false} {
@@ -349,6 +358,47 @@ func TestFaidxEmptyAndLeadingInput(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestFaidxLeadingCommentOffsets checks absolute offsets and access across wrapped lines.
+func TestFaidxLeadingCommentOffsets(t *testing.T) {
+	previous := MapWholeFile
+	defer func() { MapWholeFile = previous }()
+	for _, mapWholeFile := range []bool{true, false} {
+		MapWholeFile = mapWholeFile
+		prefix := "\xef\xbb\xbf;~source: example\r\n;" + strings.Repeat("x", faiReaderSize) + "\r\n"
+		first := ">id\r\nACGT\r\nTGCA\r\n"
+		input := prefix + first + ">next\nTT\n"
+		file := filepath.Join(t.TempDir(), "input.fa")
+		if err := os.WriteFile(file, []byte(input), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		// Check both a new index and the same index loaded from disk.
+		for attempt := 0; attempt < 2; attempt++ {
+			idx, err := New(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			func() {
+				defer idx.Close()
+				want := Index{
+					"id":   {Name: "id", Length: 8, Start: int64(len(prefix) + len(">id\r\n")), BasesPerLine: 4, BytesPerLine: 6},
+					"next": {Name: "next", Length: 2, Start: int64(len(prefix) + len(first) + len(">next\n")), BasesPerLine: 2, BytesPerLine: 3},
+				}
+				if !reflect.DeepEqual(idx.Index, want) {
+					t.Fatalf("mapWholeFile=%v attempt=%d: index = %+v, want %+v", mapWholeFile, attempt, idx.Index, want)
+				}
+				got, err := idx.SubSeq("id", 3, 6)
+				if err != nil || string(got) != "GTTG" {
+					t.Fatalf("cross-line subsequence = %q, error = %v", got, err)
+				}
+				got, err = idx.Seq("next")
+				if err != nil || string(got) != "TT" {
+					t.Fatalf("second sequence = %q, error = %v", got, err)
+				}
+			}()
+		}
 	}
 }
 

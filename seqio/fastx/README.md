@@ -2,95 +2,160 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/bio/seqio/fastx.svg)](https://pkg.go.dev/github.com/shenwei356/bio/seqio/fastx)
 
-This package seamlessly parses both FASTA and FASTQ formats.
+This package reads and writes FASTA and FASTQ records. `NewDefaultReader`
+detects the format and guesses the alphabet from the first record. It uses the
+first space- or tab-delimited field of the header as the record ID.
+
 ## Examples
 
+### Reading and writing records
 
-### Common operation
+This program reads standard input and writes records to standard output without
+line wrapping. It reports read and output errors and closes both streams.
 
-    package main
+```go
+package main
 
-    import (
-    	"fmt"
-    	"io"
-    	"os"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
 
-    	// "github.com/shenwei356/bio/seq"
-    	"github.com/shenwei356/bio/seqio/fastx"
-    	"github.com/shenwei356/xopen"
-    )
+	"github.com/shenwei356/bio/seqio/fastx"
+	"github.com/shenwei356/xopen"
+)
 
-    func main() {
-    	// use buffered out stream for output
-    	outfh, err := xopen.Wopen("-") // "-" for STDOUT
-    	checkError(err)
-    	defer outfh.Close()
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
 
-    	// disable sequence validation could reduce time when reading large sequences
-    	// seq.ValidateSeq = false
+// run returns errors after deferred cleanup has finished.
+func run() (err error) {
+	reader, err := fastx.NewDefaultReader("-")
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
 
-    	reader, err := fastx.NewDefaultReader("-")
-    	checkError(err)
+	outfh, err := xopen.Wopen("-")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		// Close flushes buffered output and reports write errors.
+		err = errors.Join(err, outfh.Close())
+	}()
 
-    	var record *fastx.Record
-    	for {
-    		record, err = reader.Read()
-    		if err != nil {
-    			if err == io.EOF {
-    				break
-    			}
-    			checkError(err)
-    			break
-    		}
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// Keep zero-length FASTQ records in FASTQ format.
+		fastx.ForcelyOutputFastq = reader.IsFastq
+		record.FormatToWriter(outfh, 0)
+	}
+}
+```
 
-    		// fmt is slow for output, because it's not buffered
-    		// fmt.Printf("%s", record.Format(0))
+`Read` reuses the record and its backing buffers. Call `record.Clone()` before
+the next `Read` if you need to retain a record. Always call `reader.Close()`
+when finished, including after an error or an early stop; do not use the reader
+after closing it.
 
-    		record.FormatToWriter(outfh, 0)
-    	}
-    	reader.Close() // Please remember to call this !!!
-    }
+`reader.IsFastq` is determined by the first successful `Read`.
+`ForcelyOutputFastq` is a package-level setting used by the formatting methods;
+this example changes it while processing a single input synchronously. Do not
+change it while other goroutines are formatting records.
 
-    func checkError(err error) {
-    	if err != nil {
-    		fmt.Fprintln(os.Stderr, err)
-    		os.Exit(1)
-    	}
-    }
+Sequence validation is enabled by default. For known DNA input, pass an explicit
+alphabet to `NewReader` (see below); automatic alphabet detection can fall back
+to `seq.Unlimit`, which accepts any sequence bytes. Setting `seq.ValidateSeq = false`
+disables alphabet validation for all readers. Configure it before starting any
+reader goroutines.
 
+### Asynchronous parsing
 
-***Note that***, similar with `bytes.Buffer.Bytes()` method,
-the current record will change after your another call of this method.
-You may use `record.Clone()` to make a copy.
+`ChunkChan(bufferSize, chunkSize)` reads records in a background goroutine.
+`bufferSize` is the number of chunks the channel can buffer; `chunkSize` is the
+maximum number of records per chunk. A chunk can contain valid records followed
+by a read error, so process `chunk.Data` before handling `chunk.Err`.
 
-### Asynchronously parsing
+This function counts bases, returning the count read so far if parsing fails:
 
-`ChunkChan` asynchronously reads FASTA/Q records, and returns a channel of
-Record Chunk, from which you can easily access the records.
-`bufferSize` is the number of buffered chunks, and `chunkSize` is the size
-of records in a chunk.
+```go
+package main
 
-    reader, err := fastx.NewDefaultReader(file)
-    checkError(err)
+import "github.com/shenwei356/bio/seqio/fastx"
 
-    for chunk := range reader.ChunkChan(bufferSize, chunkSize) {
-        checkError(chunk.Err)
+func countBases(file string) (int64, error) {
+	reader, err := fastx.NewDefaultReader(file)
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
 
-        for _, record := range chunk.Data {
-            fmt.Print(record)
-        }
-    }
+	var total int64
+	var readErr error
+	for chunk := range reader.ChunkChan(2, 100) {
+		for _, record := range chunk.Data {
+			total += int64(len(record.Seq.Seq))
+		}
+		if chunk.Err != nil {
+			readErr = chunk.Err
+		}
+	}
+	return total, readErr
+}
+```
 
-***Note that***, these's no need to clone the record by `record.Clone()` here.
+Records from `ChunkChan` are already cloned and can be retained without another
+`Clone`. Consume the channel until it closes before closing the reader. Stopping
+early without draining the channel can leave its producer blocked; use `Read`
+for workflows that need to stop early. Do not call `Read` concurrently with
+`ChunkChan` on the same reader.
 
 ### Custom alphabet and identifier regular expression
 
-    import (
-        "github.com/shenwei356/bio/seq"
-        "github.com/shenwei356/bio/seqio/fastx"
-    )
+Pass `nil` as the alphabet to guess it from the first record, or use an explicit
+alphabet such as `seq.DNAredundant` for DNA with IUPAC ambiguity codes.
+The ID regular expression must contain a capturing group; the first group is
+used as the ID. An empty pattern uses the default `^(\S+)\s?`. If a custom
+pattern does not match, the entire header becomes the ID.
 
-    reader, err := fastx.NewReader(seq.DNA, file, "^([^\s]+)\s?")
+This function reads the first ID from a DNA file, taking the text before the
+first `|`, space, or tab. For example, `>seq1|annotation description` yields `seq1`.
+Use a raw string literal (backticks) for regular expressions containing backslashes.
+
+```go
+package main
+
+import (
+	"github.com/shenwei356/bio/seq"
+	"github.com/shenwei356/bio/seqio/fastx"
+)
+
+func firstID(file string) (string, error) {
+	reader, err := fastx.NewReader(seq.DNAredundant, file, `^([^|\s]+)`)
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+
+	record, err := reader.Read()
+	if err != nil {
+		return "", err
+	}
+	return string(record.ID), nil
+}
+```
 
 ## Input handling
 
@@ -102,7 +167,10 @@ return `io.EOF` on the first call to `Read()` without returning a record.
 | Zero-byte file or stream | Accepted; 0 records. |
 | One or more LF line breaks, e.g. `\n` or `\n\n\n` | Accepted; 0 records, including inputs spanning multiple read buffers. |
 | Leading LF-only blank lines before a FASTA or FASTQ header | Accepted; records are parsed normally. |
-| A space or tab before any header, alone or mixed with LF line breaks, e.g. ` `, ` \n`, `\t`, or `\n\t\n` | Rejected with `ErrNotFASTXFormat`. |
+| Lines starting with `;` before the first FASTA header, including `;~` metadata lines | Skipped; LF and CRLF comment endings are accepted. |
+| Only leading `;` comment lines, optionally mixed with LF-only blank lines | Accepted; 0 records, even without a final newline. |
+| Leading `;` comment lines followed by a FASTQ header | Rejected with `ErrNotFASTXFormat`. |
+| A space or tab outside a comment line before the first header, alone or mixed with LF line breaks, e.g. ` `, ` \n`, `\t`, or `\n\t\n` | Rejected with `ErrNotFASTXFormat`. |
 | Leading CRLF blank lines, alone or before a header, e.g. `\r\n` or `\r\n>id\nACGT\n` | Rejected with `ErrNotFASTXFormat`. |
 | A header with leading spaces or tabs, e.g. ` >id\nACGT\n` | Rejected with `ErrNotFASTXFormat`. |
 | Sequence data without a header, e.g. `ACGT\n` | Rejected with `ErrNotFASTXFormat`. |
@@ -116,3 +184,9 @@ return `io.EOF` on the first call to `Read()` without returning a record.
 | Repeated IDs, including empty IDs, e.g. `>\n>\n` | Every record is returned; IDs are not deduplicated. |
 | A valid gzip file whose decompressed content is empty or contains only LF line breaks | Accepted; 0 records. Whitespace handling is the same as for uncompressed input. |
 
+Leading comments are discarded, including any FAIR Header Reference genome (FHR)
+metadata. They are not stored in `Record` or preserved by `Format` or
+`FormatToWriter`. This is limited support for leading FASTA comments, not full
+Pearson FASTA or FHR support: `;` lines after the first header are not skipped
+and may be read as sequence data or rejected. Keep the original file if its
+metadata is needed.

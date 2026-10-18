@@ -1,5 +1,10 @@
 # Changelog
 
+### v0.16.0 - 2026-10-18
+
+- fastx, fai: skip leading `;` comment lines before the first FASTA record. [#12](https://github.com/shenwei356/bio/pull/12)
+- fastx: correct README examples and document reader ownership and output errors.
+
 ### v0.15.4 - 2026-10-14
 
 - fastx: clear quality fields when reusing pooled readers.

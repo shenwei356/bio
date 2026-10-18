@@ -185,6 +185,15 @@ func TestReaderEmptyAndLeadingInput(t *testing.T) {
 		{name: "comment only", input: ";comment\n"},
 		{name: "comment without final newline", input: ";comment"},
 		{name: "comment before FASTQ", input: ";comment\n@id\nACGT\n+\n!!!!\n", invalid: true},
+		{name: "record markers in comment", input: ";>@not-a-record\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "BOM and CRLF comments", input: "\xef\xbb\xbf;comment\r\n;~key: value\r\n>id\r\nACGT\r\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment LF at buffer end", input: ";" + strings.Repeat("x", bufSize-2) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment LF at buffer start", input: ";" + strings.Repeat("x", bufSize-1) + "\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "comment CRLF across buffers", input: ";" + strings.Repeat("x", bufSize-2) + "\r\n>id\nACGT\n", id: "id", sequence: "ACGT", count: 1},
+		{name: "indented comment", input: " ;comment\n>id\nACGT\n", invalid: true},
+		{name: "tab after comment", input: ";comment\n\t>id\nACGT\n", invalid: true},
+		{name: "CRLF blank after comment", input: ";comment\n\r\n>id\nACGT\n", invalid: true},
+		{name: "comment after header is sequence", input: ">id\nACGT\n;mid\n", id: "id", sequence: "ACGT;mid", count: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "input.fx")
@@ -232,6 +241,68 @@ func TestReaderEmptyAndLeadingInput(t *testing.T) {
 						t.Errorf("fromIO=%v: repeated Read returned %v, want io.EOF", fromIO, err)
 					}
 				}()
+			}
+		})
+	}
+}
+
+// TestReaderLeadingCommentsGzip checks that compressed comments are discarded on output.
+func TestReaderLeadingCommentsGzip(t *testing.T) {
+	input := ";~source: example\r\n;>@not-a-record\r\n>id\r\nACGT\r\n>next\nTG\n"
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	if _, err := writer.Write([]byte(input)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reader, err := NewReaderFromIO(nil, bytes.NewReader(compressed.Bytes()), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	var output bytes.Buffer
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		output.Write(record.Format(0))
+	}
+	if got, want := output.String(), ">id\nACGT\n>next\nTG\n"; got != want {
+		t.Fatalf("formatted output = %q, want %q", got, want)
+	}
+}
+
+// TestReaderResetClearsComments exercises reuse without relying on sync.Pool retention.
+func TestReaderResetClearsComments(t *testing.T) {
+	for _, input := range []string{";unterminated", ";comment\n>fa\nAC\n"} {
+		t.Run(input, func(t *testing.T) {
+			reader, err := NewReaderFromIO(nil, strings.NewReader(input), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reader.Close()
+			if _, err := reader.Read(); err != nil && err != io.EOF {
+				t.Fatal(err)
+			}
+			// Retain ownership while following the constructor's reset path.
+			reader.close()
+			reader.Reset()
+			reader.fh, err = xopen.Buf(strings.NewReader("@fq\nAC\n+\n!!\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			record, err := reader.Read()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reader.IsFastq || string(record.ID) != "fq" || string(record.Seq.Seq) != "AC" || string(record.Seq.Qual) != "!!" {
+				t.Fatalf("incorrect FASTQ record after reset: %+v", record)
 			}
 		})
 	}

@@ -105,7 +105,8 @@ func CreateWithIDRegexp(fileSeq, fileFai string, idRegexp string) (Index, error)
 	return create(fileSeq, fileFai, idRegexpCompiled, idRegexp == defaultIDRegexp)
 }
 
-// Create .fai for file. Empty files and leading LF-only blank lines are allowed.
+// Create .fai for file. Empty files, leading LF-only blank lines, and leading
+// ';' comment lines are allowed. Index offsets refer to the original file.
 func Create(fileSeq, fileFai string) (Index, error) {
 	idRegexp := IDRegexp
 	if idRegexp == nil {
